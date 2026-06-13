@@ -279,7 +279,7 @@ function openCatModal(noteId) {
     + '<button class="btn-icon" onclick="window._closeOv()">' + IC.x + '</button></div>'
     + rows
     + '<div class="cat-modal-add">'
-    + '<input type="text" id="cat-modal-input" placeholder="新しいカテゴリー…" onkeydown="if(event.key===\'Enter\')window._addCatModal()">'
+    + '<input type="text" id="cat-modal-input" placeholder="新しいカテゴリー…">'
     + '<button class="btn btn-sm" onclick="window._addCatModal()">' + IC.plus + '</button>'
     + '</div>'
   );
@@ -470,7 +470,7 @@ function renderCatPanel() {
   el.innerHTML = '<div class="panel"><div class="panel-header"><span class="panel-title">カテゴリー管理</span>'
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
     + rows
-    + '<div class="cat-add-row"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…" onkeydown="if(event.key===\'Enter\')window._addCat()">'
+    + '<div class="cat-add-row"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
     + '<button class="btn btn-sm" onclick="window._addCat()">' + IC.plus + ' 追加</button></div>'
     + '</div>';
 }
@@ -492,10 +492,32 @@ window._addCat = function() {
   render();
 };
 function addCatInline() {
-  catPanelOpen = true;
-  trashOpen = false;
-  render();
-  setTimeout(function(){ var el = document.getElementById('new-cat-input'); if (el) el.focus(); }, 50);
+  var div = document.createElement('div');
+  div.innerHTML = '<div class="modal-header">'
+    + '<span class="modal-title">カテゴリーを追加</span>'
+    + '<button class="btn-icon" id="cat-inline-close">' + IC.x + '</button>'
+    + '</div>'
+    + '<div class="cat-modal-add" style="margin-top:0;padding-top:0;border-top:none">'
+    + '<input type="text" id="cat-inline-input" placeholder="カテゴリー名...">'
+    + '<button class="btn btn-sm" id="cat-inline-submit">' + IC.plus + '</button>'
+    + '</div>';
+  document.getElementById('modal').innerHTML = '';
+  document.getElementById('modal').appendChild(div);
+  document.getElementById('overlay').classList.add('open');
+  var input = document.getElementById('cat-inline-input');
+  var submit = function() {
+    var name = input.value.trim();
+    if (!name || meta.categories.indexOf(name) >= 0) { closeOverlay(); return; }
+    meta.categories.push(name);
+    saveMeta(meta);
+    currentCat = name;
+    closeOverlay();
+    render();
+  };
+  document.getElementById('cat-inline-close').addEventListener('click', closeOverlay);
+  document.getElementById('cat-inline-submit').addEventListener('click', submit);
+  input.addEventListener('keydown', function(e){ if(e.key === 'Enter') submit(); });
+  setTimeout(function(){ input.focus(); }, 50);
 }
 window.addCatInline = addCatInline;
 window.addNote = addNote;
