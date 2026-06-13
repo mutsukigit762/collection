@@ -110,7 +110,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit, startAfter, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
@@ -182,24 +182,57 @@ function setSyncStatus(msg) {
   document.getElementById('sync-status').textContent = msg;
 }
 
-// Firestoreリアルタイム同期
-const q = query(collection(db, NOTES_COLL), orderBy('updatedAt', 'desc'));
-onSnapshot(q, function(snapshot) {
-  notes = snapshot.docs.map(function(d) {
-    var data = d.data();
-    return {
-      id: d.id,
-      cat: data.cat || NO_CAT,
-      body: data.body || '',
-      date: data.date || '',
-      deleted: data.deleted || false
-    };
-  }).filter(function(n){ return !n.deleted; });
-  setSyncStatus('');
-  render();
-}, function(err) {
-  setSyncStatus('接続エラー');
-  console.error(err);
+// ページネーション
+var PAGE_SIZE = 30;
+var lastDoc = null;
+var hasMore = true;
+var loading = false;
+
+async function loadNotes(reset) {
+  if (loading) return;
+  if (!reset && !hasMore) return;
+  loading = true;
+  setSyncStatus('読み込み中…');
+  try {
+    var q;
+    if (reset) {
+      lastDoc = null;
+      hasMore = true;
+      notes = [];
+      q = query(collection(db, NOTES_COLL), orderBy('updatedAt','desc'), limit(PAGE_SIZE));
+    } else {
+      q = query(collection(db, NOTES_COLL), orderBy('updatedAt','desc'), startAfter(lastDoc), limit(PAGE_SIZE));
+    }
+    var snapshot = await getDocs(q);
+    var newNotes = snapshot.docs.map(function(d) {
+      var data = d.data();
+      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', deleted: data.deleted || false };
+    }).filter(function(n){ return !n.deleted; });
+    if (reset) {
+      notes = newNotes;
+    } else {
+      notes = notes.concat(newNotes);
+    }
+    if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    hasMore = snapshot.docs.length === PAGE_SIZE;
+    setSyncStatus(hasMore ? '' : '');
+    render();
+  } catch(e) {
+    setSyncStatus('接続エラー');
+    console.error(e);
+  }
+  loading = false;
+}
+
+// 初回読み込み
+loadNotes(true);
+
+// スクロールで追加読み込み
+window.addEventListener('scroll', function() {
+  if (searchQuery) return;
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+    loadNotes(false);
+  }
 });
 
 // ノード操作
@@ -215,6 +248,7 @@ async function addNote() {
       deleted: false
     });
     currentCat = cat;
+    await loadNotes(true);
     setTimeout(function() {
       var ta = document.querySelector('#card-' + ref.id + ' .card-textarea');
       if (ta) ta.focus();
@@ -374,7 +408,7 @@ function render() {
   renderCatPanel();
 }
 
-function switchCat(c) { currentCat = c; render(); }
+function switchCat(c) { currentCat = c; loadNotes(true); }
 function onSearch(val) {
   searchQuery = val.trim();
   document.getElementById('search-clear').style.display = val ? 'block' : 'none';
@@ -382,7 +416,9 @@ function onSearch(val) {
 }
 function clearSearch() {
   document.getElementById('search-input').value = '';
-  onSearch('');
+  searchQuery = '';
+  document.getElementById('search-clear').style.display = 'none';
+  loadNotes(true);
   document.getElementById('search-input').focus();
 }
 
