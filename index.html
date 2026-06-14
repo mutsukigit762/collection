@@ -339,10 +339,11 @@ async function deleteNote(id) {
   if (!n) return;
   trash.push(n);
   saveTrash(trash);
+  notes = notes.filter(function(x){ return x.id !== id; });
+  render();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { deleted: true, updatedAt: serverTimestamp() }, { merge: true });
   } catch(e) { console.error(e); }
-  render();
 }
 
 // overlay
