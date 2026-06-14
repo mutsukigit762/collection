@@ -23,7 +23,7 @@
     --warning-bg:#422006;--warning-text:#fbbf24;
   }
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
 .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:1rem 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
@@ -411,14 +411,16 @@ function cardHTML(n) {
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
-    + '<textarea class="card-textarea" rows="1" oninput="autoResize(this);scheduleBodySave(\'' + n.id + '\',this.value)" placeholder="メモを入力…">' + esc(n.body) + '</textarea>'
+    + '<textarea class="card-textarea" rows="1" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>'
     + '<div class="card-date">' + esc(n.date) + '</div>'
     + '</div>';
 }
 
 function autoResize(el) {
+  var sy = window.scrollY;
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
+  if (window.scrollY !== sy) window.scrollTo(0, sy);
 }
 function onCardInput(el, id) {
   var b = byteLen(el.value);
@@ -513,6 +515,7 @@ window.openCatModal = openCatModal;
 window.deleteNote = deleteNote;
 window.scheduleBodySave = scheduleBodySave;
 window.autoResize = autoResize;
+window.onCardInput = onCardInput;
 window.switchCat = switchCat;
 window.onSearch = onSearch;
 window.clearSearch = clearSearch;
