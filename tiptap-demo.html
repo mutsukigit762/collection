@@ -132,12 +132,26 @@ const editor = new Editor({
 var lbImgs = [];
 var lbIdx = 0;
 
+function getEditorImgSrcs() {
+  var srcs = [];
+  function walk(node) {
+    if (node.type === 'image' && node.attrs && node.attrs.src) {
+      srcs.push(node.attrs.src);
+    }
+    if (node.content) node.content.forEach(walk);
+  }
+  var json = editor.getJSON();
+  if (json.content) json.content.forEach(walk);
+  return srcs;
+}
+
 function getEditorImgs() {
   return Array.from(document.querySelectorAll('#editor img'));
 }
 
 function openLightbox(idx) {
-  lbImgs = getEditorImgs().map(function(img){ return img.src; });
+  lbImgs = getEditorImgSrcs();
+  console.log('imgs:', lbImgs.length, lbImgs);
   if (!lbImgs.length) return;
   lbIdx = idx;
 
@@ -201,9 +215,14 @@ document.addEventListener('keydown', function(e) {
 // エディタ内の画像クリックでライトボックス
 document.getElementById('editor').addEventListener('click', function(e) {
   if (e.target.tagName === 'IMG') {
-    var imgs = getEditorImgs();
-    var idx = imgs.indexOf(e.target);
-    openLightbox(idx >= 0 ? idx : 0);
+    // DOM上のimg要素のうち、editorのJSONで認識してる画像のsrcと一致するものだけ使う
+    var srcs = getEditorImgSrcs();
+    lbImgs = srcs;
+    // クリックしたimgのsrcをsrcsと照合
+    var clickedSrc = e.target.src;
+    var idx = srcs.findIndex(function(s){ return clickedSrc.includes(s) || s.includes(clickedSrc) || s === clickedSrc; });
+    if (idx < 0) idx = 0;
+    openLightbox(idx);
   }
 });
 
