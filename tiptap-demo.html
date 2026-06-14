@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Tiptapデモ</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tiptap/2.4.0/tiptap.umd.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f5f5f5; padding: 20px; }
@@ -25,12 +24,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 }
 .editor p { margin: 0; }
 .editor img {
-  max-width: 100%;
-  border-radius: 8px;
-  display: block;
-  margin: 8px 0;
+  max-width: 100px;
+  max-height: 100px;
+  border-radius: 6px;
+  display: inline-block;
+  margin: 4px;
   cursor: pointer;
+  object-fit: cover;
+  vertical-align: middle;
+  transition: opacity 0.15s;
 }
+.editor img:hover { opacity: 0.85; }
 .editor p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: #aaa;
@@ -54,10 +58,43 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
   cursor: pointer;
   color: #555;
 }
-.status {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #aaa;
+.status { margin-top: 12px; font-size: 12px; color: #aaa; }
+
+/* ライトボックス */
+.lb-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.lb-bg img {
+  max-width: 90vw; max-height: 85vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.lb-nav {
+  position: fixed;
+  top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.15);
+  border: none; color: #fff;
+  font-size: 28px; padding: 12px 18px;
+  cursor: pointer; border-radius: 6px;
+  z-index: 1001;
+}
+.lb-prev { left: 12px; }
+.lb-next { right: 12px; }
+.lb-close {
+  position: fixed; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.15);
+  border: none; color: #fff;
+  font-size: 20px; padding: 6px 12px;
+  cursor: pointer; border-radius: 6px;
+  z-index: 1001;
+}
+.lb-counter {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.6); font-size: 13px;
+  z-index: 1001;
 }
 </style>
 </head>
@@ -65,14 +102,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-se
 <div class="card">
   <div class="toolbar">
     <button id="img-btn">📷 画像を挿入</button>
-    <input type="file" id="img-input" accept="image/*" style="display:none">
+    <input type="file" id="img-input" accept="image/*" multiple style="display:none">
   </div>
   <div id="editor" class="editor"></div>
   <div class="status" id="status"></div>
 </div>
 
 <script type="module">
-// Tiptapをimportで読み込む（CDN ESM版）
 import { Editor } from 'https://esm.sh/@tiptap/core@2.4.0';
 import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0';
 import Image from 'https://esm.sh/@tiptap/extension-image@2.4.0';
@@ -82,29 +118,109 @@ const editor = new Editor({
   element: document.getElementById('editor'),
   extensions: [
     StarterKit,
-    Image.configure({ inline: false }),
+    Image.configure({ inline: true }),
     Placeholder.configure({ placeholder: 'メモを入力…' }),
   ],
   content: '<p></p>',
   onUpdate({ editor }) {
-    var text = editor.getText();
-    var bytes = new TextEncoder().encode(text).length;
+    var bytes = new TextEncoder().encode(editor.getText()).length;
     document.getElementById('status').textContent = bytes + ' B';
   },
 });
 
-// 画像挿入ボタン
+// ライトボックス
+var lbImgs = [];
+var lbIdx = 0;
+
+function getEditorImgs() {
+  return Array.from(document.querySelectorAll('#editor img'));
+}
+
+function openLightbox(idx) {
+  lbImgs = getEditorImgs().map(function(img){ return img.src; });
+  if (!lbImgs.length) return;
+  lbIdx = idx;
+
+  var bg = document.createElement('div');
+  bg.className = 'lb-bg';
+  bg.id = 'lb';
+
+  var img = document.createElement('img');
+  img.src = lbImgs[lbIdx];
+  bg.appendChild(img);
+
+  var close = document.createElement('button');
+  close.className = 'lb-close';
+  close.textContent = '✕';
+  close.onclick = function(e){ e.stopPropagation(); closeLightbox(); };
+  bg.appendChild(close);
+
+  var prev = document.createElement('button');
+  prev.className = 'lb-nav lb-prev';
+  prev.textContent = '‹';
+  prev.onclick = function(e){ e.stopPropagation(); lbMove(-1); };
+  bg.appendChild(prev);
+
+  var next = document.createElement('button');
+  next.className = 'lb-nav lb-next';
+  next.textContent = '›';
+  next.onclick = function(e){ e.stopPropagation(); lbMove(1); };
+  bg.appendChild(next);
+
+  var counter = document.createElement('div');
+  counter.className = 'lb-counter';
+  counter.id = 'lb-counter';
+  counter.textContent = (lbIdx + 1) + ' / ' + lbImgs.length;
+  bg.appendChild(counter);
+
+  bg.onclick = closeLightbox;
+  document.body.appendChild(bg);
+}
+
+function lbMove(dir) {
+  lbIdx = (lbIdx + dir + lbImgs.length) % lbImgs.length;
+  var lb = document.getElementById('lb');
+  if (!lb) return;
+  lb.querySelector('img').src = lbImgs[lbIdx];
+  document.getElementById('lb-counter').textContent = (lbIdx + 1) + ' / ' + lbImgs.length;
+}
+
+function closeLightbox() {
+  var lb = document.getElementById('lb');
+  if (lb) lb.remove();
+}
+
+// キーボードナビ
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('lb')) return;
+  if (e.key === 'ArrowRight') lbMove(1);
+  if (e.key === 'ArrowLeft') lbMove(-1);
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// エディタ内の画像クリックでライトボックス
+document.getElementById('editor').addEventListener('click', function(e) {
+  if (e.target.tagName === 'IMG') {
+    var imgs = getEditorImgs();
+    var idx = imgs.indexOf(e.target);
+    openLightbox(idx >= 0 ? idx : 0);
+  }
+});
+
+// 画像挿入ボタン（複数選択対応）
 document.getElementById('img-btn').onclick = function() {
   document.getElementById('img-input').click();
 };
 document.getElementById('img-input').onchange = function(e) {
-  var file = e.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev) {
-    editor.chain().focus().setImage({ src: ev.target.result }).run();
-  };
-  reader.readAsDataURL(file);
+  var files = Array.from(e.target.files);
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      editor.chain().focus().setImage({ src: ev.target.result }).run();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
 };
 
 // ペーストで画像挿入
