@@ -496,6 +496,7 @@ document.addEventListener('paste', async function(e) {
         if (!n) return;
         n.images = (n.images || []).concat([url]);
         // renderせずにDOMだけ更新
+        var sy = window.scrollY;
         var imgsEl = card.querySelector('.card-images');
         var newImgHtml = '<div class="card-img-wrap">'
           + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + url + '\')">'
@@ -510,6 +511,7 @@ document.addEventListener('paste', async function(e) {
           div.innerHTML = newImgHtml;
           card.insertBefore(div, footer);
         }
+        window.scrollTo(0, sy);
         await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
         setSyncStatus('');
       } catch(err) {
