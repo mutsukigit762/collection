@@ -125,7 +125,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const NOTES_COLL = 'collection_notes';
-const META_DOC = 'collection_meta';
+const CATS_COLL = 'collection_categories';
 
 const IC = {
   x: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
@@ -145,16 +145,18 @@ document.querySelector('.search-clear').innerHTML = IC.x;
 
 const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
-const META_KEY = 'collection_meta_local';
+const TRASH_KEY = 'collection_trash_local';
 
-// メタデータ（カテゴリ・ゴミ箱）はlocalStorageで管理
-function loadMeta() {
-  try { return JSON.parse(localStorage.getItem(META_KEY)) || {categories:[], trash:[]}; } catch(e) { return {categories:[], trash:[]}; }
+// ゴミ箱はlocalStorageで管理
+function loadTrash() {
+  try { return JSON.parse(localStorage.getItem(TRASH_KEY)) || []; } catch(e) { return []; }
 }
-function saveMeta(m) { localStorage.setItem(META_KEY, JSON.stringify(m)); }
+function saveTrash(t) { localStorage.setItem(TRASH_KEY, JSON.stringify(t)); }
 
-var meta = loadMeta();
-var notes = []; // Firestoreから取得
+// カテゴリはFirestoreから読み込む
+var categories = [];
+var trash = loadTrash();
+var notes = [];
 var currentCat = ALL_TAB;
 var searchQuery = '';
 var trashOpen = false;
@@ -162,10 +164,32 @@ var catPanelOpen = false;
 var currentNoteIdForCat = null;
 var saveTimers = {};
 
+async function loadCategories() {
+  try {
+    var snap = await getDocs(query(collection(db, CATS_COLL), orderBy('order', 'asc')));
+    categories = snap.docs.map(function(d){ return d.data().name; });
+    render();
+  } catch(e) { console.error(e); }
+}
+
+async function saveCategoryToFirestore(name) {
+  try {
+    var snap = await getDocs(query(collection(db, CATS_COLL), orderBy('order','desc'), limit(1)));
+    var maxOrder = snap.docs.length > 0 ? (snap.docs[0].data().order || 0) : 0;
+    await addDoc(collection(db, CATS_COLL), { name: name, order: maxOrder + 1 });
+  } catch(e) { console.error(e); }
+}
+
+async function deleteCategoryFromFirestore(name) {
+  try {
+    var snap = await getDocs(query(collection(db, CATS_COLL), where('name','==',name)));
+    for (var d of snap.docs) { await deleteDoc(doc(db, CATS_COLL, d.id)); }
+  } catch(e) { console.error(e); }
+}
+
 function allTabs() {
-  var h = notes.some(function(n){ return !n.cat || n.cat === NO_CAT; });
-  var t = meta.categories.slice();
-  if (h || !t.length) t.unshift(NO_CAT);
+  var t = categories.slice();
+  t.unshift(NO_CAT);
   t.unshift(ALL_TAB);
   return t;
 }
@@ -246,6 +270,7 @@ async function searchNotes(q2) {
 }
 
 // 初回読み込み
+loadCategories();
 loadNotes(true);
 
 // スクロールで追加読み込み
@@ -295,8 +320,8 @@ async function updateCatInDB(id, cat) {
 async function deleteNote(id) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n) return;
-  meta.trash.push(n);
-  saveMeta(meta);
+  trash.push(n);
+  saveTrash(trash);
   try {
     await setDoc(doc(db, NOTES_COLL, id), { deleted: true, updatedAt: serverTimestamp() }, { merge: true });
   } catch(e) { console.error(e); }
@@ -321,7 +346,7 @@ function openCatModal(noteId) {
   var n = notes.find(function(x){ return x.id === noteId; });
   if (!n) return;
   var current = n.cat || NO_CAT;
-  var allCats = [NO_CAT].concat(meta.categories);
+  var allCats = [NO_CAT].concat(categories);
   var rows = allCats.map(function(c) {
     var sel = c === current;
     return '<div class="cat-option' + (sel ? ' selected' : '') + '" onclick="window._selectCat(\'' + noteId + '\',\'' + esc(c) + '\')">'
@@ -347,13 +372,13 @@ window._selectCat = function(noteId, cat) {
   var btn = document.querySelector('#card-' + noteId + ' .cat-btn');
   if (btn) btn.textContent = cat;
 };
-window._addCatModal = function() {
+window._addCatModal = async function() {
   var el = document.getElementById('cat-modal-input');
   if (!el) return;
   var name = el.value.trim();
-  if (!name || meta.categories.indexOf(name) >= 0) return;
-  meta.categories.push(name);
-  saveMeta(meta);
+  if (!name || categories.indexOf(name) >= 0) return;
+  categories.push(name);
+  await saveCategoryToFirestore(name);
   if (currentNoteIdForCat) {
     updateCatInDB(currentNoteIdForCat, name);
     closeOverlay();
@@ -462,7 +487,7 @@ function renderTrash() {
   var el = document.getElementById('trash-panel');
   if (!trashOpen) { el.style.display = 'none'; return; }
   el.style.display = 'block';
-  var items = meta.trash;
+  var items = trash;
   var rows = items.length
     ? items.slice().reverse().map(function(n) {
         return '<div class="trash-item">'
@@ -483,27 +508,27 @@ function renderTrash() {
 }
 
 window._restoreNote = async function(id) {
-  var n = meta.trash.find(function(x){ return x.id === id; });
+  var n = trash.find(function(x){ return x.id === id; });
   if (!n) return;
-  meta.trash = meta.trash.filter(function(x){ return x.id !== id; });
-  saveMeta(meta);
+  trash = trash.filter(function(x){ return x.id !== id; });
+  saveTrash(trash);
   try {
     await setDoc(doc(db, NOTES_COLL, id), { deleted: false, updatedAt: serverTimestamp() }, { merge: true });
   } catch(e) { console.error(e); }
   render();
 };
 window._hardDelete = async function(id) {
-  meta.trash = meta.trash.filter(function(x){ return x.id !== id; });
-  saveMeta(meta);
+  trash = trash.filter(function(x){ return x.id !== id; });
+  saveTrash(trash);
   try {
     await deleteDoc(doc(db, NOTES_COLL, id));
   } catch(e) { console.error(e); }
   renderTrash();
 };
 window._emptyTrash = async function() {
-  var ids = meta.trash.map(function(n){ return n.id; });
-  meta.trash = [];
-  saveMeta(meta);
+  var ids = trash.map(function(n){ return n.id; });
+  trash = [];
+  saveTrash(trash);
   for (var i = 0; i < ids.length; i++) {
     try { await deleteDoc(doc(db, NOTES_COLL, ids[i])); } catch(e) {}
   }
@@ -518,7 +543,7 @@ function renderCatPanel() {
   var el = document.getElementById('cat-panel');
   if (!catPanelOpen) { el.style.display = 'none'; return; }
   el.style.display = 'block';
-  var rows = meta.categories.map(function(c) {
+  var rows = categories.map(function(c) {
     var count = notes.filter(function(n){ return n.cat === c; }).length;
     return '<div class="cat-row"><span style="font-size:14px">' + esc(c)
       + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
@@ -534,19 +559,19 @@ function renderCatPanel() {
     + '</div>';
 }
 
-window._deleteCat = function(name) {
-  meta.categories = meta.categories.filter(function(c){ return c !== name; });
+window._deleteCat = async function(name) {
+  categories = categories.filter(function(c){ return c !== name; });
   if (currentCat === name) currentCat = ALL_TAB;
-  saveMeta(meta);
+  await deleteCategoryFromFirestore(name);
   render();
 };
-window._addCat = function() {
+window._addCat = async function() {
   var el = document.getElementById('new-cat-input');
   if (!el) return;
   var name = el.value.trim();
-  if (!name || meta.categories.indexOf(name) >= 0) return;
-  meta.categories.push(name);
-  saveMeta(meta);
+  if (!name || categories.indexOf(name) >= 0) return;
+  categories.push(name);
+  await saveCategoryToFirestore(name);
   currentCat = name;
   render();
 };
@@ -566,9 +591,9 @@ function addCatInline() {
   var input = document.getElementById('cat-inline-input');
   var submit = function() {
     var name = input.value.trim();
-    if (!name || meta.categories.indexOf(name) >= 0) { closeOverlay(); return; }
-    meta.categories.push(name);
-    saveMeta(meta);
+    if (!name || categories.indexOf(name) >= 0) { closeOverlay(); return; }
+    categories.push(name);
+    saveTrash(trash);
     currentCat = name;
     closeOverlay();
     render();
