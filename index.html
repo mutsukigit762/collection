@@ -54,10 +54,72 @@ select.sort-btn{padding-right:10px}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
 .cat-btn{font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .cat-btn:hover{border-color:var(--border2)}
-.card-textarea{width:100%;background:transparent;border:none;outline:none;font-size:14px;color:var(--text);font-family:inherit;line-height:1.6;resize:none;min-height:40px;padding:0}
-.card-textarea::placeholder{color:var(--text3)}
-.card-body-view{width:100%;font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word;cursor:text;min-height:40px}
+
+/* Tiptap エディタ */
+.card-editor{
+  width:100%;
+  min-height:40px;
+  font-size:14px;
+  color:var(--text);
+  line-height:1.6;
+  outline:none;
+}
+.card-editor .ProseMirror{
+  outline:none;
+  min-height:40px;
+  word-break:break-word;
+}
+.card-editor .ProseMirror p{margin:0 0 2px}
+.card-editor .ProseMirror p:last-child{margin-bottom:0}
+.card-editor .ProseMirror h1{font-size:18px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror h2{font-size:16px;font-weight:600;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror h3{font-size:14px;font-weight:600;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror strong{font-weight:700}
+.card-editor .ProseMirror em{font-style:italic}
+.card-editor .ProseMirror p.is-editor-empty:first-child::before{
+  content:attr(data-placeholder);
+  color:var(--text3);
+  pointer-events:none;
+  float:left;
+  height:0;
+}
+.card-editor .ProseMirror img{
+  max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer;display:inline-block;vertical-align:top;margin:2px;
+}
+
+/* ツールバー */
+.editor-toolbar{
+  display:none;
+  gap:2px;
+  margin-bottom:6px;
+  flex-wrap:wrap;
+}
+.card:focus-within .editor-toolbar{
+  display:flex;
+}
+.tb-btn{
+  background:none;
+  border:0.5px solid var(--border);
+  border-radius:4px;
+  padding:2px 6px;
+  font-size:12px;
+  cursor:pointer;
+  color:var(--text2);
+  font-family:inherit;
+  line-height:1.4;
+}
+.tb-btn:hover,.tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+.card-body-view{width:100%;font-size:14px;color:var(--text);line-height:1.6;word-break:break-word;cursor:text;min-height:40px}
 .card-body-view mark{background:#f59e0b;color:#000;border-radius:2px;padding:0 1px}
+.card-body-view p{margin:0 0 2px}
+.card-body-view p:last-child{margin-bottom:0}
+.card-body-view h1{font-size:18px;font-weight:700;margin:4px 0 2px}
+.card-body-view h2{font-size:16px;font-weight:600;margin:4px 0 2px}
+.card-body-view h3{font-size:14px;font-weight:600;margin:4px 0 2px}
+.card-body-view strong{font-weight:700}
+.card-body-view em{font-style:italic}
+
 .card-images{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .card-img-wrap{position:relative;display:inline-block}
 .card-img{max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer}
@@ -141,6 +203,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
+// Tiptap + 拡張
+import { Editor } from 'https://esm.sh/@tiptap/core@2.4.0';
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0';
+import Image from 'https://esm.sh/@tiptap/extension-image@2.4.0';
+import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0';
+
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
   authDomain: "memo-ce334.firebaseapp.com",
@@ -180,13 +248,11 @@ const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
 const TRASH_KEY = 'collection_trash_local';
 
-// ゴミ箱はlocalStorageで管理
 function loadTrash() {
   try { return JSON.parse(localStorage.getItem(TRASH_KEY)) || []; } catch(e) { return []; }
 }
 function saveTrash(t) { localStorage.setItem(TRASH_KEY, JSON.stringify(t)); }
 
-// カテゴリはFirestoreから読み込む
 var categories = [];
 var trash = loadTrash();
 var notes = [];
@@ -202,6 +268,111 @@ var catPanelOpen = false;
 var currentNoteIdForCat = null;
 var saveTimers = {};
 
+// ---- Tiptap editor インスタンス管理 ----
+var editors = {};
+
+function destroyEditor(id) {
+  if (editors[id]) {
+    editors[id].destroy();
+    delete editors[id];
+  }
+}
+
+function destroyAllEditors() {
+  Object.keys(editors).forEach(function(id) { destroyEditor(id); });
+}
+
+// plain text を HTML に変換（既存データ互換）
+function bodyToHTML(body) {
+  if (!body) return '';
+  // すでにHTMLタグを含む場合はそのまま返す
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
+  // plain text → <p> に変換（改行を段落区切りとして扱う）
+  return body.split('\n').map(function(line) {
+    return '<p>' + esc(line) + '</p>';
+  }).join('');
+}
+
+// HTML から plain text を取り出す（ゴミ箱プレビュー用）
+function htmlToPlainText(html) {
+  if (!html) return '';
+  var tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function initEditor(id, body) {
+  var el = document.getElementById('editor-' + id);
+  if (!el) return;
+  if (editors[id]) { editors[id].destroy(); }
+
+  var htmlContent = bodyToHTML(body);
+
+  var editor = new Editor({
+    element: el,
+    extensions: [
+      StarterKit,
+      Image.configure({ inline: true }),
+      Placeholder.configure({ placeholder: 'メモを入力…' }),
+    ],
+    content: htmlContent,
+    onUpdate: function({ editor }) {
+      var html = editor.getHTML();
+      // 空判定：<p></p> だけなら空
+      var isEmpty = html === '<p></p>' || html === '';
+      var saveVal = isEmpty ? '' : html;
+      var b = byteLen(saveVal);
+      if (b > 10000) {
+        // 超えたら直前の状態に戻す（undoで対応）
+        editor.commands.undo();
+        return;
+      }
+      // byte-count 更新
+      updateByteCount(id, saveVal);
+      scheduleBodySave(id, saveVal);
+      // notes 配列も更新
+      var n = notes.find(function(x){ return x.id === id; });
+      if (n) n.body = saveVal;
+    },
+  });
+
+  editors[id] = editor;
+  return editor;
+}
+
+function updateByteCount(id, val) {
+  var card = document.getElementById('card-' + id);
+  if (!card) return;
+  var bc = card.querySelector('.byte-count');
+  var footer = card.querySelector('.card-footer');
+  var newBc = byteCountHTML(val);
+  if (bc) bc.outerHTML = newBc || '<span></span>';
+  else if (newBc && footer) footer.insertAdjacentHTML('beforeend', newBc);
+}
+
+// ツールバーボタン
+function makeToolbar(id) {
+  return '<div class="editor-toolbar" id="toolbar-' + id + '">'
+    + '<button class="tb-btn" title="太字" onmousedown="event.preventDefault();window._tbCmd(\'' + id + '\',\'toggleBold\')"><b>B</b></button>'
+    + '<button class="tb-btn" title="斜体" onmousedown="event.preventDefault();window._tbCmd(\'' + id + '\',\'toggleItalic\')"><i>I</i></button>'
+    + '<button class="tb-btn" title="見出し1" onmousedown="event.preventDefault();window._tbH(\'' + id + '\',1)">H1</button>'
+    + '<button class="tb-btn" title="見出し2" onmousedown="event.preventDefault();window._tbH(\'' + id + '\',2)">H2</button>'
+    + '<button class="tb-btn" title="見出し3" onmousedown="event.preventDefault();window._tbH(\'' + id + '\',3)">H3</button>'
+    + '</div>';
+}
+
+window._tbCmd = function(id, cmd) {
+  var ed = editors[id];
+  if (!ed) return;
+  ed.chain().focus()[cmd]().run();
+};
+window._tbH = function(id, level) {
+  var ed = editors[id];
+  if (!ed) return;
+  ed.chain().focus().toggleHeading({ level: level }).run();
+};
+
+// ---- Firebase ----
 async function loadCategories() {
   try {
     var snap = await getDocs(query(collection(db, CATS_COLL), orderBy('order', 'asc')));
@@ -244,7 +415,6 @@ function setSyncStatus(msg) {
   document.getElementById('sync-status').textContent = msg;
 }
 
-// ページネーション
 var PAGE_SIZE = 30;
 var lastDoc = null;
 var hasMore = true;
@@ -262,12 +432,10 @@ async function buildQuery(isNext) {
   } else {
     constraints.push(where('deleted', '==', false));
   }
-  // 日付フィルター
   if (filterYear && filterDir) {
     var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
     var dateStr = filterYear + '-' + m;
     if (filterDir === 'before') {
-      // 月末まで含めるため翌月の1日以前
       constraints.push(where('date', '<=', dateStr + '-31'));
     } else {
       constraints.push(where('date', '>=', dateStr + '-01'));
@@ -284,7 +452,7 @@ async function loadNotes(reset) {
   loading = true;
   setSyncStatus('読み込み中…');
   try {
-    if (reset) { lastDoc = null; hasMore = true; notes = []; }
+    if (reset) { lastDoc = null; hasMore = true; notes = []; destroyAllEditors(); }
     var q = await buildQuery(!reset);
     var snapshot = await getDocs(q);
     var newNotes = snapshot.docs.map(function(d) {
@@ -321,7 +489,8 @@ async function searchNotes(q2) {
     notes = (data.hits || []).map(function(h) {
       return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '' };
     }).filter(function(n) {
-      return n.body.toLowerCase().indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0;
+      var plain = htmlToPlainText(n.body).toLowerCase();
+      return plain.indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0;
     });
     setSyncStatus('');
     render();
@@ -331,11 +500,9 @@ async function searchNotes(q2) {
   }
 }
 
-// 初回読み込み
 loadCategories();
 loadNotes(true);
 
-// スクロールで追加読み込み
 window.addEventListener('scroll', function() {
   if (searchQuery) return;
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
@@ -343,12 +510,11 @@ window.addEventListener('scroll', function() {
   }
 });
 
-// ノード操作
 async function addNote() {
   var today = new Date().toISOString().slice(0,10);
   var cat = currentCat === ALL_TAB ? NO_CAT : currentCat;
   try {
-    var ref = await addDoc(collection(db, NOTES_COLL), {
+    var docRef = await addDoc(collection(db, NOTES_COLL), {
       cat: cat,
       body: '',
       date: today,
@@ -358,8 +524,8 @@ async function addNote() {
     currentCat = cat;
     await loadNotes(true);
     setTimeout(function() {
-      var ta = document.querySelector('#card-' + ref.id + ' .card-textarea');
-      if (ta) ta.focus();
+      var ed = editors[docRef.id];
+      if (ed) ed.commands.focus();
     }, 300);
   } catch(e) { console.error(e); }
 }
@@ -385,13 +551,13 @@ async function deleteNote(id) {
   trash.push(n);
   saveTrash(trash);
   notes = notes.filter(function(x){ return x.id !== id; });
+  destroyEditor(id);
   render();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { deleted: true, updatedAt: serverTimestamp() }, { merge: true });
   } catch(e) { console.error(e); }
 }
 
-// overlay
 function openOverlay(html) {
   document.getElementById('modal').innerHTML = html;
   document.getElementById('overlay').classList.add('open');
@@ -403,7 +569,6 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('overlay')) closeOverlay();
 }
 
-// カテゴリモーダル
 function openCatModal(noteId) {
   currentNoteIdForCat = noteId;
   var n = notes.find(function(x){ return x.id === noteId; });
@@ -451,7 +616,7 @@ window._addCatModal = async function() {
   }
 };
 
-// カード描画
+// ---- カード描画 ----
 function byteLen(s) { return new TextEncoder().encode(s).length; }
 function byteCountHTML(body) {
   var b = byteLen(body);
@@ -460,13 +625,17 @@ function byteCountHTML(body) {
   var msg = b >= 10000 ? '上限超過' : '上限まで' + (10000 - b) + 'B';
   return '<span class="byte-count ' + cls + '">' + msg + '</span>';
 }
+
 function cardHTML(n) {
   var bc = byteCountHTML(n.body || '');
   var bodyEl;
   if (searchQuery) {
-    bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(n.body || '', searchQuery.toLowerCase()) + '</div>';
+    // 検索時は plain text でハイライト表示
+    var plain = htmlToPlainText(n.body || '');
+    bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(plain, searchQuery.toLowerCase()) + '</div>';
   } else {
-    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
+    // 通常時はTiptapエディタ用のdiv
+    bodyEl = makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>';
   }
   var imgs = (n.images || []).map(function(url, i) {
     return '<div class="card-img-wrap">'
@@ -486,24 +655,27 @@ function cardHTML(n) {
     + '</div>';
 }
 
-// 画像処理
-// documentレベルでペーストを横取り（textareaへの改行混入を防ぐ）
+// ---- 画像処理 ----
+// ペースト：.ProseMirror がフォーカス中のカードを特定
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
-  console.log('paste event', items ? items.length : 'no items', document.activeElement);
   if (!items) return;
   var hasImage = false;
   for (var i = 0; i < items.length; i++) {
-    console.log('item type:', items[i].type);
     if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; }
   }
   if (!hasImage) return;
-  var ta = document.activeElement;
-  console.log('activeElement:', ta, ta && ta.classList);
-  if (!ta || !ta.classList.contains('card-textarea')) return;
-  var card = ta.closest('.card');
-  if (!card) return;
-  var id = card.id.replace('card-', '');
+
+  // フォーカス中の ProseMirror div からカードIDを取る
+  var active = document.activeElement;
+  var proseMirror = active && active.classList.contains('ProseMirror') ? active : null;
+  if (!proseMirror) return;
+  var editorDiv = proseMirror.closest('.card-editor');
+  if (!editorDiv) return;
+  var id = editorDiv.id.replace('editor-', '');
+  var ed = editors[id];
+  if (!ed) return;
+
   e.preventDefault();
   for (var i = 0; i < items.length; i++) {
     if (items[i].type.indexOf('image') >= 0) {
@@ -515,27 +687,14 @@ document.addEventListener('paste', async function(e) {
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
+        // Tiptap に画像を挿入
+        ed.chain().focus().setImage({ src: url }).run();
+        // notes 配列と Firestore を更新
         var n = notes.find(function(x){ return x.id === id; });
-        if (!n) return;
-        n.images = (n.images || []).concat([url]);
-        // renderせずにDOMだけ更新
-        var sy = window.scrollY;
-        var imgsEl = card.querySelector('.card-images');
-        var newImgHtml = '<div class="card-img-wrap">'
-          + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + url + '\')">'
-          + '<button class="card-img-del" onclick="deleteImage(\'' + id + '\',' + (n.images.length - 1) + ')" title="画像を削除">×</button>'
-          + '</div>';
-        if (imgsEl) {
-          imgsEl.insertAdjacentHTML('beforeend', newImgHtml);
-        } else {
-          var footer = card.querySelector('.card-footer');
-          var div = document.createElement('div');
-          div.className = 'card-images';
-          div.innerHTML = newImgHtml;
-          card.insertBefore(div, footer);
+        if (n) {
+          n.images = (n.images || []).concat([url]);
+          await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
         }
-        window.scrollTo(0, sy);
-        await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
         setSyncStatus('');
       } catch(err) {
         setSyncStatus('アップロードエラー');
@@ -545,17 +704,16 @@ document.addEventListener('paste', async function(e) {
     }
   }
 });
+
 async function deleteImage(id, idx) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n || !n.images) return;
   var url = n.images[idx];
   n.images = n.images.filter(function(_, i){ return i !== idx; });
-  // DOM直接更新
   var card = document.getElementById('card-' + id);
   if (card) {
     var wraps = card.querySelectorAll('.card-img-wrap');
     if (wraps[idx]) wraps[idx].remove();
-    // 画像が0枚になったらcard-imagesごと消す
     var imgsEl = card.querySelector('.card-images');
     if (imgsEl && imgsEl.querySelectorAll('.card-img-wrap').length === 0) imgsEl.remove();
   }
@@ -575,89 +733,31 @@ function openImgModal(url) {
 window.deleteImage = deleteImage;
 window.openImgModal = openImgModal;
 
-function autoResize(el) {
-  var sy = window.scrollY;
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-  if (window.scrollY !== sy) window.scrollTo(0, sy);
-}
 // 検索結果の読み取り表示をタップしたら編集モードに切り替え
 async function enterEdit(viewEl, id) {
   var card = viewEl.closest('.card');
   if (!card) return;
-  var ta = document.createElement('textarea');
-  ta.className = 'card-textarea';
-  ta.rows = 1;
-  ta.placeholder = 'メモを入力…';
-  var n = notes.find(function(x){ return x.id === id; });
-  ta.value = n ? (n.body || '') : '';
-  viewEl.replaceWith(ta);
-  ta.oninput = function(){ onCardInput(ta, id); };
-  ta.onblur = function() {
-    if (!searchQuery) return;
-    var currentBody = ta.value;
-    if (n) n.body = currentBody;
-    var div = document.createElement('div');
-    div.className = 'card-body-view';
-    div.onclick = function(){ enterEdit(div, id); };
-    div.innerHTML = highlight(currentBody, searchQuery.toLowerCase());
-    ta.replaceWith(div);
-  };
-  ta.style.height = 'auto';
-  ta.style.height = ta.scrollHeight + 'px';
-  ta.focus();
-  // Firestoreから完全版を取得（Algoliaのbodyは切り詰めの可能性）
-  try {
-    var snap = await getDoc(doc(db, NOTES_COLL, id));
-    if (snap.exists()) {
-      var fullBody = snap.data().body || '';
-      if (fullBody !== ta.value) {
-        ta.value = fullBody;
-        if (n) n.body = fullBody;
-        ta.style.height = 'auto';
-        ta.style.height = ta.scrollHeight + 'px';
-      }
-    }
-  } catch(e) { console.error(e); }
-}
 
-function onCardInput(el, id) {
-  var b = byteLen(el.value);
-  if (b > 10000) {
-    // 10KB超えたら超えた分を削除
-    var val = el.value;
-    while (byteLen(val) > 10000) val = val.slice(0, -1);
-    el.value = val;
-  }
-  autoResize(el);
-  // byte-countを更新
-  var card = el.closest('.card');
-  if (card) {
-    var bc = card.querySelector('.byte-count');
-    var footer = card.querySelector('.card-footer');
-    var newBc = byteCountHTML(el.value);
-    if (bc) bc.outerHTML = newBc || '';
-    else if (newBc && footer) footer.insertAdjacentHTML('beforeend', newBc);
-  }
-  scheduleBodySave(id, el.value);
-}
-// 検索結果のカードはAlgoliaの切り詰めbodyの可能性があるので、編集開始時にFirestoreの完全版を読み込む
-async function onCardFocus(el, id) {
-  if (!searchQuery) return;
-  if (el.dataset.full === '1') return;
+  // viewEl をエディタ用divに差し替え
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = makeToolbar(id) + '<div class="card-editor" id="editor-' + id + '"></div>';
+  viewEl.replaceWith(wrapper);
+
+  // Firestoreから完全版を取得
+  var n = notes.find(function(x){ return x.id === id; });
+  var body = n ? (n.body || '') : '';
   try {
     var snap = await getDoc(doc(db, NOTES_COLL, id));
     if (snap.exists()) {
-      var fullBody = snap.data().body || '';
-      if (fullBody !== el.value) {
-        var sy = window.scrollY;
-        el.value = fullBody;
-        autoResize(el);
-        window.scrollTo(0, sy);
-      }
+      body = snap.data().body || '';
+      if (n) n.body = body;
     }
-    el.dataset.full = '1';
   } catch(e) { console.error(e); }
+
+  var ed = initEditor(id, body);
+  if (ed) {
+    setTimeout(function(){ ed.commands.focus('end'); }, 50);
+  }
 }
 
 function renderTabs() {
@@ -672,18 +772,19 @@ function renderTabs() {
 function renderCards() {
   var el = document.getElementById('cards');
   var countEl = document.getElementById('search-count');
+
+  // 既存エディタを全破棄
+  destroyAllEditors();
+
   if (searchQuery) {
     var found = notes;
     countEl.textContent = found.length + '件ヒット';
     el.innerHTML = found.length
       ? found.map(function(n){ return cardHTML(n); }).join('')
       : '<div class="empty">' + IC.searchLg + '見つからなかった</div>';
-    el.querySelectorAll('.card-textarea').forEach(function(ta) {
-      ta.style.height = 'auto';
-      ta.style.height = ta.scrollHeight + 'px';
-    });
     return;
   }
+
   countEl.textContent = '';
   var filtered = notes.filter(function(n) {
     if (currentCat === ALL_TAB) return true;
@@ -693,9 +794,10 @@ function renderCards() {
   el.innerHTML = filtered.length
     ? filtered.map(function(n){ return cardHTML(n); }).join('')
     : '<div class="empty">' + IC.inboxLg + 'まだ何もない</div>';
-  el.querySelectorAll('.card-textarea').forEach(function(ta) {
-    ta.style.height = 'auto';
-    ta.style.height = ta.scrollHeight + 'px';
+
+  // 各カードにTiptapを初期化
+  filtered.forEach(function(n) {
+    initEditor(n.id, n.body);
   });
 }
 
@@ -726,16 +828,12 @@ function clearSearch() {
   document.getElementById('search-input').focus();
 }
 
-// グローバルに公開
 window.openCatModal = openCatModal;
 window.deleteNote = deleteNote;
 window.scheduleBodySave = scheduleBodySave;
-window.autoResize = autoResize;
-window.onCardInput = onCardInput;
-window.onCardFocus = onCardFocus;
+window.onSearch = onSearch;
 window.enterEdit = enterEdit;
 window.switchCat = switchCat;
-window.onSearch = onSearch;
 
 function setSort(field) {
   sortField = field;
@@ -787,8 +885,9 @@ function renderTrash() {
   var items = trash;
   var rows = items.length
     ? items.slice().reverse().map(function(n) {
+        var plain = htmlToPlainText(n.body || '').slice(0, 60);
         return '<div class="trash-item">'
-          + '<div style="flex:1"><div class="trash-item-body">' + esc((n.body||'').slice(0,60)) + ((n.body||'').length > 60 ? '…' : '') + '</div>'
+          + '<div style="flex:1"><div class="trash-item-body">' + esc(plain) + (htmlToPlainText(n.body||'').length > 60 ? '…' : '') + '</div>'
           + '<div class="trash-item-meta">' + esc(n.cat || NO_CAT) + ' · ' + esc(n.date) + '</div></div>'
           + '<div style="display:flex;gap:4px">'
           + '<button class="btn-icon" onclick="window._restoreNote(\'' + n.id + '\')" title="元に戻す">' + IC.restore + '</button>'
@@ -890,7 +989,6 @@ function addCatInline() {
     var name = input.value.trim();
     if (!name || categories.indexOf(name) >= 0) { closeOverlay(); return; }
     categories.push(name);
-    saveTrash(trash);
     currentCat = name;
     closeOverlay();
     render();
