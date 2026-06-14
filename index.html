@@ -110,7 +110,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit, startAfter, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
@@ -188,40 +188,61 @@ var lastDoc = null;
 var hasMore = true;
 var loading = false;
 
+async function buildQuery(isNext) {
+  var constraints = [orderBy('updatedAt','desc')];
+  if (currentCat !== ALL_TAB) {
+    var catVal = currentCat === NO_CAT ? NO_CAT : currentCat;
+    constraints.push(where('cat', '==', catVal));
+    constraints.push(where('deleted', '==', false));
+  } else {
+    constraints.push(where('deleted', '==', false));
+  }
+  constraints.push(limit(PAGE_SIZE));
+  if (isNext && lastDoc) constraints.push(startAfter(lastDoc));
+  return query(collection(db, NOTES_COLL), ...constraints);
+}
+
 async function loadNotes(reset) {
   if (loading) return;
   if (!reset && !hasMore) return;
   loading = true;
   setSyncStatus('読み込み中…');
   try {
-    var q;
-    if (reset) {
-      lastDoc = null;
-      hasMore = true;
-      notes = [];
-      q = query(collection(db, NOTES_COLL), orderBy('updatedAt','desc'), limit(PAGE_SIZE));
-    } else {
-      q = query(collection(db, NOTES_COLL), orderBy('updatedAt','desc'), startAfter(lastDoc), limit(PAGE_SIZE));
-    }
+    if (reset) { lastDoc = null; hasMore = true; notes = []; }
+    var q = await buildQuery(!reset);
     var snapshot = await getDocs(q);
     var newNotes = snapshot.docs.map(function(d) {
       var data = d.data();
       return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', deleted: data.deleted || false };
-    }).filter(function(n){ return !n.deleted; });
-    if (reset) {
-      notes = newNotes;
-    } else {
-      notes = notes.concat(newNotes);
-    }
+    });
+    if (reset) { notes = newNotes; } else { notes = notes.concat(newNotes); }
     if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
     hasMore = snapshot.docs.length === PAGE_SIZE;
-    setSyncStatus(hasMore ? '' : '');
+    setSyncStatus('');
     render();
   } catch(e) {
     setSyncStatus('接続エラー');
     console.error(e);
   }
   loading = false;
+}
+
+async function searchNotes(q2) {
+  setSyncStatus('検索中…');
+  try {
+    var snapshot = await getDocs(query(collection(db, NOTES_COLL), where('deleted','==',false), orderBy('updatedAt','desc'), limit(500)));
+    var all = snapshot.docs.map(function(d) {
+      var data = d.data();
+      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '' };
+    });
+    var lq = q2.toLowerCase();
+    notes = all.filter(function(n){ return n.body.toLowerCase().indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0; });
+    setSyncStatus('');
+    render();
+  } catch(e) {
+    setSyncStatus('接続エラー');
+    console.error(e);
+  }
 }
 
 // 初回読み込み
@@ -371,9 +392,7 @@ function renderCards() {
   var countEl = document.getElementById('search-count');
   if (searchQuery) {
     var q2 = searchQuery.toLowerCase();
-    var found = notes.filter(function(n) {
-      return n.body.toLowerCase().indexOf(q2) >= 0 || (n.cat || NO_CAT).toLowerCase().indexOf(q2) >= 0;
-    });
+    var found = notes;
     countEl.textContent = found.length + '件ヒット';
     el.innerHTML = found.length
       ? found.map(function(n) {
@@ -412,7 +431,11 @@ function switchCat(c) { currentCat = c; loadNotes(true); }
 function onSearch(val) {
   searchQuery = val.trim();
   document.getElementById('search-clear').style.display = val ? 'block' : 'none';
-  render();
+  if (searchQuery) {
+    searchNotes(searchQuery);
+  } else {
+    loadNotes(true);
+  }
 }
 function clearSearch() {
   document.getElementById('search-input').value = '';
