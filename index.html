@@ -130,6 +130,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const NOTES_COLL = 'collection_notes';
 const CATS_COLL = 'collection_categories';
+const ALGOLIA_APP_ID = 'J90KE9AP6P';
+const ALGOLIA_SEARCH_KEY = 'dcd2d9c7819580a05c4e61dbe07d2046';
+const ALGOLIA_INDEX = 'collection_notes';
 
 const IC = {
   x: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
@@ -258,13 +261,20 @@ async function loadNotes(reset) {
 async function searchNotes(q2) {
   setSyncStatus('検索中…');
   try {
-    var snapshot = await getDocs(query(collection(db, NOTES_COLL), where('deleted','==',false), orderBy('updatedAt','desc'), limit(500)));
-    var all = snapshot.docs.map(function(d) {
-      var data = d.data();
-      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '' };
+    var url = 'https://' + ALGOLIA_APP_ID + '-dsn.algolia.net/1/indexes/' + ALGOLIA_INDEX + '/query';
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+        'X-Algolia-API-Key': ALGOLIA_SEARCH_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date'] })
     });
-    var lq = q2.toLowerCase();
-    notes = all.filter(function(n){ return n.body.toLowerCase().indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0; });
+    var data = await res.json();
+    notes = (data.hits || []).map(function(h) {
+      return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '' };
+    });
     setSyncStatus('');
     render();
   } catch(e) {
