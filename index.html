@@ -234,9 +234,13 @@ var loading = false;
 async function buildQuery(isNext) {
   var constraints = [orderBy(sortField, sortDir)];
   if (currentCat !== ALL_TAB) {
-    var catVal = currentCat === NO_CAT ? NO_CAT : currentCat;
-    constraints.push(where('cat', '==', catVal));
-    constraints.push(where('deleted', '==', false));
+    if (currentCat === NO_CAT) {
+      // 空文字またはカテゴリなしの両方に対応するため、ALLで取ってフロント側でフィルタ
+      constraints.push(where('deleted', '==', false));
+    } else {
+      constraints.push(where('cat', '==', currentCat));
+      constraints.push(where('deleted', '==', false));
+    }
   } else {
     constraints.push(where('deleted', '==', false));
   }
@@ -558,7 +562,7 @@ function renderCards() {
   countEl.textContent = '';
   var filtered = notes.filter(function(n) {
     if (currentCat === ALL_TAB) return true;
-    if (currentCat === NO_CAT) return !n.cat || n.cat === NO_CAT;
+    if (currentCat === NO_CAT) return !n.cat || n.cat === NO_CAT || n.cat === '';
     return n.cat === currentCat;
   });
   el.innerHTML = filtered.length
