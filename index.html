@@ -490,14 +490,16 @@ function cardHTML(n) {
 // documentレベルでペーストを横取り（textareaへの改行混入を防ぐ）
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
+  console.log('paste event', items ? items.length : 'no items', document.activeElement);
   if (!items) return;
   var hasImage = false;
   for (var i = 0; i < items.length; i++) {
+    console.log('item type:', items[i].type);
     if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; }
   }
   if (!hasImage) return;
-  // フォーカスしてるtextareaからカードIDを特定
   var ta = document.activeElement;
+  console.log('activeElement:', ta, ta && ta.classList);
   if (!ta || !ta.classList.contains('card-textarea')) return;
   var card = ta.closest('.card');
   if (!card) return;
