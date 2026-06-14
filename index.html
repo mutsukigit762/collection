@@ -527,10 +527,17 @@ async function deleteImage(id, idx) {
   if (!n || !n.images) return;
   var url = n.images[idx];
   n.images = n.images.filter(function(_, i){ return i !== idx; });
-  render();
+  // DOM直接更新
+  var card = document.getElementById('card-' + id);
+  if (card) {
+    var wraps = card.querySelectorAll('.card-img-wrap');
+    if (wraps[idx]) wraps[idx].remove();
+    // 画像が0枚になったらcard-imagesごと消す
+    var imgsEl = card.querySelector('.card-images');
+    if (imgsEl && imgsEl.querySelectorAll('.card-img-wrap').length === 0) imgsEl.remove();
+  }
   try {
     await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
-    // Storageからも削除
     var storageRef = ref(storage, url);
     await deleteObject(storageRef).catch(function(){});
   } catch(err) { console.error(err); }
