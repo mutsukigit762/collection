@@ -52,6 +52,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .cat-btn:hover{border-color:var(--border2)}
 .card-textarea{width:100%;background:transparent;border:none;outline:none;font-size:14px;color:var(--text);font-family:inherit;line-height:1.6;resize:none;min-height:40px;padding:0}
 .card-textarea::placeholder{color:var(--text3)}
+.card-body-view{width:100%;font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word;cursor:text;min-height:40px}
+.card-body-view mark{background:#f59e0b;color:#000;border-radius:2px;padding:0 1px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -408,13 +410,21 @@ window._addCatModal = async function() {
 
 // カード描画
 function cardHTML(n) {
+  var bc = byteCountHTML(n.body || '');
+  var bodyEl;
+  if (searchQuery) {
+    // 検索時はハイライト付きの読み取り表示。タップで編集モードに切り替え
+    bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(n.body || '', searchQuery.toLowerCase()) + '</div>';
+  } else {
+    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
+  }
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top">'
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
-    + '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>'
-    + '<div class="card-date">' + esc(n.date) + '</div>'
+    + bodyEl
+    + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + bc + '</div>'
     + '</div>';
 }
 
@@ -424,6 +434,36 @@ function autoResize(el) {
   el.style.height = el.scrollHeight + 'px';
   if (window.scrollY !== sy) window.scrollTo(0, sy);
 }
+// 検索結果の読み取り表示をタップしたら編集モードに切り替え
+async function enterEdit(viewEl, id) {
+  var card = viewEl.closest('.card');
+  if (!card) return;
+  var ta = document.createElement('textarea');
+  ta.className = 'card-textarea';
+  ta.rows = 1;
+  ta.placeholder = 'メモを入力…';
+  var n = notes.find(function(x){ return x.id === id; });
+  ta.value = n ? (n.body || '') : '';
+  viewEl.replaceWith(ta);
+  ta.oninput = function(){ onCardInput(ta, id); };
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+  ta.focus();
+  // Firestoreから完全版を取得（Algoliaのbodyは切り詰めの可能性）
+  try {
+    var snap = await getDoc(doc(db, NOTES_COLL, id));
+    if (snap.exists()) {
+      var fullBody = snap.data().body || '';
+      if (fullBody !== ta.value) {
+        ta.value = fullBody;
+        if (n) n.body = fullBody;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      }
+    }
+  } catch(e) { console.error(e); }
+}
+
 function onCardInput(el, id) {
   var b = byteLen(el.value);
   if (b > 10000) {
@@ -536,6 +576,7 @@ window.scheduleBodySave = scheduleBodySave;
 window.autoResize = autoResize;
 window.onCardInput = onCardInput;
 window.onCardFocus = onCardFocus;
+window.enterEdit = enterEdit;
 window.switchCat = switchCat;
 window.onSearch = onSearch;
 window.clearSearch = clearSearch;
