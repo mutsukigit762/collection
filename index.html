@@ -272,8 +272,11 @@ async function searchNotes(q2) {
       body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date'] })
     });
     var data = await res.json();
+    var lq = q2.toLowerCase();
     notes = (data.hits || []).map(function(h) {
       return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '' };
+    }).filter(function(n) {
+      return n.body.toLowerCase().indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0;
     });
     setSyncStatus('');
     render();
