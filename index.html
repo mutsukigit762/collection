@@ -57,6 +57,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .card-textarea::placeholder{color:var(--text3)}
 .card-body-view{width:100%;font-size:14px;color:var(--text);line-height:1.6;white-space:pre-wrap;word-break:break-word;cursor:text;min-height:40px}
 .card-body-view mark{background:#f59e0b;color:#000;border-radius:2px;padding:0 1px}
+.card-images{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.card-img-wrap{position:relative;display:inline-block}
+.card-img{max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer}
+.card-img-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:200;cursor:pointer}
+.img-modal-bg img{max-width:90vw;max-height:90vh;border-radius:8px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -125,6 +131,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
@@ -138,6 +145,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const NOTES_COLL = 'collection_notes';
 const CATS_COLL = 'collection_categories';
 const ALGOLIA_APP_ID = 'J90KE9AP6P';
@@ -260,7 +268,7 @@ async function loadNotes(reset) {
     var snapshot = await getDocs(q);
     var newNotes = snapshot.docs.map(function(d) {
       var data = d.data();
-      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', deleted: data.deleted || false };
+      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', deleted: data.deleted || false, images: data.images || [] };
     });
     if (reset) { notes = newNotes; } else { notes = notes.concat(newNotes); }
     if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
@@ -435,20 +443,80 @@ function cardHTML(n) {
   var bc = byteCountHTML(n.body || '');
   var bodyEl;
   if (searchQuery) {
-    // 検索時はハイライト付きの読み取り表示。タップで編集モードに切り替え
     bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(n.body || '', searchQuery.toLowerCase()) + '</div>';
   } else {
-    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
+    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" onpaste="onCardPaste(event,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
   }
+  var imgs = (n.images || []).map(function(url, i) {
+    return '<div class="card-img-wrap">'
+      + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + url + '\')">'
+      + '<button class="card-img-del" onclick="deleteImage(\'' + n.id + '\',' + i + ')" title="画像を削除">×</button>'
+      + '</div>';
+  }).join('');
+  var imgsEl = imgs ? '<div class="card-images">' + imgs + '</div>' : '';
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top">'
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + bodyEl
+    + imgsEl
     + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + bc + '</div>'
     + '</div>';
 }
+
+// 画像処理
+async function onCardPaste(e, id) {
+  var items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') >= 0) {
+      e.preventDefault();
+      var file = items[i].getAsFile();
+      if (!file) continue;
+      setSyncStatus('画像をアップロード中…');
+      try {
+        var path = 'images/' + id + '/' + Date.now() + '_' + file.name;
+        var storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file);
+        var url = await getDownloadURL(storageRef);
+        var n = notes.find(function(x){ return x.id === id; });
+        if (!n) return;
+        n.images = (n.images || []).concat([url]);
+        await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
+        setSyncStatus('');
+        render();
+      } catch(err) {
+        setSyncStatus('アップロードエラー');
+        console.error(err);
+      }
+      return;
+    }
+  }
+}
+async function deleteImage(id, idx) {
+  var n = notes.find(function(x){ return x.id === id; });
+  if (!n || !n.images) return;
+  var url = n.images[idx];
+  n.images = n.images.filter(function(_, i){ return i !== idx; });
+  render();
+  try {
+    await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
+    // Storageからも削除
+    var storageRef = ref(storage, url);
+    await deleteObject(storageRef).catch(function(){});
+  } catch(err) { console.error(err); }
+}
+function openImgModal(url) {
+  var bg = document.createElement('div');
+  bg.className = 'img-modal-bg';
+  bg.innerHTML = '<img src="' + url + '">';
+  bg.onclick = function(){ bg.remove(); };
+  document.body.appendChild(bg);
+}
+window.onCardPaste = onCardPaste;
+window.deleteImage = deleteImage;
+window.openImgModal = openImgModal;
 
 function autoResize(el) {
   var sy = window.scrollY;
