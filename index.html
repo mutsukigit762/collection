@@ -114,7 +114,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
@@ -386,6 +386,8 @@ function openCatModal(noteId) {
 window._closeOv = closeOverlay;
 window._selectCat = function(noteId, cat) {
   updateCatInDB(noteId, cat);
+  var n = notes.find(function(x){ return x.id === noteId; });
+  if (n) n.cat = cat;
   closeOverlay();
   var btn = document.querySelector('#card-' + noteId + ' .cat-btn');
   if (btn) btn.textContent = cat;
@@ -411,7 +413,7 @@ function cardHTML(n) {
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
-    + '<textarea class="card-textarea" rows="1" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>'
+    + '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>'
     + '<div class="card-date">' + esc(n.date) + '</div>'
     + '</div>';
 }
@@ -442,6 +444,24 @@ function onCardInput(el, id) {
   }
   scheduleBodySave(id, el.value);
 }
+// 検索結果のカードはAlgoliaの切り詰めbodyの可能性があるので、編集開始時にFirestoreの完全版を読み込む
+async function onCardFocus(el, id) {
+  if (!searchQuery) return;
+  if (el.dataset.full === '1') return;
+  try {
+    var snap = await getDoc(doc(db, NOTES_COLL, id));
+    if (snap.exists()) {
+      var fullBody = snap.data().body || '';
+      if (fullBody !== el.value) {
+        var sy = window.scrollY;
+        el.value = fullBody;
+        autoResize(el);
+        window.scrollTo(0, sy);
+      }
+    }
+    el.dataset.full = '1';
+  } catch(e) { console.error(e); }
+}
 
 function renderTabs() {
   var t = document.getElementById('tabs');
@@ -456,16 +476,15 @@ function renderCards() {
   var el = document.getElementById('cards');
   var countEl = document.getElementById('search-count');
   if (searchQuery) {
-    var q2 = searchQuery.toLowerCase();
     var found = notes;
     countEl.textContent = found.length + '件ヒット';
     el.innerHTML = found.length
-      ? found.map(function(n) {
-          return '<div class="card"><div class="card-top"><span style="font-size:11px;color:var(--text2)">' + highlight(n.cat || NO_CAT, q2) + '</span></div>'
-            + '<div style="font-size:14px;line-height:1.6">' + highlight(n.body, q2) + '</div>'
-            + '<div class="card-date">' + esc(n.date) + '</div></div>';
-        }).join('')
+      ? found.map(function(n){ return cardHTML(n); }).join('')
       : '<div class="empty">' + IC.searchLg + '見つからなかった</div>';
+    el.querySelectorAll('.card-textarea').forEach(function(ta) {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+    });
     return;
   }
   countEl.textContent = '';
@@ -516,6 +535,7 @@ window.deleteNote = deleteNote;
 window.scheduleBodySave = scheduleBodySave;
 window.autoResize = autoResize;
 window.onCardInput = onCardInput;
+window.onCardFocus = onCardFocus;
 window.switchCat = switchCat;
 window.onSearch = onSearch;
 window.clearSearch = clearSearch;
