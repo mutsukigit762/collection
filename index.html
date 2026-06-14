@@ -38,7 +38,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .search-wrap{position:relative;margin-bottom:1rem}
 .search-wrap input{width:100%;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:9px 32px 9px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none}
 .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);display:none;padding:2px}
-.tabs{display:flex;margin-bottom:1.25rem;border-bottom:0.5px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;margin-bottom:0;border-bottom:0.5px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.sort-bar{display:flex;gap:6px;padding:8px 0 10px;align-items:center}
+.sort-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer}
+.sort-btn.active{background:var(--text);color:var(--bg3);border-color:var(--text)}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
@@ -105,6 +108,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <button class="search-clear" id="search-clear" onclick="clearSearch()"></button>
   </div>
   <div class="tabs" id="tabs"></div>
+  <div class="sort-bar" id="sort-bar">
+    <button class="sort-btn active" id="sort-updated" onclick="setSort('updatedAt')">更新順</button>
+    <button class="sort-btn" id="sort-date" onclick="setSort('date')">作成順</button>
+    <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">↓</button>
+  </div>
 </div>
 <div class="app">
   <div class="sync-status" id="sync-status"></div>
@@ -168,6 +176,8 @@ var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
 var searchQuery = '';
+var sortField = 'updatedAt';
+var sortDir = 'desc';
 var trashOpen = false;
 var catPanelOpen = false;
 var currentNoteIdForCat = null;
@@ -222,7 +232,7 @@ var hasMore = true;
 var loading = false;
 
 async function buildQuery(isNext) {
-  var constraints = [orderBy('updatedAt','desc')];
+  var constraints = [orderBy(sortField, sortDir)];
   if (currentCat !== ALL_TAB) {
     var catVal = currentCat === NO_CAT ? NO_CAT : currentCat;
     constraints.push(where('cat', '==', catVal));
@@ -597,6 +607,20 @@ window.onCardFocus = onCardFocus;
 window.enterEdit = enterEdit;
 window.switchCat = switchCat;
 window.onSearch = onSearch;
+
+function setSort(field) {
+  sortField = field;
+  document.getElementById('sort-updated').classList.toggle('active', field === 'updatedAt');
+  document.getElementById('sort-date').classList.toggle('active', field === 'date');
+  loadNotes(true);
+}
+function toggleSortDir() {
+  sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+  document.getElementById('sort-dir').textContent = sortDir === 'desc' ? '↓' : '↑';
+  loadNotes(true);
+}
+window.setSort = setSort;
+window.toggleSortDir = toggleSortDir;
 window.clearSearch = clearSearch;
 
 // ゴミ箱
