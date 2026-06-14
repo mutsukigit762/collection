@@ -454,6 +454,16 @@ async function enterEdit(viewEl, id) {
   ta.value = n ? (n.body || '') : '';
   viewEl.replaceWith(ta);
   ta.oninput = function(){ onCardInput(ta, id); };
+  ta.onblur = function() {
+    if (!searchQuery) return;
+    var currentBody = ta.value;
+    if (n) n.body = currentBody;
+    var div = document.createElement('div');
+    div.className = 'card-body-view';
+    div.onclick = function(){ enterEdit(div, id); };
+    div.innerHTML = highlight(currentBody, searchQuery.toLowerCase());
+    ta.replaceWith(div);
+  };
   ta.style.height = 'auto';
   ta.style.height = ta.scrollHeight + 'px';
   ta.focus();
