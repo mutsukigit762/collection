@@ -409,6 +409,14 @@ window._addCatModal = async function() {
 };
 
 // カード描画
+function byteLen(s) { return new TextEncoder().encode(s).length; }
+function byteCountHTML(body) {
+  var b = byteLen(body);
+  var cls = b >= 10000 ? 'over' : b >= 9000 ? 'warn' : '';
+  if (!cls) return '';
+  var msg = b >= 10000 ? '上限超過' : '上限まで' + (10000 - b) + 'B';
+  return '<span class="byte-count ' + cls + '">' + msg + '</span>';
+}
 function cardHTML(n) {
   var bc = byteCountHTML(n.body || '');
   var bodyEl;
