@@ -445,7 +445,7 @@ function cardHTML(n) {
   if (searchQuery) {
     bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(n.body || '', searchQuery.toLowerCase()) + '</div>';
   } else {
-    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" onpaste="onCardPaste(event,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
+    bodyEl = '<textarea class="card-textarea" rows="1" onfocus="onCardFocus(this,\'' + n.id + '\')" oninput="onCardInput(this,\'' + n.id + '\')" placeholder="メモを入力…">' + esc(n.body) + '</textarea>';
   }
   var imgs = (n.images || []).map(function(url, i) {
     return '<div class="card-img-wrap">'
@@ -466,26 +466,52 @@ function cardHTML(n) {
 }
 
 // 画像処理
-async function onCardPaste(e, id) {
+// documentレベルでペーストを横取り（textareaへの改行混入を防ぐ）
+document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
+  var hasImage = false;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; }
+  }
+  if (!hasImage) return;
+  // フォーカスしてるtextareaからカードIDを特定
+  var ta = document.activeElement;
+  if (!ta || !ta.classList.contains('card-textarea')) return;
+  var card = ta.closest('.card');
+  if (!card) return;
+  var id = card.id.replace('card-', '');
+  e.preventDefault();
   for (var i = 0; i < items.length; i++) {
     if (items[i].type.indexOf('image') >= 0) {
-      e.preventDefault();
       var file = items[i].getAsFile();
       if (!file) continue;
       setSyncStatus('画像をアップロード中…');
       try {
-        var path = 'images/' + id + '/' + Date.now() + '_' + file.name;
+        var path = 'images/' + id + '/' + Date.now() + '_' + (file.name || 'image.png');
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
         var n = notes.find(function(x){ return x.id === id; });
         if (!n) return;
         n.images = (n.images || []).concat([url]);
+        // renderせずにDOMだけ更新
+        var imgsEl = card.querySelector('.card-images');
+        var newImgHtml = '<div class="card-img-wrap">'
+          + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + url + '\')">'
+          + '<button class="card-img-del" onclick="deleteImage(\'' + id + '\',' + (n.images.length - 1) + ')" title="画像を削除">×</button>'
+          + '</div>';
+        if (imgsEl) {
+          imgsEl.insertAdjacentHTML('beforeend', newImgHtml);
+        } else {
+          var footer = card.querySelector('.card-footer');
+          var div = document.createElement('div');
+          div.className = 'card-images';
+          div.innerHTML = newImgHtml;
+          card.insertBefore(div, footer);
+        }
         await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
         setSyncStatus('');
-        render();
       } catch(err) {
         setSyncStatus('アップロードエラー');
         console.error(err);
@@ -493,7 +519,7 @@ async function onCardPaste(e, id) {
       return;
     }
   }
-}
+});
 async function deleteImage(id, idx) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n || !n.images) return;
