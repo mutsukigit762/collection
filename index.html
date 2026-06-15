@@ -798,6 +798,7 @@ function _lbGo(dir) {
 
 function _lbClose() {
   if (_lbBg) { _lbBg.remove(); _lbBg = null; }
+  document.body.style.overflow = '';
   document.removeEventListener('keydown', _lbKeyHandler);
 }
 
@@ -864,6 +865,7 @@ function _lbOpen(urls, idx) {
   }, { passive: true });
 
   _lbBg = bg;
+  document.body.style.overflow = 'hidden';
   document.body.appendChild(bg);
   _lbRender(false);
   document.addEventListener('keydown', _lbKeyHandler);
