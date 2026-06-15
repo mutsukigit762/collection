@@ -696,10 +696,9 @@ document.addEventListener('paste', async function(e) {
 
   var active = document.activeElement;
   console.log('[paste] activeElement:', active ? active.tagName + ' class=' + active.className : 'null');
-  var proseMirror = active && active.classList.contains('ProseMirror') ? active : null;
-  if (!proseMirror) { console.log('[paste] not ProseMirror, return'); return; }
-  var editorDiv = proseMirror.closest('.card-editor');
-  if (!editorDiv) { console.log('[paste] no card-editor, return'); return; }
+  // ProseMirror以外のcontenteditable（またはその親のcard-editor）も受け付ける
+  var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
+  if (!editorDiv) { console.log('[paste] no card-editor ancestor, return'); return; }
   var id = editorDiv.id.replace('editor-', '');
   var ed = editors[id];
   console.log('[paste] id:', id, 'editor:', ed ? 'exists' : 'missing');
