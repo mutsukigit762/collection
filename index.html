@@ -688,7 +688,7 @@ function cardHTML(n) {
 // ---- 画像処理 ----
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('keydown', function(e) {
-  if (e.metaKey && e.shiftKey && e.key === 'T') {
+  if (e.metaKey && !e.shiftKey && e.key === 'h') {
     var active = document.activeElement;
     var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
     if (!editorDiv) return;
