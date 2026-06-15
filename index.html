@@ -232,13 +232,6 @@ const Image = Node.create({
   renderHTML({ HTMLAttributes }) {
     return ['img', mergeAttributes(HTMLAttributes)];
   },
-  addCommands() {
-    return {
-      setImage: (attrs) => ({ commands }) => {
-        return commands.insertContent({ type: this.name, attrs });
-      },
-    };
-  },
 });
 
 const firebaseConfig = {
@@ -720,7 +713,7 @@ document.addEventListener('paste', async function(e) {
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
-        ed.chain().focus().setImage({ src: url }).run();
+        ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
         setSyncStatus('');
       } catch(err) {
         setSyncStatus('アップロードエラー');
