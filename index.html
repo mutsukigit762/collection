@@ -209,10 +209,37 @@ import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, q
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 // Tiptap + 拡張
-import { Editor } from 'https://esm.sh/@tiptap/core@2.4.0';
+import { Editor, Node, mergeAttributes } from 'https://esm.sh/@tiptap/core@2.4.0';
 import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0';
-import Image from 'https://esm.sh/@tiptap/extension-image@2.4.0';
 import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0';
+
+// Image拡張をCDNから読まず @tiptap/core から直接定義（モジュール重複を避けるため）
+const Image = Node.create({
+  name: 'image',
+  inline: true,
+  group: 'inline',
+  atom: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      alt: { default: null },
+      title: { default: null },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'img[src]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['img', mergeAttributes(HTMLAttributes)];
+  },
+  addCommands() {
+    return {
+      setImage: (attrs) => ({ commands }) => {
+        return commands.insertContent({ type: this.name, attrs });
+      },
+    };
+  },
+});
 
 const firebaseConfig = {
   apiKey: "AIzaSyCy2qi8vFTqlqjc0VBd8GEbuh6FO0fhs9w",
@@ -693,8 +720,7 @@ document.addEventListener('paste', async function(e) {
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
-        // insertContent で img タグとして直接挿入（setImage より確実）
-        ed.chain().focus().insertContent('<img src="' + url + '">').run();
+        ed.chain().focus().setImage({ src: url }).run();
         setSyncStatus('');
       } catch(err) {
         setSyncStatus('アップロードエラー');
