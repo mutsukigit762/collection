@@ -762,7 +762,7 @@ function _lbGo(dir) {
   if (newIdx < 0 || newIdx >= _lbUrls.length) {
     // 端：短くキビキビしたバウンス
     _lbSetPos(dir > 0 ? -18 : 18, true);
-    setTimeout(function(){ _lbSetPos(0, true); }, 60);
+    setTimeout(function(){ _lbSetPos(0, true); }, 20);
     return;
   }
   _lbIdx = newIdx;
