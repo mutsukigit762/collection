@@ -371,7 +371,10 @@ function initEditor(id, body) {
       if (!img) return;
       e.preventDefault();
       e.stopPropagation();
-      var allImgs = Array.from(editorEl.querySelectorAll('img')).map(function(i){ return i.src; });
+      // ProseMirror内部のセパレーター用imgを除外しFirebase URLのみ収集
+      var allImgs = Array.from(editorEl.querySelectorAll('img'))
+        .map(function(i){ return i.src; })
+        .filter(function(src){ return /^https?:\/\//.test(src); });
       var idx = allImgs.indexOf(img.src);
       _lbOpen(allImgs, idx < 0 ? 0 : idx);
     });
