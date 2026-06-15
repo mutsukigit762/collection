@@ -83,7 +83,10 @@ select.sort-btn{padding-right:10px}
   height:0;
 }
 .card-editor .ProseMirror img{
-  max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer;display:inline-block;vertical-align:top;margin:2px;
+  max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:zoom-in;display:inline-block;vertical-align:top;margin:2px;
+}
+.card-editor .ProseMirror img.ProseMirror-selectednode{
+  outline:2px solid var(--text2);
 }
 
 /* ツールバー */
@@ -118,10 +121,7 @@ select.sort-btn{padding-right:10px}
 .card-body-view strong{font-weight:700}
 .card-body-view em{font-style:italic}
 
-.card-images{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.card-img-wrap{position:relative;display:inline-block}
-.card-img{max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer}
-.card-img-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+
 .img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:200}
 .img-modal-bg img{max-width:90vw;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
 .img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -313,29 +313,47 @@ function initEditor(id, body) {
 
   var htmlContent = bodyToHTML(body);
 
+  // Image拡張をカスタム：クリックでライトボックスを開く
+  var ClickableImage = Image.extend({
+    addNodeView() {
+      return function({ node }) {
+        var dom = document.createElement('img');
+        dom.src = node.attrs.src;
+        dom.style.cssText = 'max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:zoom-in;display:inline-block;vertical-align:top;margin:2px;';
+        dom.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // カード内の全img srcを収集してライトボックスへ
+          var card = dom.closest('.card');
+          if (!card) return;
+          var allImgs = Array.from(card.querySelectorAll('.card-editor img')).map(function(i){ return i.src; });
+          var idx = allImgs.indexOf(dom.src);
+          _lbOpen(allImgs, idx < 0 ? 0 : idx);
+        });
+        return { dom: dom };
+      };
+    },
+  });
+
   var editor = new Editor({
     element: el,
     extensions: [
       StarterKit,
-      Image.configure({ inline: true }),
+      ClickableImage.configure({ inline: true }),
       Placeholder.configure({ placeholder: 'メモを入力…' }),
     ],
     content: htmlContent,
     onUpdate: function({ editor }) {
       var html = editor.getHTML();
-      // 空判定：<p></p> だけなら空
       var isEmpty = html === '<p></p>' || html === '';
       var saveVal = isEmpty ? '' : html;
       var b = byteLen(saveVal);
       if (b > 10000) {
-        // 超えたら直前の状態に戻す（undoで対応）
         editor.commands.undo();
         return;
       }
-      // byte-count 更新
       updateByteCount(id, saveVal);
       scheduleBodySave(id, saveVal);
-      // notes 配列も更新
       var n = notes.find(function(x){ return x.id === id; });
       if (n) n.body = saveVal;
     },
@@ -632,33 +650,23 @@ function cardHTML(n) {
   var bc = byteCountHTML(n.body || '');
   var bodyEl;
   if (searchQuery) {
-    // 検索時は plain text でハイライト表示
     var plain = htmlToPlainText(n.body || '');
     bodyEl = '<div class="card-body-view" onclick="enterEdit(this,\'' + n.id + '\')">' + highlight(plain, searchQuery.toLowerCase()) + '</div>';
   } else {
-    // 通常時はTiptapエディタ用のdiv
     bodyEl = makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>';
   }
-  var imgs = (n.images || []).map(function(url, i) {
-    return '<div class="card-img-wrap">'
-      + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + n.id + '\',' + i + ')">'
-      + '<button class="card-img-del" onclick="deleteImage(\'' + n.id + '\',' + i + ')" title="画像を削除">×</button>'
-      + '</div>';
-  }).join('');
-  var imgsEl = imgs ? '<div class="card-images">' + imgs + '</div>' : '';
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top">'
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + bodyEl
-    + imgsEl
     + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + bc + '</div>'
     + '</div>';
 }
 
 // ---- 画像処理 ----
-// ペースト：.ProseMirror がフォーカス中のカードを特定
+// ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
@@ -668,7 +676,6 @@ document.addEventListener('paste', async function(e) {
   }
   if (!hasImage) return;
 
-  // フォーカス中の ProseMirror div からカードIDを取る
   var active = document.activeElement;
   var proseMirror = active && active.classList.contains('ProseMirror') ? active : null;
   if (!proseMirror) return;
@@ -689,14 +696,8 @@ document.addEventListener('paste', async function(e) {
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
-        // Tiptap に画像を挿入
+        // Tiptap に画像を挿入（onUpdate が走って body として自動保存される）
         ed.chain().focus().setImage({ src: url }).run();
-        // notes 配列と Firestore を更新
-        var n = notes.find(function(x){ return x.id === id; });
-        if (n) {
-          n.images = (n.images || []).concat([url]);
-          await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
-        }
         setSyncStatus('');
       } catch(err) {
         setSyncStatus('アップロードエラー');
@@ -707,24 +708,6 @@ document.addEventListener('paste', async function(e) {
   }
 });
 
-async function deleteImage(id, idx) {
-  var n = notes.find(function(x){ return x.id === id; });
-  if (!n || !n.images) return;
-  var url = n.images[idx];
-  n.images = n.images.filter(function(_, i){ return i !== idx; });
-  var card = document.getElementById('card-' + id);
-  if (card) {
-    var wraps = card.querySelectorAll('.card-img-wrap');
-    if (wraps[idx]) wraps[idx].remove();
-    var imgsEl = card.querySelector('.card-images');
-    if (imgsEl && imgsEl.querySelectorAll('.card-img-wrap').length === 0) imgsEl.remove();
-  }
-  try {
-    await setDoc(doc(db, NOTES_COLL, id), { images: n.images, updatedAt: serverTimestamp() }, { merge: true });
-    var storageRef = ref(storage, url);
-    await deleteObject(storageRef).catch(function(){});
-  } catch(err) { console.error(err); }
-}
 // ライトボックス
 var _lbBg = null;
 var _lbUrls = [];
@@ -753,36 +736,28 @@ function _lbKeyHandler(e) {
   else if (e.key === 'Escape') { _lbClose(); }
 }
 
-function openImgModal(noteId, idx) {
-  var n = notes.find(function(x){ return x.id === noteId; });
-  _lbUrls = n ? (n.images || []) : [];
-  if (!_lbUrls.length) return;
+function _lbOpen(urls, idx) {
+  if (!urls || !urls.length) return;
+  _lbUrls = urls;
   _lbIdx = idx || 0;
 
   var bg = document.createElement('div');
   bg.className = 'img-modal-bg';
   bg.innerHTML =
     '<button class="img-modal-close" title="閉じる">×</button>'
-    + (_lbUrls.length > 1 ? '<button class="img-modal-arrow prev" title="前へ">‹</button>' : '')
+    + (urls.length > 1 ? '<button class="img-modal-arrow prev" title="前へ">‹</button>' : '')
     + '<img src="">'
-    + (_lbUrls.length > 1 ? '<button class="img-modal-arrow next" title="次へ">›</button>' : '')
+    + (urls.length > 1 ? '<button class="img-modal-arrow next" title="次へ">›</button>' : '')
     + '<div class="img-modal-counter"></div>';
 
-  // 閉じるボタン
   bg.querySelector('.img-modal-close').onclick = function(e){ e.stopPropagation(); _lbClose(); };
+  bg.onclick = function(e){ if (e.target === bg) _lbClose(); };
 
-  // 背景タップで閉じる（画像・ボタン以外）
-  bg.onclick = function(e){
-    if (e.target === bg) _lbClose();
-  };
-
-  // 矢印ボタン
   var prev = bg.querySelector('.img-modal-arrow.prev');
   var next = bg.querySelector('.img-modal-arrow.next');
   if (prev) prev.onclick = function(e){ e.stopPropagation(); if (_lbIdx > 0){ _lbIdx--; _lbRender(); } };
   if (next) next.onclick = function(e){ e.stopPropagation(); if (_lbIdx < _lbUrls.length - 1){ _lbIdx++; _lbRender(); } };
 
-  // スワイプ
   bg.addEventListener('touchstart', function(e){ _lbTouchStartX = e.touches[0].clientX; }, { passive: true });
   bg.addEventListener('touchend', function(e){
     var dx = e.changedTouches[0].clientX - _lbTouchStartX;
@@ -796,7 +771,16 @@ function openImgModal(noteId, idx) {
   _lbRender();
   document.addEventListener('keydown', _lbKeyHandler);
 }
-window.deleteImage = deleteImage;
+
+// card-body-view（検索時）の画像タップ対応
+function openImgModal(src, cardId) {
+  var card = document.getElementById('card-' + cardId);
+  var urls = card
+    ? Array.from(card.querySelectorAll('.card-body-view img')).map(function(i){ return i.src; })
+    : [src];
+  var idx = urls.indexOf(src);
+  _lbOpen(urls, idx < 0 ? 0 : idx);
+}
 window.openImgModal = openImgModal;
 
 // 検索結果の読み取り表示をタップしたら編集モードに切り替え
@@ -848,6 +832,17 @@ function renderCards() {
     el.innerHTML = found.length
       ? found.map(function(n){ return cardHTML(n); }).join('')
       : '<div class="empty">' + IC.searchLg + '見つからなかった</div>';
+    // card-body-view内の画像にタップでライトボックス
+    el.querySelectorAll('.card-body-view img').forEach(function(img) {
+      img.style.cssText = 'max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:zoom-in;margin:2px;';
+      img.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var view = img.closest('.card-body-view');
+        var urls = view ? Array.from(view.querySelectorAll('img')).map(function(i){ return i.src; }) : [img.src];
+        var idx = urls.indexOf(img.src);
+        _lbOpen(urls, idx < 0 ? 0 : idx);
+      });
+    });
     return;
   }
 
