@@ -833,7 +833,7 @@ function _lbOpen(urls, idx) {
   bg.addEventListener('touchend', function(e){
     if (!_lbDragging) return;
     _lbDragging = false;
-    var threshold = window.innerWidth * 0.28;
+    var threshold = window.innerWidth * 0.15;
     if (_lbTouchDx < -threshold) {
       _lbGo(1);
     } else if (_lbTouchDx > threshold) {
