@@ -371,6 +371,8 @@ function initEditor(id, body) {
       if (!img) return;
       e.preventDefault();
       e.stopPropagation();
+      // キーボードが出ないようにエディタのフォーカスを外す
+      if (document.activeElement) document.activeElement.blur();
       // ProseMirror内部のセパレーター用imgを除外しFirebase URLのみ収集
       var allImgs = Array.from(editorEl.querySelectorAll('img'))
         .map(function(i){ return i.src; })
