@@ -804,7 +804,9 @@ function _lbOpen(urls, idx) {
     + '<div class="img-modal-counter"></div>';
 
   bg.querySelector('.img-modal-close').onclick = function(e){ e.stopPropagation(); _lbClose(); };
-  bg.onclick = function(e){ if (e.target === bg) _lbClose(); };
+  bg.onclick = function(e){
+    if (!e.target.closest('.lb-slide img, .img-modal-close, .img-modal-arrow, .img-modal-counter')) _lbClose();
+  };
 
   var prev = bg.querySelector('.img-modal-arrow.prev');
   var next = bg.querySelector('.img-modal-arrow.next');
