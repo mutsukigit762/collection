@@ -122,8 +122,15 @@ select.sort-btn{padding-right:10px}
 .card-img-wrap{position:relative;display:inline-block}
 .card-img{max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:pointer}
 .card-img-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
-.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:200;cursor:pointer}
-.img-modal-bg img{max-width:90vw;max-height:90vh;border-radius:8px}
+.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:200}
+.img-modal-bg img{max-width:90vw;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
+.img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.img-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+.img-modal-arrow:hover{background:rgba(255,255,255,0.3)}
+.img-modal-arrow.prev{left:12px}
+.img-modal-arrow.next{right:12px}
+.img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
+.img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -634,7 +641,7 @@ function cardHTML(n) {
   }
   var imgs = (n.images || []).map(function(url, i) {
     return '<div class="card-img-wrap">'
-      + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + url + '\')">'
+      + '<img class="card-img" src="' + url + '" onclick="openImgModal(\'' + n.id + '\',' + i + ')">'
       + '<button class="card-img-del" onclick="deleteImage(\'' + n.id + '\',' + i + ')" title="画像を削除">×</button>'
       + '</div>';
   }).join('');
@@ -718,12 +725,76 @@ async function deleteImage(id, idx) {
     await deleteObject(storageRef).catch(function(){});
   } catch(err) { console.error(err); }
 }
-function openImgModal(url) {
+// ライトボックス
+var _lbBg = null;
+var _lbUrls = [];
+var _lbIdx = 0;
+var _lbTouchStartX = 0;
+
+function _lbRender() {
+  var img = _lbBg.querySelector('img');
+  img.src = _lbUrls[_lbIdx];
+  var counter = _lbBg.querySelector('.img-modal-counter');
+  counter.textContent = _lbUrls.length > 1 ? (_lbIdx + 1) + ' / ' + _lbUrls.length : '';
+  var prev = _lbBg.querySelector('.img-modal-arrow.prev');
+  var next = _lbBg.querySelector('.img-modal-arrow.next');
+  if (prev) prev.disabled = _lbIdx === 0;
+  if (next) next.disabled = _lbIdx === _lbUrls.length - 1;
+}
+
+function _lbClose() {
+  if (_lbBg) { _lbBg.remove(); _lbBg = null; }
+  document.removeEventListener('keydown', _lbKeyHandler);
+}
+
+function _lbKeyHandler(e) {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { if (_lbIdx > 0) { _lbIdx--; _lbRender(); } }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (_lbIdx < _lbUrls.length - 1) { _lbIdx++; _lbRender(); } }
+  else if (e.key === 'Escape') { _lbClose(); }
+}
+
+function openImgModal(noteId, idx) {
+  var n = notes.find(function(x){ return x.id === noteId; });
+  _lbUrls = n ? (n.images || []) : [];
+  if (!_lbUrls.length) return;
+  _lbIdx = idx || 0;
+
   var bg = document.createElement('div');
   bg.className = 'img-modal-bg';
-  bg.innerHTML = '<img src="' + url + '">';
-  bg.onclick = function(){ bg.remove(); };
+  bg.innerHTML =
+    '<button class="img-modal-close" title="閉じる">×</button>'
+    + (_lbUrls.length > 1 ? '<button class="img-modal-arrow prev" title="前へ">‹</button>' : '')
+    + '<img src="">'
+    + (_lbUrls.length > 1 ? '<button class="img-modal-arrow next" title="次へ">›</button>' : '')
+    + '<div class="img-modal-counter"></div>';
+
+  // 閉じるボタン
+  bg.querySelector('.img-modal-close').onclick = function(e){ e.stopPropagation(); _lbClose(); };
+
+  // 背景タップで閉じる（画像・ボタン以外）
+  bg.onclick = function(e){
+    if (e.target === bg) _lbClose();
+  };
+
+  // 矢印ボタン
+  var prev = bg.querySelector('.img-modal-arrow.prev');
+  var next = bg.querySelector('.img-modal-arrow.next');
+  if (prev) prev.onclick = function(e){ e.stopPropagation(); if (_lbIdx > 0){ _lbIdx--; _lbRender(); } };
+  if (next) next.onclick = function(e){ e.stopPropagation(); if (_lbIdx < _lbUrls.length - 1){ _lbIdx++; _lbRender(); } };
+
+  // スワイプ
+  bg.addEventListener('touchstart', function(e){ _lbTouchStartX = e.touches[0].clientX; }, { passive: true });
+  bg.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - _lbTouchStartX;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0 && _lbIdx < _lbUrls.length - 1) { _lbIdx++; _lbRender(); }
+    else if (dx > 0 && _lbIdx > 0) { _lbIdx--; _lbRender(); }
+  }, { passive: true });
+
+  _lbBg = bg;
   document.body.appendChild(bg);
+  _lbRender();
+  document.addEventListener('keydown', _lbKeyHandler);
 }
 window.deleteImage = deleteImage;
 window.openImgModal = openImgModal;
