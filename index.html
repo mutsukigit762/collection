@@ -686,23 +686,17 @@ function cardHTML(n) {
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
-  console.log('[paste] fired, items:', items ? items.length : 'none');
-  if (!items) { console.log('[paste] no items, return'); return; }
+  if (!items) return;
   var hasImage = false;
-  var types = [];
-  for (var i = 0; i < items.length; i++) { types.push(items[i].type); if (items[i].type.indexOf('image') >= 0) { hasImage = true; } }
-  console.log('[paste] types:', types, 'hasImage:', hasImage);
-  if (!hasImage) { console.log('[paste] no image, return'); return; }
+  for (var i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; } }
+  if (!hasImage) return;
 
   var active = document.activeElement;
-  console.log('[paste] activeElement:', active ? active.tagName + ' class=' + active.className : 'null');
-  // ProseMirror以外のcontenteditable（またはその親のcard-editor）も受け付ける
   var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
-  if (!editorDiv) { console.log('[paste] no card-editor ancestor, return'); return; }
+  if (!editorDiv) return;
   var id = editorDiv.id.replace('editor-', '');
   var ed = editors[id];
-  console.log('[paste] id:', id, 'editor:', ed ? 'exists' : 'missing');
-  if (!ed) { console.log('[paste] no editor, return'); return; }
+  if (!ed) return;
 
   e.preventDefault();
   for (var i = 0; i < items.length; i++) {
@@ -715,12 +709,8 @@ document.addEventListener('paste', async function(e) {
         var storageRef = ref(storage, path);
         await uploadBytes(storageRef, file);
         var url = await getDownloadURL(storageRef);
-        console.log('[img] URL:', url);
-        console.log('[img] editor:', ed);
-        console.log('[img] schema nodes:', ed && ed.schema ? Object.keys(ed.schema.nodes) : 'no schema');
-        var result = ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
-        console.log('[img] insertContent result:', result, 'html:', ed.getHTML());
-        setSyncStatus('挿入' + (result ? '成功' : '失敗') + ' コンソール確認');
+        ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
+        setSyncStatus('');
       } catch(err) {
         setSyncStatus('アップロードエラー');
         console.error(err);
