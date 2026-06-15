@@ -122,8 +122,10 @@ select.sort-btn{padding-right:10px}
 .card-body-view em{font-style:italic}
 
 
-.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;z-index:200}
-.img-modal-bg img{max-width:90vw;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
+.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow:hidden}
+.lb-track{position:absolute;top:0;left:0;height:100%;display:flex;will-change:transform}
+.lb-slide{display:flex;align-items:center;justify-content:center;width:100vw;height:100%;box-sizing:border-box;padding:0 8px}
+.lb-slide img{max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
 .img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .img-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
 .img-modal-arrow:hover{background:rgba(255,255,255,0.3)}
@@ -740,10 +742,10 @@ function _lbTrack() { return _lbBg ? _lbBg.querySelector('.lb-track') : null; }
 function _lbSetPos(dx, animate) {
   var track = _lbTrack();
   if (!track) return;
-  var base = -_lbIdx * 100;
-  var offset = dx ? (dx / window.innerWidth * 100) : 0;
+  var base = -_lbIdx * 100; // vw単位：各スライドが100vw幅
+  var offset = dx ? (dx / window.innerWidth * 100) : 0; // px → vw変換
   track.style.transition = animate ? ('transform 0.32s ' + EASE) : 'none';
-  track.style.transform = 'translateX(' + (base + offset) + '%)';
+  track.style.transform = 'translateX(' + (base + offset) + 'vw)';
 }
 
 function _lbUpdateUI() {
@@ -789,11 +791,9 @@ function _lbOpen(urls, idx) {
   bg.className = 'img-modal-bg';
 
   // 横並びトラック（各スロットが100vw幅）
-  var trackHTML = '<div class="lb-track" style="display:flex;width:' + (urls.length * 100) + '%;height:100%;will-change:transform">';
+  var trackHTML = '<div class="lb-track">';
   for (var i = 0; i < urls.length; i++) {
-    trackHTML += '<div style="width:' + (100 / urls.length) + '%;display:flex;align-items:center;justify-content:center;padding:0 8px;box-sizing:border-box">'
-      + '<img src="' + urls[i] + '" style="max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none">'
-      + '</div>';
+    trackHTML += '<div class="lb-slide"><img src="' + urls[i] + '"></div>';
   }
   trackHTML += '</div>';
 
