@@ -515,7 +515,9 @@ async function loadNotes(reset) {
   loading = false;
 }
 
+var _searchSeq = 0;
 async function searchNotes(q2) {
+  var seq = ++_searchSeq;
   setSyncStatus('検索中…');
   try {
     var url = 'https://' + ALGOLIA_APP_ID + '-dsn.algolia.net/1/indexes/' + ALGOLIA_INDEX + '/query';
@@ -528,6 +530,7 @@ async function searchNotes(q2) {
       },
       body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date'] })
     });
+    if (seq !== _searchSeq) return;
     var data = await res.json();
     var lq = q2.toLowerCase();
     notes = (data.hits || []).map(function(h) {
@@ -539,6 +542,7 @@ async function searchNotes(q2) {
     setSyncStatus('');
     render();
   } catch(e) {
+    if (seq !== _searchSeq) return;
     setSyncStatus('接続エラー');
     console.error(e);
   }
@@ -951,11 +955,13 @@ function render() {
 }
 
 function switchCat(c) { currentCat = c; loadNotes(true); }
+var _searchTimer = null;
 function onSearch(val) {
   searchQuery = val.trim();
   document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+  clearTimeout(_searchTimer);
   if (searchQuery) {
-    searchNotes(searchQuery);
+    _searchTimer = setTimeout(function() { searchNotes(searchQuery); }, 250);
   } else {
     loadNotes(true);
   }
