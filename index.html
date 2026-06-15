@@ -313,33 +313,11 @@ function initEditor(id, body) {
 
   var htmlContent = bodyToHTML(body);
 
-  // Image拡張をカスタム：クリックでライトボックスを開く
-  var ClickableImage = Image.extend({
-    addNodeView() {
-      return function({ node }) {
-        var dom = document.createElement('img');
-        dom.src = node.attrs.src;
-        dom.style.cssText = 'max-width:120px;max-height:120px;border-radius:6px;object-fit:cover;cursor:zoom-in;display:inline-block;vertical-align:top;margin:2px;';
-        dom.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          // カード内の全img srcを収集してライトボックスへ
-          var card = dom.closest('.card');
-          if (!card) return;
-          var allImgs = Array.from(card.querySelectorAll('.card-editor img')).map(function(i){ return i.src; });
-          var idx = allImgs.indexOf(dom.src);
-          _lbOpen(allImgs, idx < 0 ? 0 : idx);
-        });
-        return { dom: dom };
-      };
-    },
-  });
-
   var editor = new Editor({
     element: el,
     extensions: [
       StarterKit,
-      ClickableImage.configure({ inline: true }),
+      Image.configure({ inline: true }),
       Placeholder.configure({ placeholder: 'メモを入力…' }),
     ],
     content: htmlContent,
@@ -360,6 +338,21 @@ function initEditor(id, body) {
   });
 
   editors[id] = editor;
+
+  // card-editor 全体にクリック委譲で画像タップ → ライトボックス
+  var editorEl = document.getElementById('editor-' + id);
+  if (editorEl) {
+    editorEl.addEventListener('click', function(e) {
+      var img = e.target.closest('img');
+      if (!img) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var allImgs = Array.from(editorEl.querySelectorAll('img')).map(function(i){ return i.src; });
+      var idx = allImgs.indexOf(img.src);
+      _lbOpen(allImgs, idx < 0 ? 0 : idx);
+    });
+  }
+
   return editor;
 }
 
