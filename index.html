@@ -399,17 +399,9 @@ function updateByteCount(id, val) {
 
 // ツールバーボタン
 function makeToolbar(id) {
-  return '<div class="editor-toolbar" id="toolbar-' + id + '">'
-    + '<button class="tb-btn" title="太字" onmousedown="event.preventDefault();window._tbCmd(\'' + id + '\',\'toggleBold\')"><b>B</b></button>'
-    + '<button class="tb-btn" title="見出し" onmousedown="event.preventDefault();window._tbH(\'' + id + '\',1)">H1</button>'
-    + '</div>';
+  return '';
 }
 
-window._tbCmd = function(id, cmd) {
-  var ed = editors[id];
-  if (!ed) return;
-  ed.chain().focus()[cmd]().run();
-};
 window._tbH = function(id, level) {
   var ed = editors[id];
   if (!ed) return;
@@ -695,6 +687,19 @@ function cardHTML(n) {
 
 // ---- 画像処理 ----
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
+document.addEventListener('keydown', function(e) {
+  if (e.metaKey && e.shiftKey && e.key === 'T') {
+    var active = document.activeElement;
+    var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
+    if (!editorDiv) return;
+    var id = editorDiv.id.replace('editor-', '');
+    var ed = editors[id];
+    if (!ed) return;
+    e.preventDefault();
+    ed.chain().focus().toggleHeading({ level: 1 }).run();
+  }
+});
+
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
   if (!items) return;
