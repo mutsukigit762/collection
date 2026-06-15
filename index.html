@@ -686,21 +686,24 @@ function cardHTML(n) {
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('paste', async function(e) {
   var items = e.clipboardData && e.clipboardData.items;
-  if (!items) return;
+  console.log('[paste] fired, items:', items ? items.length : 'none');
+  if (!items) { console.log('[paste] no items, return'); return; }
   var hasImage = false;
-  for (var i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; }
-  }
-  if (!hasImage) return;
+  var types = [];
+  for (var i = 0; i < items.length; i++) { types.push(items[i].type); if (items[i].type.indexOf('image') >= 0) { hasImage = true; } }
+  console.log('[paste] types:', types, 'hasImage:', hasImage);
+  if (!hasImage) { console.log('[paste] no image, return'); return; }
 
   var active = document.activeElement;
+  console.log('[paste] activeElement:', active ? active.tagName + ' class=' + active.className : 'null');
   var proseMirror = active && active.classList.contains('ProseMirror') ? active : null;
-  if (!proseMirror) return;
+  if (!proseMirror) { console.log('[paste] not ProseMirror, return'); return; }
   var editorDiv = proseMirror.closest('.card-editor');
-  if (!editorDiv) return;
+  if (!editorDiv) { console.log('[paste] no card-editor, return'); return; }
   var id = editorDiv.id.replace('editor-', '');
   var ed = editors[id];
-  if (!ed) return;
+  console.log('[paste] id:', id, 'editor:', ed ? 'exists' : 'missing');
+  if (!ed) { console.log('[paste] no editor, return'); return; }
 
   e.preventDefault();
   for (var i = 0; i < items.length; i++) {
