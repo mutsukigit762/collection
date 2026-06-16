@@ -350,7 +350,6 @@ function initEditor(id, body) {
     editorProps: {
       handlePaste: function(view, event) {
         var cd = event.clipboardData;
-        console.log('[handlePaste]', 'types=', cd && cd.types, 'items=', cd && Array.from(cd.items||[]).map(function(it){return it.kind+':'+it.type;}), 'files=', cd && Array.from(cd.files||[]).map(function(f){return f.type+':'+f.name;}));
         if (!cd) return false;
         var imageFile = null;
         var files = cd.files;
@@ -366,7 +365,6 @@ function initEditor(id, body) {
             }
           }
         }
-        console.log('[handlePaste]', 'imageFile found=', !!imageFile);
         if (!imageFile) return false;
         event.preventDefault();
         var ed = editors[id];
@@ -728,9 +726,6 @@ function cardHTML(n) {
 // ---- 画像処理 ----
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('keydown', function(e) {
-  if (e.metaKey && e.key === 'v') {
-    console.log('[keydown cmd+v]', 'defaultPrevented before=', e.defaultPrevented, 'target=', e.target);
-  }
   if (e.metaKey && !e.shiftKey && e.key === 'h') {
     var active = document.activeElement;
     var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
@@ -740,6 +735,49 @@ document.addEventListener('keydown', function(e) {
     if (!ed) return;
     e.preventDefault();
     ed.chain().focus().toggleHeading({ level: 1 }).run();
+    return;
+  }
+  // Cmd+V: メモ.app/写真.appのプロミス形式コピーだと paste イベントの clipboardData が
+  // 空になることがあるため、Async Clipboard API で直接読みに行く
+  if (e.metaKey && !e.shiftKey && e.key === 'v' && navigator.clipboard && navigator.clipboard.read) {
+    var active2 = document.activeElement;
+    var editorDiv2 = active2 && active2.closest ? active2.closest('.card-editor') : null;
+    if (!editorDiv2) return;
+    var id2 = editorDiv2.id.replace('editor-', '');
+    var ed2 = editors[id2];
+    if (!ed2) return;
+    e.preventDefault();
+    (async function() {
+      try {
+        var clipboardItems = await navigator.clipboard.read();
+        var imageBlob = null;
+        for (var i = 0; i < clipboardItems.length; i++) {
+          var types = clipboardItems[i].types;
+          for (var j = 0; j < types.length; j++) {
+            if (types[j].indexOf('image') >= 0) {
+              imageBlob = await clipboardItems[i].getType(types[j]);
+              break;
+            }
+          }
+          if (imageBlob) break;
+        }
+        if (imageBlob) {
+          setSyncStatus('画像をアップロード中…');
+          var path = 'images/' + id2 + '/' + Date.now() + '_image.png';
+          var storageRef = ref(storage, path);
+          await uploadBytes(storageRef, imageBlob);
+          var url = await getDownloadURL(storageRef);
+          ed2.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
+          setSyncStatus('');
+        } else {
+          var text = await navigator.clipboard.readText().catch(function(){ return ''; });
+          if (text) ed2.chain().focus().insertContent(text).run();
+        }
+      } catch(err) {
+        console.error(err);
+        setSyncStatus('アップロードエラー');
+      }
+    })();
   }
 });
 
