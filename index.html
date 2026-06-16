@@ -701,11 +701,25 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('paste', async function(e) {
-  var items = e.clipboardData && e.clipboardData.items;
-  if (!items) return;
-  var hasImage = false;
-  for (var i = 0; i < items.length; i++) { if (items[i].type.indexOf('image') >= 0) { hasImage = true; break; } }
-  if (!hasImage) return;
+  var imageFile = null;
+  var files = e.clipboardData && e.clipboardData.files;
+  if (files) {
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].type.indexOf('image') >= 0) { imageFile = files[i]; break; }
+    }
+  }
+  if (!imageFile) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (items) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file' && items[i].type.indexOf('image') >= 0) {
+          var f = items[i].getAsFile();
+          if (f) { imageFile = f; break; }
+        }
+      }
+    }
+  }
+  if (!imageFile) return;
 
   var active = document.activeElement;
   var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
@@ -715,24 +729,17 @@ document.addEventListener('paste', async function(e) {
   if (!ed) return;
 
   e.preventDefault();
-  for (var i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') >= 0) {
-      var file = items[i].getAsFile();
-      if (!file) continue;
-      setSyncStatus('画像をアップロード中…');
-      try {
-        var path = 'images/' + id + '/' + Date.now() + '_' + (file.name || 'image.png');
-        var storageRef = ref(storage, path);
-        await uploadBytes(storageRef, file);
-        var url = await getDownloadURL(storageRef);
-        ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
-        setSyncStatus('');
-      } catch(err) {
-        setSyncStatus('アップロードエラー');
-        console.error(err);
-      }
-      return;
-    }
+  setSyncStatus('画像をアップロード中…');
+  try {
+    var path = 'images/' + id + '/' + Date.now() + '_' + (imageFile.name || 'image.png');
+    var storageRef = ref(storage, path);
+    await uploadBytes(storageRef, imageFile);
+    var url = await getDownloadURL(storageRef);
+    ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
+    setSyncStatus('');
+  } catch(err) {
+    setSyncStatus('アップロードエラー');
+    console.error(err);
   }
 });
 
