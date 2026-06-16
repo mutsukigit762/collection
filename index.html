@@ -349,6 +349,7 @@ function initEditor(id, body) {
     content: htmlContent,
     editorProps: {
       handlePaste: function(view, event) {
+        console.log('[handlePaste fired]', event);
         var cd = event.clipboardData;
         if (!cd) return false;
         var imageFile = null;
@@ -726,6 +727,9 @@ function cardHTML(n) {
 // ---- 画像処理 ----
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
 document.addEventListener('keydown', function(e) {
+  if (e.metaKey && e.key === 'v') {
+    console.log('[keydown cmd+v]', 'defaultPrevented before=', e.defaultPrevented, 'target=', e.target);
+  }
   if (e.metaKey && !e.shiftKey && e.key === 'h') {
     var active = document.activeElement;
     var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
