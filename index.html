@@ -701,6 +701,9 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('paste', async function(e) {
+  var _dbgItems = e.clipboardData ? Array.from(e.clipboardData.items || []).map(function(it){ return it.kind + ':' + it.type; }) : [];
+  var _dbgFiles = e.clipboardData ? Array.from(e.clipboardData.files || []).map(function(f){ return f.type + ':' + f.name; }) : [];
+  console.log('[paste debug] items=', _dbgItems, 'files=', _dbgFiles, 'activeElement=', document.activeElement);
   var imageFile = null;
   var files = e.clipboardData && e.clipboardData.files;
   if (files) {
