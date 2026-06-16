@@ -750,6 +750,7 @@ document.addEventListener('keydown', function(e) {
     (async function() {
       try {
         var clipboardItems = await navigator.clipboard.read();
+        console.log('[clipboard.read]', clipboardItems.map(function(it){ return it.types; }));
         var imageBlob = null;
         for (var i = 0; i < clipboardItems.length; i++) {
           var types = clipboardItems[i].types;
