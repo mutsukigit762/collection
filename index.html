@@ -771,7 +771,6 @@ document.addEventListener('keydown', function(e) {
               break;
             }
           }
-          console.log('[clipboard html]', htmlStr ? htmlStr.slice(0, 800) : null);
           if (htmlStr) {
             var m = htmlStr.match(/<img[^>]+src=["'](data:image\/[^"']+)["']/i);
             if (m) {
