@@ -750,8 +750,8 @@ document.addEventListener('keydown', function(e) {
     (async function() {
       try {
         var clipboardItems = await navigator.clipboard.read();
-        console.log('[clipboard.read]', clipboardItems.map(function(it){ return it.types; }));
         var imageBlob = null;
+        var htmlStr = null;
         for (var i = 0; i < clipboardItems.length; i++) {
           var types = clipboardItems[i].types;
           for (var j = 0; j < types.length; j++) {
@@ -761,6 +761,24 @@ document.addEventListener('keydown', function(e) {
             }
           }
           if (imageBlob) break;
+        }
+        if (!imageBlob) {
+          // メモ.appなどはテキスト中に埋め込まれた画像として text/html の <img src="data:..."> で来ることがある
+          for (var i = 0; i < clipboardItems.length; i++) {
+            if (clipboardItems[i].types.indexOf('text/html') >= 0) {
+              var blob = await clipboardItems[i].getType('text/html');
+              htmlStr = await blob.text();
+              break;
+            }
+          }
+          if (htmlStr) {
+            var m = htmlStr.match(/<img[^>]+src=["'](data:image\/[^"']+)["']/i);
+            if (m) {
+              var dataUrl = m[1];
+              var res = await fetch(dataUrl);
+              imageBlob = await res.blob();
+            }
+          }
         }
         if (imageBlob) {
           setSyncStatus('画像をアップロード中…');
