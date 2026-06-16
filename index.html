@@ -347,6 +347,44 @@ function initEditor(id, body) {
       Placeholder.configure({ placeholder: 'メモを入力…' }),
     ],
     content: htmlContent,
+    editorProps: {
+      handlePaste: function(view, event) {
+        var cd = event.clipboardData;
+        if (!cd) return false;
+        var imageFile = null;
+        var files = cd.files;
+        for (var i = 0; files && i < files.length; i++) {
+          if (files[i].type.indexOf('image') >= 0) { imageFile = files[i]; break; }
+        }
+        if (!imageFile) {
+          var items = cd.items;
+          for (var i = 0; items && i < items.length; i++) {
+            if (items[i].kind === 'file' && items[i].type.indexOf('image') >= 0) {
+              var f = items[i].getAsFile();
+              if (f) { imageFile = f; break; }
+            }
+          }
+        }
+        if (!imageFile) return false;
+        event.preventDefault();
+        var ed = editors[id];
+        setSyncStatus('画像をアップロード中…');
+        (async function() {
+          try {
+            var path = 'images/' + id + '/' + Date.now() + '_' + (imageFile.name || 'image.png');
+            var storageRef = ref(storage, path);
+            await uploadBytes(storageRef, imageFile);
+            var url = await getDownloadURL(storageRef);
+            ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
+            setSyncStatus('');
+          } catch(err) {
+            setSyncStatus('アップロードエラー');
+            console.error(err);
+          }
+        })();
+        return true;
+      },
+    },
     onUpdate: function({ editor }) {
       var html = editor.getHTML();
       var isEmpty = html === '<p></p>' || html === '';
@@ -697,52 +735,6 @@ document.addEventListener('keydown', function(e) {
     if (!ed) return;
     e.preventDefault();
     ed.chain().focus().toggleHeading({ level: 1 }).run();
-  }
-});
-
-document.addEventListener('paste', async function(e) {
-  var _dbgItems = e.clipboardData ? Array.from(e.clipboardData.items || []).map(function(it){ return it.kind + ':' + it.type; }) : [];
-  var _dbgFiles = e.clipboardData ? Array.from(e.clipboardData.files || []).map(function(f){ return f.type + ':' + f.name; }) : [];
-  console.log('[paste debug] items=', _dbgItems, 'files=', _dbgFiles, 'activeElement=', document.activeElement);
-  var imageFile = null;
-  var files = e.clipboardData && e.clipboardData.files;
-  if (files) {
-    for (var i = 0; i < files.length; i++) {
-      if (files[i].type.indexOf('image') >= 0) { imageFile = files[i]; break; }
-    }
-  }
-  if (!imageFile) {
-    var items = e.clipboardData && e.clipboardData.items;
-    if (items) {
-      for (var i = 0; i < items.length; i++) {
-        if (items[i].kind === 'file' && items[i].type.indexOf('image') >= 0) {
-          var f = items[i].getAsFile();
-          if (f) { imageFile = f; break; }
-        }
-      }
-    }
-  }
-  if (!imageFile) return;
-
-  var active = document.activeElement;
-  var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
-  if (!editorDiv) return;
-  var id = editorDiv.id.replace('editor-', '');
-  var ed = editors[id];
-  if (!ed) return;
-
-  e.preventDefault();
-  setSyncStatus('画像をアップロード中…');
-  try {
-    var path = 'images/' + id + '/' + Date.now() + '_' + (imageFile.name || 'image.png');
-    var storageRef = ref(storage, path);
-    await uploadBytes(storageRef, imageFile);
-    var url = await getDownloadURL(storageRef);
-    ed.chain().focus().insertContent({ type: 'image', attrs: { src: url, alt: null, title: null } }).run();
-    setSyncStatus('');
-  } catch(err) {
-    setSyncStatus('アップロードエラー');
-    console.error(err);
   }
 });
 
