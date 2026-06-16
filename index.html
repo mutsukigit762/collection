@@ -349,8 +349,8 @@ function initEditor(id, body) {
     content: htmlContent,
     editorProps: {
       handlePaste: function(view, event) {
-        console.log('[handlePaste fired]', event);
         var cd = event.clipboardData;
+        console.log('[handlePaste]', 'types=', cd && cd.types, 'items=', cd && Array.from(cd.items||[]).map(function(it){return it.kind+':'+it.type;}), 'files=', cd && Array.from(cd.files||[]).map(function(f){return f.type+':'+f.name;}));
         if (!cd) return false;
         var imageFile = null;
         var files = cd.files;
@@ -366,6 +366,7 @@ function initEditor(id, body) {
             }
           }
         }
+        console.log('[handlePaste]', 'imageFile found=', !!imageFile);
         if (!imageFile) return false;
         event.preventDefault();
         var ed = editors[id];
