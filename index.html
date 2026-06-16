@@ -51,6 +51,7 @@ select.sort-btn{padding-right:10px}
 .tab-add:hover{color:var(--text)}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1rem}
+.card.jk-selected{border-color:var(--text)}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
 .cat-btn{font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .cat-btn:hover{border-color:var(--border2)}
@@ -725,7 +726,42 @@ function cardHTML(n) {
 
 // ---- 画像処理 ----
 // ペースト：Storage にアップして Tiptap に img タグとして挿入、body として保存
+var _jkSelectedId = null;
+function _jkIsTyping() {
+  var a = document.activeElement;
+  if (!a) return false;
+  return a.isContentEditable || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA';
+}
+function _jkCards() {
+  return Array.from(document.querySelectorAll('#cards .card'));
+}
+function _jkSelect(card) {
+  _jkCards().forEach(function(c){ c.classList.remove('jk-selected'); });
+  if (!card) { _jkSelectedId = null; return; }
+  card.classList.add('jk-selected');
+  _jkSelectedId = card.id;
+  card.scrollIntoView({ block: 'nearest' });
+}
+function _jkMove(dir) {
+  var cards = _jkCards();
+  if (!cards.length) return;
+  var idx = _jkSelectedId ? cards.findIndex(function(c){ return c.id === _jkSelectedId; }) : -1;
+  var nextIdx;
+  if (idx < 0) {
+    nextIdx = dir > 0 ? 0 : cards.length - 1;
+  } else {
+    nextIdx = idx + dir;
+    if (nextIdx < 0) nextIdx = 0;
+    if (nextIdx >= cards.length) nextIdx = cards.length - 1;
+  }
+  _jkSelect(cards[nextIdx]);
+}
 document.addEventListener('keydown', function(e) {
+  if (!e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'j' || e.key === 'k') && !_jkIsTyping()) {
+    e.preventDefault();
+    _jkMove(e.key === 'j' ? 1 : -1);
+    return;
+  }
   if (e.metaKey && !e.shiftKey && e.key === 'h') {
     var active = document.activeElement;
     var editorDiv = active && active.closest ? active.closest('.card-editor') : null;
