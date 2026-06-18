@@ -342,7 +342,7 @@ function initEditor(id, body) {
       StarterKit,
       Image.configure({
         inline: true,
-        allowBase64: true,
+        allowBase64: false,
         HTMLAttributes: {},
       }),
       Placeholder.configure({ placeholder: 'メモを入力…' }),
@@ -366,7 +366,12 @@ function initEditor(id, body) {
             }
           }
         }
-        if (!imageFile) return false;
+        if (!imageFile) {
+          // 画像ファイル名テキスト（Attachment.png等）がそのまま貼り付けられるのを防ぐ
+          var plainText = cd.getData ? cd.getData('text/plain') : '';
+          if (/\.(png|jpe?g|gif|webp|heic|tiff?|bmp)$/i.test((plainText || '').trim())) return true;
+          return false;
+        }
         event.preventDefault();
         var ed = editors[id];
         setSyncStatus('画像をアップロード中…');
