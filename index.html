@@ -193,6 +193,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
     <span class="sort-btn" id="filter-dir-label" style="opacity:0.5;cursor:default"></span>
+    <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()" style="display:none">×</button>
   </div>
 </div>
 <div class="app">
@@ -1111,9 +1112,20 @@ function setSort(field) {
 }
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
-  if (!el) return;
-  el.textContent = filterYear ? (sortDir === 'desc' ? '以前' : '以後') : '';
+  if (el) el.textContent = filterYear ? (sortDir === 'desc' ? '以前' : '以後') : '';
+  var rb = document.getElementById('filter-reset');
+  if (rb) rb.style.display = filterYear ? '' : 'none';
 }
+function resetDateFilter() {
+  filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
+  _filterState[sortField] = {};
+  document.getElementById('filter-year').value = '';
+  document.getElementById('filter-month').value = '';
+  document.getElementById('filter-day').value = '';
+  _updateFilterDirLabel();
+  loadNotes(true);
+}
+window.resetDateFilter = resetDateFilter;
 function toggleSortDir() {
   sortDir = sortDir === 'desc' ? 'asc' : 'desc';
   document.getElementById('sort-dir').textContent = sortDir === 'desc' ? '降順' : '昇順';
