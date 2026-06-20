@@ -186,8 +186,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-btn active" id="sort-updated" onclick="setSort('updatedAt')">更新順</button>
-    <button class="sort-btn" id="sort-date" onclick="setSort('date')">作成順</button>
+    <button class="sort-btn active" id="sort-field-toggle" onclick="toggleSortField()">更新順</button>
     <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">CLEAR</button>
@@ -1093,14 +1092,12 @@ window.enterEdit = enterEdit;
 window.switchCat = switchCat;
 
 var _filterState = {};
-function setSort(field) {
-  // 現在のフィルター状態を退避
+function toggleSortField() {
+  var newField = sortField === 'updatedAt' ? 'date' : 'updatedAt';
   _filterState[sortField] = { year: filterYear, month: filterMonth, day: filterDay };
-  sortField = field;
-  document.getElementById('sort-updated').classList.toggle('active', field === 'updatedAt');
-  document.getElementById('sort-date').classList.toggle('active', field === 'date');
-  // 切替先のフィルター状態を復元（なければリセット）
-  var saved = _filterState[field] || {};
+  sortField = newField;
+  document.getElementById('sort-field-toggle').textContent = sortField === 'updatedAt' ? '更新順' : '作成順';
+  var saved = _filterState[sortField] || {};
   filterYear = saved.year || '';
   filterMonth = saved.month || '';
   filterDay = saved.day || '';
@@ -1111,6 +1108,7 @@ function setSort(field) {
   _updateFilterDirLabel();
   loadNotes(true);
 }
+window.toggleSortField = toggleSortField;
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
   if (el) { el.textContent = filterYear ? (sortDir === 'desc' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
