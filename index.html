@@ -1120,7 +1120,7 @@ function initFilterSelects() {
   var yearSel = document.getElementById('filter-year');
   var monthSel = document.getElementById('filter-month');
   var now = new Date().getFullYear();
-  for (var y = now; y >= 2010; y--) {
+  for (var y = now; y >= 2017; y--) {
     var opt = document.createElement('option');
     opt.value = y; opt.textContent = y + '年';
     yearSel.appendChild(opt);
