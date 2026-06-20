@@ -1090,14 +1090,22 @@ window.onSearch = onSearch;
 window.enterEdit = enterEdit;
 window.switchCat = switchCat;
 
+var _filterState = {};
 function setSort(field) {
+  // 現在のフィルター状態を退避
+  _filterState[sortField] = { year: filterYear, month: filterMonth, day: filterDay };
   sortField = field;
   document.getElementById('sort-updated').classList.toggle('active', field === 'updatedAt');
   document.getElementById('sort-date').classList.toggle('active', field === 'date');
-  filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
-  document.getElementById('filter-year').value = '';
-  document.getElementById('filter-month').value = '';
-  document.getElementById('filter-day').value = '';
+  // 切替先のフィルター状態を復元（なければリセット）
+  var saved = _filterState[field] || {};
+  filterYear = saved.year || '';
+  filterMonth = saved.month || '';
+  filterDay = saved.day || '';
+  filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
+  document.getElementById('filter-year').value = filterYear;
+  document.getElementById('filter-month').value = filterMonth;
+  document.getElementById('filter-day').value = filterDay;
   _updateFilterDirLabel();
   loadNotes(true);
 }
