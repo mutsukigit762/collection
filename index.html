@@ -198,8 +198,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </div>
 <div class="app">
   <div class="sync-status" id="sync-status"></div>
-  <div id="trash-panel" style="display:none"></div>
-  <div id="cat-panel" style="display:none"></div>
+  <div id="trash-panel" class="overlay" onclick="if(event.target===this)window.toggleTrash()"></div>
+  <div id="cat-panel" class="overlay" onclick="if(event.target===this)window.toggleCatPanel()"></div>
   <div class="search-count" id="search-count"></div>
   <div class="cards" id="cards"></div>
 </div>
@@ -1174,8 +1174,7 @@ window.toggleTrash = toggleTrash;
 
 function renderTrash() {
   var el = document.getElementById('trash-panel');
-  if (!trashOpen) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
+  if (!trashOpen) { el.classList.remove('open'); return; }
   var items = trash;
   var rows = items.length
     ? items.slice().reverse().map(function(n) {
@@ -1192,9 +1191,10 @@ function renderTrash() {
   var emptyAll = items.length
     ? '<div style="display:flex;justify-content:flex-end;margin-top:0.75rem"><button class="btn btn-sm btn-danger" onclick="window._emptyTrash()">' + IC.trash + ' すべて完全削除</button></div>'
     : '';
-  el.innerHTML = '<div class="panel"><div class="panel-header"><span class="panel-title">ゴミ箱 <span style="font-size:13px;color:var(--text3);font-weight:400">' + items.length + '件</span></span>'
+  el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">ゴミ箱 <span style="font-size:13px;color:var(--text3);font-weight:400">' + items.length + '件</span></span>'
     + '<button class="btn-icon" onclick="window.toggleTrash()">' + IC.x + '</button></div>'
     + rows + emptyAll + '</div>';
+  el.classList.add('open');
 }
 
 window._restoreNote = async function(id) {
@@ -1231,8 +1231,7 @@ window.toggleCatPanel = toggleCatPanel;
 
 function renderCatPanel() {
   var el = document.getElementById('cat-panel');
-  if (!catPanelOpen) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
+  if (!catPanelOpen) { el.classList.remove('open'); return; }
   var rows = categories.map(function(c) {
     var count = notes.filter(function(n){ return n.cat === c; }).length;
     return '<div class="cat-row"><span style="font-size:14px">' + esc(c)
@@ -1241,12 +1240,13 @@ function renderCatPanel() {
       + (count > 0 ? ' disabled style="opacity:0.3;cursor:not-allowed"' : '')
       + '>' + IC.trash + '</button></div>';
   }).join('');
-  el.innerHTML = '<div class="panel"><div class="panel-header"><span class="panel-title">カテゴリー管理</span>'
+  el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">カテゴリー管理</span>'
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
     + rows
     + '<div class="cat-add-row"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
     + '<button class="btn btn-sm" onclick="window._addCat()">' + IC.plus + ' 追加</button></div>'
     + '</div>';
+  el.classList.add('open');
 }
 
 window._deleteCat = async function(name) {
