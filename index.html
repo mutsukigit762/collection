@@ -1226,14 +1226,28 @@ window._emptyTrash = async function() {
 };
 
 // カテゴリ管理パネル
-function toggleCatPanel() { catPanelOpen = !catPanelOpen; trashOpen = false; render(); }
+async function toggleCatPanel() {
+  catPanelOpen = !catPanelOpen;
+  trashOpen = false;
+  if (catPanelOpen) {
+    await renderCatPanel();
+  } else {
+    render();
+  }
+}
 window.toggleCatPanel = toggleCatPanel;
 
-function renderCatPanel() {
+async function renderCatPanel() {
   var el = document.getElementById('cat-panel');
   if (!catPanelOpen) { el.classList.remove('open'); return; }
+  // Firestoreから全カテゴリーの正確な件数を取得
+  var counts = {};
+  await Promise.all(categories.map(async function(c) {
+    var snap = await getDocs(query(collection(db, NOTES_COLL), where('cat', '==', c), where('deleted', '==', false)));
+    counts[c] = snap.size;
+  }));
   var rows = categories.map(function(c) {
-    var count = notes.filter(function(n){ return n.cat === c; }).length;
+    var count = counts[c] || 0;
     return '<div class="cat-row"><span style="font-size:14px">' + esc(c)
       + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
       + '<button class="btn-icon" onclick="window._deleteCat(\'' + esc(c) + '\')"'
