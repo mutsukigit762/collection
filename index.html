@@ -189,7 +189,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <button class="sort-btn active" id="sort-updated" onclick="setSort('updatedAt')">更新順</button>
     <button class="sort-btn" id="sort-date" onclick="setSort('date')">作成順</button>
     <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
-    <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">×</button>
+    <span style="flex:0 0 8px"></span>
+    <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">クリア</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="">年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
