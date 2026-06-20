@@ -191,6 +191,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="">年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
+    <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
     <span class="sort-btn" id="filter-dir-label" style="opacity:0.5;cursor:default"></span>
   </div>
 </div>
@@ -286,6 +287,7 @@ var sortField = 'updatedAt';
 var sortDir = 'desc';
 var filterYear = '';
 var filterMonth = '';
+var filterDay = '';
 var filterDir = '';
 var trashOpen = false;
 var catPanelOpen = false;
@@ -510,11 +512,12 @@ async function buildQuery(isNext) {
   }
   if (filterYear && filterDir) {
     var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
-    var dateStr = filterYear + '-' + m;
+    var d = filterDay ? filterDay : (filterDir === 'before' ? '31' : '01');
+    var dateStr = filterYear + '-' + m + '-' + d;
     if (filterDir === 'before') {
-      constraints.push(where('date', '<=', dateStr + '-31'));
+      constraints.push(where('date', '<=', dateStr));
     } else {
-      constraints.push(where('date', '>=', dateStr + '-01'));
+      constraints.push(where('date', '>=', dateStr));
     }
   }
   constraints.push(limit(PAGE_SIZE));
@@ -1108,6 +1111,7 @@ function toggleSortDir() {
 function onDateFilterChange() {
   filterYear = document.getElementById('filter-year').value;
   filterMonth = document.getElementById('filter-month').value;
+  filterDay = document.getElementById('filter-day').value;
   filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
   _updateFilterDirLabel();
   loadNotes(true);
@@ -1126,6 +1130,13 @@ function initFilterSelects() {
     opt2.value = String(mo).padStart(2, '0');
     opt2.textContent = mo + '月';
     monthSel.appendChild(opt2);
+  }
+  var daySel = document.getElementById('filter-day');
+  for (var dd = 1; dd <= 31; dd++) {
+    var opt3 = document.createElement('option');
+    opt3.value = String(dd).padStart(2, '0');
+    opt3.textContent = dd + '日';
+    daySel.appendChild(opt3);
   }
 }
 initFilterSelects();
