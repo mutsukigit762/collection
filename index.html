@@ -189,11 +189,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <button class="sort-btn active" id="sort-updated" onclick="setSort('updatedAt')">更新順</button>
     <button class="sort-btn" id="sort-date" onclick="setSort('date')">作成順</button>
     <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
+    <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">×</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="">年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
     <span class="sort-btn" id="filter-dir-label" style="opacity:0.5;cursor:default;display:none"></span>
-    <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()" style="display:none">×</button>
   </div>
 </div>
 <div class="app">
@@ -1113,8 +1113,6 @@ function setSort(field) {
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
   if (el) { el.textContent = filterYear ? (sortDir === 'desc' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
-  var rb = document.getElementById('filter-reset');
-  if (rb) rb.style.display = filterYear ? '' : 'none';
 }
 function resetDateFilter() {
   filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
