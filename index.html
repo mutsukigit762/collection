@@ -1094,6 +1094,11 @@ function setSort(field) {
   sortField = field;
   document.getElementById('sort-updated').classList.toggle('active', field === 'updatedAt');
   document.getElementById('sort-date').classList.toggle('active', field === 'date');
+  filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
+  document.getElementById('filter-year').value = '';
+  document.getElementById('filter-month').value = '';
+  document.getElementById('filter-day').value = '';
+  _updateFilterDirLabel();
   loadNotes(true);
 }
 function _updateFilterDirLabel() {
