@@ -643,7 +643,16 @@ async function deleteNote(id) {
 }
 
 function openOverlay(html) {
-  document.getElementById('modal').innerHTML = html;
+  var m = document.getElementById('modal');
+  m.style.cssText = '';
+  m.innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+function openOverlaySticky(topHtml, scrollHtml) {
+  var m = document.getElementById('modal');
+  m.style.cssText = 'display:flex;flex-direction:column;padding:0';
+  m.innerHTML = '<div style="padding:1.25rem 1.25rem 0">' + topHtml + '</div>'
+    + '<div style="overflow-y:auto;padding:0 1.25rem 1.25rem">' + scrollHtml + '</div>';
   document.getElementById('overlay').classList.add('open');
 }
 function closeOverlay() {
@@ -666,14 +675,14 @@ function openCatModal(noteId) {
       + (sel ? '<span style="color:var(--text2)">' + IC.check + '</span>' : '')
       + '</div>';
   }).join('');
-  openOverlay(
+  openOverlaySticky(
     '<div class="modal-header"><span class="modal-title">カテゴリーを選ぶ</span>'
     + '<button class="btn-icon" onclick="window._closeOv()">' + IC.x + '</button></div>'
-    + rows
-    + '<div class="cat-modal-add">'
+    + '<div class="cat-modal-add" style="margin-bottom:0.75rem">'
     + '<input type="text" id="cat-modal-input" placeholder="新しいカテゴリー…">'
     + '<button class="btn btn-sm" onclick="window._addCatModal()">' + IC.plus + '</button>'
-    + '</div>'
+    + '</div>',
+    rows
   );
 }
 
