@@ -262,6 +262,7 @@ const IC = {
   restore: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>',
   folder: '<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
   check: '<svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  edit: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   inboxLg: '<svg class="icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 8px"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
   searchLg: '<svg class="icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 8px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
 };
@@ -497,6 +498,15 @@ async function deleteCategoryFromFirestore(name) {
     var snap = await getDocs(query(collection(db, CATS_COLL), where('name','==',name)));
     for (var d of snap.docs) { await deleteDoc(doc(db, CATS_COLL, d.id)); }
   } catch(e) { console.error(e); }
+}
+
+async function renameCategoryInFirestore(oldName, newName) {
+  // カテゴリードキュメントの名前を更新
+  var csnap = await getDocs(query(collection(db, CATS_COLL), where('name','==',oldName)));
+  for (var d of csnap.docs) { await setDoc(doc(db, CATS_COLL, d.id), { name: newName }, { merge: true }); }
+  // そのカテゴリーの全カード（削除済み含む）のcatを付け替え
+  var nsnap = await getDocs(query(collection(db, NOTES_COLL), where('cat','==',oldName)));
+  for (var nd of nsnap.docs) { await setDoc(doc(db, NOTES_COLL, nd.id), { cat: newName }, { merge: true }); }
 }
 
 function allTabs() {
@@ -1316,11 +1326,13 @@ async function renderCatPanel() {
     var snap = await getDocs(query(collection(db, NOTES_COLL), where('cat', '==', c), where('deleted', '==', false)));
     counts[c] = snap.size;
   }));
-  var rows = categories.map(function(c) {
+  var rows = categories.map(function(c, idx) {
     var count = counts[c] || 0;
-    return '<div class="cat-row"><span style="font-size:14px">' + esc(c)
+    return '<div class="cat-row" data-idx="' + idx + '">'
+      + '<span class="cat-name" style="font-size:14px;flex:1;min-width:0">' + esc(c)
       + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
-      + '<button class="btn-icon" onclick="window._deleteCat(\'' + esc(c) + '\')"'
+      + '<button class="btn-icon" onclick="window._editCatStart(' + idx + ')" title="名前を編集">' + IC.edit + '</button>'
+      + '<button class="btn-icon" onclick="window._deleteCat(' + idx + ')"'
       + (count > 0 ? ' disabled style="opacity:0.3;cursor:not-allowed"' : '')
       + '>' + IC.trash + '</button></div>';
   }).join('');
@@ -1344,12 +1356,53 @@ window._catPanelFilter = function(val) {
     el.style.display = el.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
   });
 };
-window._deleteCat = async function(name) {
+window._deleteCat = async function(idx) {
+  var name = categories[idx];
+  if (name == null) return;
   categories = categories.filter(function(c){ return c !== name; });
   if (currentCat === name) currentCat = ALL_TAB;
   await deleteCategoryFromFirestore(name);
   render();
 };
+window._editCatStart = function(idx) {
+  var oldName = categories[idx];
+  if (oldName == null) return;
+  var row = document.querySelector('#cat-panel .cat-row[data-idx="' + idx + '"]');
+  if (!row) return;
+  row.innerHTML = '<input type="text" class="cat-edit-input" value="' + esc(oldName) + '" style="flex:1;min-width:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 10px;font-size:14px;color:var(--text);font-family:inherit;outline:none">'
+    + '<button class="btn-icon" onclick="window._renameCat(' + idx + ')" title="保存">' + IC.check + '</button>'
+    + '<button class="btn-icon" onclick="window.renderCatPanel()" title="キャンセル">' + IC.x + '</button>';
+  var inp = row.querySelector('.cat-edit-input');
+  inp.focus();
+  inp.select();
+  inp.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); window._renameCat(idx); }
+    else if (e.key === 'Escape') { e.preventDefault(); window.renderCatPanel(); }
+  });
+};
+window._renameCat = async function(idx) {
+  var oldName = categories[idx];
+  var row = document.querySelector('#cat-panel .cat-row[data-idx="' + idx + '"]');
+  var inp = row ? row.querySelector('.cat-edit-input') : null;
+  if (oldName == null || !inp) return;
+  var newName = inp.value.trim();
+  if (!newName || newName === oldName) { renderCatPanel(); return; }
+  if (categories.indexOf(newName) >= 0) { inp.focus(); inp.select(); setSyncStatus('同名のカテゴリーが既にある'); return; }
+  setSyncStatus('カテゴリー名を変更中…');
+  try {
+    await renameCategoryInFirestore(oldName, newName);
+    categories[idx] = newName;
+    if (_catFilterTimes[oldName] != null) {
+      _catFilterTimes[newName] = _catFilterTimes[oldName];
+      delete _catFilterTimes[oldName];
+      try { localStorage.setItem('catFilterTimes', JSON.stringify(_catFilterTimes)); } catch(e) {}
+    }
+    if (currentCat === oldName) currentCat = newName;
+    setSyncStatus('');
+  } catch(e) { setSyncStatus('変更エラー'); console.error(e); }
+  await renderCatPanel();
+};
+window.renderCatPanel = renderCatPanel;
 window._addCat = async function() {
   var el = document.getElementById('new-cat-input');
   if (!el) return;
