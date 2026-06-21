@@ -1246,6 +1246,7 @@ function onDateFilterChange() {
   filterDay = document.getElementById('filter-day').value;
   filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
   _updateFilterDirLabel();
+  window.scrollTo({ top: 0 });
   loadNotes(true);
 }
 function initFilterSelects() {
