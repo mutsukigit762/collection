@@ -654,7 +654,7 @@ function openOverlay(html) {
 }
 function openOverlaySticky(topHtml, scrollHtml) {
   var m = document.getElementById('modal');
-  m.style.cssText = 'display:flex;flex-direction:column;padding:0;height:80vh';
+  m.style.cssText = 'display:flex;flex-direction:column;padding:0;height:80svh';
   m.innerHTML = '<div style="padding:1.25rem 1.25rem 0">' + topHtml + '</div>'
     + '<div style="overflow-y:auto;padding:0 1.25rem 1.25rem">' + scrollHtml + '</div>';
   document.getElementById('overlay').classList.add('open');
@@ -1277,7 +1277,7 @@ async function renderCatPanel() {
       + (count > 0 ? ' disabled style="opacity:0.3;cursor:not-allowed"' : '')
       + '>' + IC.trash + '</button></div>';
   }).join('');
-  el.innerHTML = '<div class="modal" style="display:flex;flex-direction:column;padding:0;height:80vh">'
+  el.innerHTML = '<div class="modal" style="display:flex;flex-direction:column;padding:0;height:80svh">'
     + '<div style="padding:1.25rem 1.25rem 0">'
     + '<div class="modal-header"><span class="modal-title">カテゴリー管理</span>'
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
