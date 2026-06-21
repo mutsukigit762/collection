@@ -281,6 +281,8 @@ function loadTrash() {
 function saveTrash(t) { localStorage.setItem(TRASH_KEY, JSON.stringify(t)); }
 
 var categories = [];
+var _catFilterTimes = {};
+try { _catFilterTimes = JSON.parse(localStorage.getItem('catFilterTimes') || '{}'); } catch(e) { _catFilterTimes = {}; }
 var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
@@ -475,7 +477,7 @@ async function sortCategoriesByActivity() {
         var ua = snap.docs[0].data().updatedAt;
         t = ua && ua.toMillis ? ua.toMillis() : 0;
       }
-      times[c] = t;
+      times[c] = Math.max(t, _catFilterTimes[c] || 0);
     }));
     categories.sort(function(a, b){ return (times[b] || 0) - (times[a] || 0); });
     renderTabs();
@@ -1124,6 +1126,10 @@ function switchCat(c) {
     document.getElementById('search-input').value = '';
     searchQuery = '';
     document.getElementById('search-clear').style.display = 'none';
+  }
+  if (c !== ALL_TAB && c !== NO_CAT) {
+    _catFilterTimes[c] = Date.now();
+    try { localStorage.setItem('catFilterTimes', JSON.stringify(_catFilterTimes)); } catch(e) {}
   }
   currentCat = c;
   loadNotes(true);
