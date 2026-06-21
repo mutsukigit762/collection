@@ -1329,7 +1329,7 @@ async function renderCatPanel() {
   var rows = categories.map(function(c, idx) {
     var count = counts[c] || 0;
     return '<div class="cat-row" data-idx="' + idx + '">'
-      + '<span class="cat-name" style="font-size:14px;flex:1;min-width:0">' + esc(c)
+      + '<span class="cat-name" onclick="window._catPanelGoto(' + idx + ')" style="font-size:14px;flex:1;min-width:0;cursor:pointer">' + esc(c)
       + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
       + '<button class="btn-icon" onclick="window._editCatStart(' + idx + ')" title="名前を編集">' + IC.edit + '</button>'
       + '<button class="btn-icon" onclick="window._deleteCat(' + idx + ')"'
@@ -1363,6 +1363,12 @@ window._deleteCat = async function(idx) {
   if (currentCat === name) currentCat = ALL_TAB;
   await deleteCategoryFromFirestore(name);
   render();
+};
+window._catPanelGoto = function(idx) {
+  var name = categories[idx];
+  if (name == null) return;
+  catPanelOpen = false;
+  switchCat(name);
 };
 window._editCatStart = function(idx) {
   var oldName = categories[idx];
