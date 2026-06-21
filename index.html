@@ -1256,9 +1256,9 @@ async function renderCatPanel() {
   }).join('');
   el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">カテゴリー管理</span>'
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
-    + rows
     + '<div class="cat-add-row"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
     + '<button class="btn btn-sm" onclick="window._addCat()">' + IC.plus + ' 追加</button></div>'
+    + rows
     + '</div>';
   el.classList.add('open');
 }
