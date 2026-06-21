@@ -1141,7 +1141,6 @@ var _filterCountKey = null;
 async function updateFilterCount() {
   var countEl = document.getElementById('search-count');
   if (searchQuery) { _filterCountKey = null; return; }
-  if (currentCat === NO_CAT) { countEl.textContent = ''; _filterCountKey = null; return; }
   var key = [currentCat, filterYear, filterMonth, filterDay, filterDir].join('|');
   if (key === _filterCountKey) return;
   _filterCountKey = key;
