@@ -1254,11 +1254,14 @@ async function renderCatPanel() {
       + (count > 0 ? ' disabled style="opacity:0.3;cursor:not-allowed"' : '')
       + '>' + IC.trash + '</button></div>';
   }).join('');
-  el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">カテゴリー管理</span>'
+  el.innerHTML = '<div class="modal" style="display:flex;flex-direction:column;padding:0">'
+    + '<div style="padding:1.25rem 1.25rem 0">'
+    + '<div class="modal-header"><span class="modal-title">カテゴリー管理</span>'
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
-    + '<div class="cat-add-row"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
+    + '<div class="cat-add-row" style="margin-bottom:0.75rem"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
     + '<button class="btn btn-sm" onclick="window._addCat()">' + IC.plus + ' 追加</button></div>'
-    + rows
+    + '</div>'
+    + '<div style="overflow-y:auto;padding:0 1.25rem 1.25rem">' + rows + '</div>'
     + '</div>';
   el.classList.add('open');
 }
