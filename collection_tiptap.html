@@ -46,6 +46,7 @@ select.sort-btn{padding-right:10px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
+.tab.tab-match{color:var(--warning-text);border-bottom-color:var(--warning-text);font-weight:600;background:var(--warning-bg)}
 .tab:hover{color:var(--text)}
 .tab-add{padding:8px 10px;font-size:13px;cursor:pointer;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;font-family:inherit}
 .tab-add:hover{color:var(--text)}
@@ -457,6 +458,27 @@ async function loadCategories() {
     var snap = await getDocs(query(collection(db, CATS_COLL), orderBy('order', 'asc')));
     categories = snap.docs.map(function(d){ return d.data().name; });
     render();
+    sortCategoriesByActivity();
+  } catch(e) { console.error(e); }
+}
+
+// カテゴリーを「直近でそのカテゴリ内のカードを編集/追加した順」に並べ替える
+async function sortCategoriesByActivity() {
+  try {
+    var times = {};
+    await Promise.all(categories.map(async function(c) {
+      var snap = await getDocs(query(collection(db, NOTES_COLL),
+        where('cat', '==', c), where('deleted', '==', false),
+        orderBy('updatedAt', 'desc'), limit(1)));
+      var t = 0;
+      if (snap.docs.length) {
+        var ua = snap.docs[0].data().updatedAt;
+        t = ua && ua.toMillis ? ua.toMillis() : 0;
+      }
+      times[c] = t;
+    }));
+    categories.sort(function(a, b){ return (times[b] || 0) - (times[a] || 0); });
+    renderTabs();
   } catch(e) { console.error(e); }
 }
 
@@ -552,6 +574,7 @@ async function loadNotes(reset) {
 }
 
 var _searchSeq = 0;
+var _searchMatchedCats = [];
 async function searchNotes(q2) {
   var seq = ++_searchSeq;
   setSyncStatus('検索中…');
@@ -573,8 +596,9 @@ async function searchNotes(q2) {
       return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '' };
     }).filter(function(n) {
       var plain = htmlToPlainText(n.body).toLowerCase();
-      return plain.indexOf(lq) >= 0 || n.cat.toLowerCase().indexOf(lq) >= 0;
+      return plain.indexOf(lq) >= 0;
     });
+    _searchMatchedCats = categories.filter(function(c){ return c.toLowerCase().indexOf(lq) >= 0; });
     setSyncStatus('');
     render();
   } catch(e) {
@@ -1029,8 +1053,18 @@ function renderTabs() {
   var t = document.getElementById('tabs');
   var tabs = allTabs();
   t.innerHTML = tabs.map(function(c) {
-    return '<button class="tab' + (c === currentCat ? ' active' : '') + '" onclick="switchCat(\'' + esc(c) + '\')">' + esc(c) + '</button>';
+    var cls = 'tab';
+    if (searchQuery) {
+      if (_searchMatchedCats.indexOf(c) >= 0) cls += ' tab-match';
+    } else if (c === currentCat) {
+      cls += ' active';
+    }
+    return '<button class="' + cls + '" onclick="switchCat(\'' + esc(c) + '\')">' + esc(c) + '</button>';
   }).join('') + '<button class="tab-add" onclick="addCatInline()">' + IC.plus + '</button>';
+  if (searchQuery && _searchMatchedCats.length) {
+    var firstMatch = t.querySelector('.tab-match');
+    if (firstMatch) firstMatch.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
 }
 
 function renderCards() {
