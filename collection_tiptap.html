@@ -207,7 +207,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getDoc, getCountFromServer, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 // Tiptap + 拡張
@@ -1111,7 +1111,6 @@ function renderCards() {
     return;
   }
 
-  countEl.textContent = '';
   var filtered = notes.filter(function(n) {
     if (currentCat === ALL_TAB) return true;
     if (currentCat === NO_CAT) return !n.cat || n.cat === NO_CAT || n.cat === '';
@@ -1134,6 +1133,31 @@ function render() {
   renderCards();
   renderTrash();
   renderCatPanel();
+  updateFilterCount();
+}
+
+// タブでフィルタ中、そのカテゴリの総件数を表示（ページング外の正確な件数）
+var _filterCountKey = null;
+async function updateFilterCount() {
+  var countEl = document.getElementById('search-count');
+  if (searchQuery) { _filterCountKey = null; return; }
+  if (currentCat === NO_CAT) { countEl.textContent = ''; _filterCountKey = null; return; }
+  var key = [currentCat, filterYear, filterMonth, filterDay, filterDir].join('|');
+  if (key === _filterCountKey) return;
+  _filterCountKey = key;
+  try {
+    var constraints = [where('deleted', '==', false)];
+    if (currentCat !== ALL_TAB) constraints.push(where('cat', '==', currentCat));
+    if (filterYear && filterDir) {
+      var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
+      var d = filterDay ? filterDay : (filterDir === 'before' ? '31' : '01');
+      var dateStr = filterYear + '-' + m + '-' + d;
+      constraints.push(where('date', filterDir === 'before' ? '<=' : '>=', dateStr));
+    }
+    var snap = await getCountFromServer(query(collection(db, NOTES_COLL), ...constraints));
+    if (searchQuery || key !== _filterCountKey) return;
+    countEl.textContent = snap.data().count + '件';
+  } catch(e) { console.error(e); _filterCountKey = null; }
 }
 
 function switchCat(c) {
