@@ -534,7 +534,10 @@ var hasMore = true;
 var loading = false;
 
 async function buildQuery(isNext) {
-  var constraints = [orderBy(sortField, sortDir)];
+  // 日付フィルター中は date で範囲絞り込みするので、並べ替えも date に揃える
+  // （updatedAt で並べつつ date で範囲指定すると複合インデックスが必要になりエラーになるため）
+  var orderField = (filterYear && filterDir) ? 'date' : sortField;
+  var constraints = [orderBy(orderField, sortDir)];
   if (currentCat !== ALL_TAB) {
     if (currentCat === NO_CAT) {
       constraints.push(where('deleted', '==', false));
