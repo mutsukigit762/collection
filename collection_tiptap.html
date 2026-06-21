@@ -587,6 +587,7 @@ async function loadNotes(reset) {
 
 var _searchSeq = 0;
 var _searchMatchedCats = [];
+var _scrollTabIntoView = false;
 async function searchNotes(q2) {
   var seq = ++_searchSeq;
   setSyncStatus('検索中…');
@@ -1076,6 +1077,10 @@ function renderTabs() {
   if (searchQuery && _searchMatchedCats.length) {
     var firstMatch = t.querySelector('.tab-match');
     if (firstMatch) firstMatch.scrollIntoView({ inline: 'center', block: 'nearest' });
+  } else if (!searchQuery && _scrollTabIntoView) {
+    var activeTab = t.querySelector('.tab.active');
+    if (activeTab) activeTab.scrollIntoView({ inline: 'center', block: 'nearest' });
+    _scrollTabIntoView = false;
   }
 }
 
@@ -1142,6 +1147,7 @@ function switchCat(c) {
     try { localStorage.setItem('catFilterTimes', JSON.stringify(_catFilterTimes)); } catch(e) {}
   }
   currentCat = c;
+  _scrollTabIntoView = true;
   loadNotes(true);
 }
 var _searchTimer = null;
