@@ -1027,7 +1027,6 @@ async function enterEdit(viewEl, id) {
 
 function renderTabs() {
   var t = document.getElementById('tabs');
-  if (searchQuery) { t.innerHTML = ''; return; }
   var tabs = allTabs();
   t.innerHTML = tabs.map(function(c) {
     return '<button class="tab' + (c === currentCat ? ' active' : '') + '" onclick="switchCat(\'' + esc(c) + '\')">' + esc(c) + '</button>';
@@ -1086,7 +1085,15 @@ function render() {
   renderCatPanel();
 }
 
-function switchCat(c) { currentCat = c; loadNotes(true); }
+function switchCat(c) {
+  if (searchQuery) {
+    document.getElementById('search-input').value = '';
+    searchQuery = '';
+    document.getElementById('search-clear').style.display = 'none';
+  }
+  currentCat = c;
+  loadNotes(true);
+}
 var _searchTimer = null;
 function onSearch(val) {
   searchQuery = val.trim();
