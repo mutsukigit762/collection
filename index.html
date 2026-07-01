@@ -119,17 +119,20 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .sticky-header .search-wrap{display:none}
   .app{padding-bottom:80px}
   .bottom-bar{
-    display:flex;
+    display:block;
     position:fixed;
     bottom:0;left:0;right:0;
     z-index:50;
     background:var(--bg);
     border-top:0.5px solid var(--border);
     padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .bb-buttons{
+    display:flex;
     gap:8px;
     align-items:center;
   }
-  .bottom-bar button{
+  .bb-buttons button{
     flex:1;
     background:none;
     border:none;
@@ -143,20 +146,16 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     cursor:pointer;
     padding:4px 0;
   }
-  .bottom-bar button.primary{color:var(--text)}
-  .bottom-search{
+  .bb-buttons button.primary{color:var(--text)}
+  .bb-search-row{
     display:none;
-    position:fixed;
-    bottom:calc(64px + env(safe-area-inset-bottom));
-    left:0;right:0;
-    z-index:51;
-    background:var(--bg);
-    border-top:0.5px solid var(--border);
-    padding:10px 12px;
+    gap:8px;
+    align-items:center;
   }
-  .bottom-search.open{display:block}
-  .bottom-search input{
-    width:100%;
+  .bottom-bar.searching .bb-buttons{display:none}
+  .bottom-bar.searching .bb-search-row{display:flex}
+  .bb-search-row input{
+    flex:1;
     background:var(--bg2);
     border:0.5px solid var(--border2);
     border-radius:var(--radius);
@@ -165,6 +164,15 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     color:var(--text);
     font-family:inherit;
     outline:none;
+  }
+  .bb-search-row button{
+    background:none;
+    border:none;
+    color:var(--text2);
+    cursor:pointer;
+    padding:6px;
+    font-family:inherit;
+    font-size:14px;
   }
 }
 </style>
@@ -205,14 +213,17 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div class="search-count" id="search-count"></div>
   <div class="cards" id="cards"></div>
 </div>
-<div class="bottom-search" id="bottom-search">
-  <input type="text" id="bottom-search-input" placeholder="内容・カテゴリーで検索…" oninput="onSearch(this.value)">
-</div>
 <div class="bottom-bar" id="bottom-bar">
-  <button id="bb-search" onclick="toggleBottomSearch()"></button>
-  <button id="bb-trash" onclick="toggleTrash()"></button>
-  <button id="bb-cat" onclick="toggleCatPanel()"></button>
-  <button class="primary" id="bb-add" onclick="addNote()"></button>
+  <div class="bb-buttons" id="bb-buttons">
+    <button id="bb-trash" onclick="toggleTrash()"></button>
+    <button id="bb-cat" onclick="toggleCatPanel()"></button>
+    <button id="bb-search" onclick="openBottomSearch()"></button>
+    <button class="primary" id="bb-add" onclick="addNote()"></button>
+  </div>
+  <div class="bb-search-row" id="bb-search-row">
+    <input type="text" id="bottom-search-input" placeholder="内容・カテゴリーで検索…" oninput="onSearch(this.value)">
+    <button id="bb-search-close" onclick="closeBottomSearch()"></button>
+  </div>
 </div>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -285,6 +296,7 @@ document.getElementById('bb-search').innerHTML = IC.search + '<span>検索</span
 document.getElementById('bb-trash').innerHTML = IC.trash + '<span>ゴミ箱</span>';
 document.getElementById('bb-cat').innerHTML = IC.folder + '<span>カテゴリー</span>';
 document.getElementById('bb-add').innerHTML = IC.plus + '<span>追加</span>';
+document.getElementById('bb-search-close').innerHTML = IC.x;
 
 const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
@@ -1182,18 +1194,21 @@ function clearSearch() {
   searchQuery = '';
   document.getElementById('search-clear').style.display = 'none';
   loadNotes(true);
-  document.getElementById('search-input').focus();
 }
 
 // ボトム検索欄の開閉
-function toggleBottomSearch() {
-  var bs = document.getElementById('bottom-search');
-  var isOpen = bs.classList.toggle('open');
-  if (isOpen) {
-    setTimeout(function(){ document.getElementById('bottom-search-input').focus(); }, 50);
-  }
+function openBottomSearch() {
+  var bar = document.getElementById('bottom-bar');
+  bar.classList.add('searching');
+  setTimeout(function(){ document.getElementById('bottom-search-input').focus(); }, 50);
 }
-window.toggleBottomSearch = toggleBottomSearch;
+function closeBottomSearch() {
+  var bar = document.getElementById('bottom-bar');
+  bar.classList.remove('searching');
+  clearSearch();
+}
+window.openBottomSearch = openBottomSearch;
+window.closeBottomSearch = closeBottomSearch;
 
 window.openCatModal = openCatModal;
 window.deleteNote = deleteNote;
