@@ -376,7 +376,7 @@ function initEditor(id, body) {
       Link.configure({
         autolink: true,
         linkOnPaste: true,
-        openOnClick: true,
+        openOnClick: false,
         protocols: ['https'],
         HTMLAttributes: { target: '_blank', rel: 'noopener nofollow' },
       }),
@@ -463,6 +463,13 @@ function initEditor(id, body) {
   var editorEl = document.getElementById('editor-' + id);
   if (editorEl) {
     editorEl.addEventListener('click', function(e) {
+      var link = e.target.closest('a[href]');
+      if (link) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(link.href, '_blank', 'noopener,noreferrer');
+        return;
+      }
       var img = e.target.closest('img');
       if (!img) return;
       e.preventDefault();
