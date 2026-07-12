@@ -177,6 +177,29 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     font-size:14px;
   }
 }
+/* PC（二ペイン）レイアウト */
+.split{display:block}
+.detail-pane{display:none}
+.pv-item{display:none}
+@media(min-width:900px){
+  .sticky-header,.app{max-width:1080px}
+  .split{display:flex;gap:20px;align-items:flex-start}
+  #cards{flex:0 0 320px;display:flex;flex-direction:column;gap:8px}
+  .detail-pane{display:block;flex:1;min-width:0;position:sticky;top:20px}
+  .detail-pane .card{padding:1.25rem 1.5rem}
+  .detail-pane .card-editor .ProseMirror img{max-width:220px;max-height:220px}
+  .pv-item{display:block;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
+  .pv-item:hover{border-color:var(--border2)}
+  .pv-selected{border-color:var(--text);background:var(--bg2)}
+  .pv-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+  .pv-cat{font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+  .pv-selected .pv-cat{background:var(--bg3)}
+  .pv-date{font-size:10px;color:var(--text3);white-space:nowrap;flex:0 0 auto}
+  .pv-row{display:flex;gap:8px;align-items:flex-start}
+  .pv-thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;flex:0 0 auto}
+  .pv-text{font-size:12px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
+  .pv-muted{color:var(--text3)}
+}
 </style>
 </head>
 <body>
@@ -213,7 +236,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div id="trash-panel" class="overlay" onclick="if(event.target===this)window.toggleTrash()"></div>
   <div id="cat-panel" class="overlay" onclick="if(event.target===this)window.toggleCatPanel()"></div>
   <div class="search-count" id="search-count"></div>
-  <div class="cards" id="cards"></div>
+  <div class="split" id="split">
+    <div class="cards" id="cards"></div>
+    <div class="detail-pane" id="detail-pane"></div>
+  </div>
 </div>
 <div class="bottom-bar" id="bottom-bar">
   <div class="bb-buttons" id="bb-buttons">
@@ -679,6 +705,13 @@ window.addEventListener('scroll', function() {
   }
 });
 
+// PC⇔モバイルの境界をまたいだらレイアウトを組み直す
+window.matchMedia('(min-width:900px)').addEventListener('change', function() {
+  destroyAllEditors();
+  _mountedDetailId = null;
+  renderCards();
+});
+
 async function addNote() {
   var today = new Date().toISOString().slice(0,10);
   var cat = currentCat === ALL_TAB ? NO_CAT : currentCat;
@@ -691,11 +724,15 @@ async function addNote() {
       deleted: false
     });
     currentCat = cat;
+    selectedCardId = docRef.id;
     await loadNotes(true);
-    setTimeout(function() {
+    var tries = 0;
+    var focusNew = function() {
       var ed = editors[docRef.id];
-      if (ed) ed.commands.focus();
-    }, 300);
+      if (ed) { ed.commands.focus('end'); return; }
+      if (tries++ < 10) setTimeout(focusNew, 100);
+    };
+    setTimeout(focusNew, 200);
   } catch(e) { console.error(e); }
 }
 
@@ -1119,7 +1156,103 @@ function renderTabs() {
   }
 }
 
+function _isDesktop() {
+  return window.matchMedia('(min-width:900px)').matches;
+}
+
+var selectedCardId = null;
+var _mountedDetailId = null;
+
+function catFilterNote(n) {
+  if (currentCat === ALL_TAB) return true;
+  if (currentCat === NO_CAT) return !n.cat || n.cat === NO_CAT || n.cat === '';
+  return n.cat === currentCat;
+}
+
+function cardPreviewHTML(n) {
+  var plain = htmlToPlainText(n.body || '').trim();
+  var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
+  var thumb = m ? '<img class="pv-thumb" src="' + esc(m[1]) + '" loading="lazy">' : '';
+  var snippet = plain ? esc(plain.slice(0, 100))
+    : (m ? '<span class="pv-muted">（画像）</span>' : '<span class="pv-muted">（空）</span>');
+  var sel = n.id === selectedCardId ? ' pv-selected' : '';
+  return '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
+    + '<div class="pv-meta"><span class="pv-cat">' + esc(n.cat || NO_CAT) + '</span><span class="pv-date">' + esc(n.date) + '</span></div>'
+    + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
+    + '</div>';
+}
+
+function detailCardHTML(n) {
+  return '<div class="card" id="card-' + n.id + '">'
+    + '<div class="card-top">'
+    + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
+    + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
+    + '</div>'
+    + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
+    + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '</div>';
+}
+
+function _updatePreviewSelection() {
+  document.querySelectorAll('#cards .pv-item').forEach(function(it) {
+    it.classList.toggle('pv-selected', it.getAttribute('data-id') === selectedCardId);
+  });
+}
+
+function renderDetail() {
+  var pane = document.getElementById('detail-pane');
+  if (!pane) return;
+  var n = notes.find(function(x){ return x.id === selectedCardId; });
+  if (!n) n = notes.filter(catFilterNote)[0];
+  if (!n) { pane.innerHTML = ''; _mountedDetailId = null; return; }
+  selectedCardId = n.id;
+  // すでに同じカードのエディタが載っていれば載せ直さない（編集中フォーカスを保つ）
+  if (_mountedDetailId === n.id && editors[n.id] && document.getElementById('editor-' + n.id)) {
+    _updatePreviewSelection();
+    return;
+  }
+  if (_mountedDetailId && _mountedDetailId !== n.id) destroyEditor(_mountedDetailId);
+  pane.innerHTML = detailCardHTML(n);
+  var hdr = document.querySelector('.sticky-header');
+  if (hdr) {
+    pane.style.top = (hdr.offsetHeight + 12) + 'px';
+    pane.style.maxHeight = 'calc(100vh - ' + (hdr.offsetHeight + 28) + 'px)';
+    pane.style.overflowY = 'auto';
+  }
+  initEditor(n.id, n.body);
+  _mountedDetailId = n.id;
+  _updatePreviewSelection();
+}
+
+function selectCard(id) {
+  if (selectedCardId === id && editors[id]) return;
+  selectedCardId = id;
+  renderDetail();
+  var pane = document.getElementById('detail-pane');
+  if (pane) pane.scrollTop = 0;
+}
+window.selectCard = selectCard;
+
+function renderCardsDesktop() {
+  var el = document.getElementById('cards');
+  var countEl = document.getElementById('search-count');
+  var list = searchQuery ? notes : notes.filter(catFilterNote);
+  if (searchQuery) countEl.textContent = list.length + '件ヒット';
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">' + (searchQuery ? IC.searchLg + '見つからなかった' : IC.inboxLg + 'まだ何もない') + '</div>';
+    var pane = document.getElementById('detail-pane');
+    if (pane) pane.innerHTML = '';
+    _mountedDetailId = null;
+    return;
+  }
+  if (!list.some(function(n){ return n.id === selectedCardId; })) selectedCardId = list[0].id;
+  el.innerHTML = list.map(cardPreviewHTML).join('');
+  renderDetail();
+}
+
 function renderCards() {
+  if (_isDesktop()) { renderCardsDesktop(); return; }
+
   var el = document.getElementById('cards');
   var countEl = document.getElementById('search-count');
 
