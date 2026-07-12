@@ -393,6 +393,20 @@ function initEditor(id, body) {
         if (!imageFile) {
           var plainText = cd.getData ? cd.getData('text/plain') : '';
           if (/\.(png|jpe?g|gif|webp|heic|tiff?|bmp)$/i.test((plainText || '').trim())) return true;
+          // <a href> みたいなタグを含む「コードっぽい」テキストは、HTMLとして
+          // 解釈させると山カッコごと消えてしまうので、文字そのままで挿入する。
+          if (plainText && /<[a-zA-Z/!]/.test(plainText)) {
+            event.preventDefault();
+            var ed2 = editors[id];
+            var lines = plainText.split(/\r?\n/);
+            var content = [];
+            lines.forEach(function(line, idx) {
+              if (idx > 0) content.push({ type: 'hardBreak' });
+              if (line) content.push({ type: 'text', text: line });
+            });
+            ed2.chain().focus().insertContent(content).run();
+            return true;
+          }
           return false;
         }
         event.preventDefault();
