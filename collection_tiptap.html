@@ -938,11 +938,66 @@ function _jkMove(dir) {
   }
   _jkSelect(cards[nextIdx]);
 }
+function _anyModalOpen() {
+  return trashOpen || catPanelOpen || document.getElementById('overlay').classList.contains('open');
+}
+function _jkCurrentId() {
+  if (_isDesktop()) return selectedCardId;
+  if (_jkSelectedId) return _jkSelectedId.replace(/^card-/, '');
+  return null;
+}
+function _focusSelectedEditor() {
+  var id = _jkCurrentId();
+  if (!id) return;
+  var ed = editors[id];
+  if (!ed) return;
+  ed.commands.focus('end');
+  // 保険：document.hasFocus() が false の環境でも確実にフォーカスを入れる
+  var pm = document.querySelector('#editor-' + id + ' .ProseMirror');
+  if (pm) pm.focus();
+}
+function _openSelect(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.focus();
+  if (typeof el.showPicker === 'function') { try { el.showPicker(); } catch(err) {} }
+}
 document.addEventListener('keydown', function(e) {
+  // 編集中に Escape でカードのフォーカスを外してナビに戻る
+  if (e.key === 'Escape') {
+    var ae = document.activeElement;
+    if (ae && ae.closest && ae.closest('.card-editor')) { ae.blur(); e.preventDefault(); return; }
+  }
   if (!e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'j' || e.key === 'k') && !_jkIsTyping()) {
     e.preventDefault();
     _jkMove(e.key === 'j' ? 1 : -1);
     return;
+  }
+  // カード選択系ショートカット（入力中・モーダル表示中は無効）
+  if (!_jkIsTyping() && !_anyModalOpen()) {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'Backspace' || e.key === 'Delete')) {
+      var delId = _jkCurrentId();
+      if (delId) { e.preventDefault(); deleteNote(delId); }
+      return;
+    }
+    if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.key === 'Enter') {
+        if (_jkCurrentId()) { e.preventDefault(); _focusSelectedEditor(); }
+        return;
+      }
+      if (e.key === 'n') { e.preventDefault(); addNote(); return; }
+      if (e.key === 'c') {
+        var cid = _jkCurrentId();
+        if (cid) { e.preventDefault(); openCatModal(cid); }
+        return;
+      }
+      if (e.key === '1') { e.preventDefault(); toggleSortField(); return; }
+      if (e.key === '2') { e.preventDefault(); toggleSortDir(); return; }
+      if (e.key === '3') { e.preventDefault(); resetDateFilter(); return; }
+      if (e.key === '4') { e.preventDefault(); _openSelect('filter-year'); return; }
+      if (e.key === '5') { e.preventDefault(); _openSelect('filter-month'); return; }
+      if (e.key === '6') { e.preventDefault(); _openSelect('filter-day'); return; }
+    }
   }
   if (e.metaKey && !e.shiftKey && e.key === 'h') {
     var active = document.activeElement;
