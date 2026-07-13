@@ -907,6 +907,24 @@ function _jkSelect(card) {
   card.scrollIntoView({ block: 'nearest' });
 }
 function _jkMove(dir) {
+  // PC（二段組み）：左のプレビューを上下移動して右の詳細も切り替える
+  if (_isDesktop()) {
+    var items = Array.from(document.querySelectorAll('#cards .pv-item'));
+    if (!items.length) return;
+    var ids = items.map(function(it){ return it.getAttribute('data-id'); });
+    var cur = ids.indexOf(selectedCardId);
+    var ni;
+    if (cur < 0) {
+      ni = dir > 0 ? 0 : items.length - 1;
+    } else {
+      ni = cur + dir;
+      if (ni < 0) ni = 0;
+      if (ni >= items.length) ni = items.length - 1;
+    }
+    selectCard(ids[ni]);
+    if (items[ni]) items[ni].scrollIntoView({ block: 'nearest' });
+    return;
+  }
   var cards = _jkCards();
   if (!cards.length) return;
   var idx = _jkSelectedId ? cards.findIndex(function(c){ return c.id === _jkSelectedId; }) : -1;
