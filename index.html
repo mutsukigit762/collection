@@ -1469,19 +1469,19 @@ function initFilterSelects() {
   var yearSel = document.getElementById('filter-year');
   var monthSel = document.getElementById('filter-month');
   var now = new Date().getFullYear();
-  for (var y = 2017; y <= now; y++) {
+  for (var y = now; y >= 2017; y--) {
     var opt = document.createElement('option');
     opt.value = y; opt.textContent = y + '年';
     yearSel.appendChild(opt);
   }
-  for (var mo = 1; mo <= 12; mo++) {
+  for (var mo = 12; mo >= 1; mo--) {
     var opt2 = document.createElement('option');
     opt2.value = String(mo).padStart(2, '0');
     opt2.textContent = mo + '月';
     monthSel.appendChild(opt2);
   }
   var daySel = document.getElementById('filter-day');
-  for (var dd = 1; dd <= 31; dd++) {
+  for (var dd = 31; dd >= 1; dd--) {
     var opt3 = document.createElement('option');
     opt3.value = String(dd).padStart(2, '0');
     opt3.textContent = dd + '日';
