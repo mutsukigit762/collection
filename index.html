@@ -1209,7 +1209,7 @@ function cardPreviewHTML(n) {
   var plain = htmlToPlainText(n.body || '').trim();
   var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
   var thumb = m ? '<img class="pv-thumb" src="' + esc(m[1]) + '" loading="lazy">' : '';
-  var snippet = plain ? esc(plain.slice(0, 100))
+  var snippet = plain ? esc(plain.slice(0, 300))
     : (m ? '<span class="pv-muted">（画像）</span>' : '<span class="pv-muted">（空）</span>');
   var sel = n.id === selectedCardId ? ' pv-selected' : '';
   return '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
