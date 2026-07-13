@@ -177,17 +177,22 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     font-size:14px;
   }
 }
-/* PC（二ペイン）レイアウト */
-.split{display:block}
+/* PC（左サイドバー＋右フルハイト詳細）レイアウト */
+.layout{display:block}
+.left-col{}
 .detail-pane{display:none}
 .pv-item{display:none}
 @media(min-width:900px){
-  .sticky-header,.app{max-width:1080px}
-  .split{display:flex;gap:20px;align-items:flex-start}
-  #cards{flex:0 0 320px;display:flex;flex-direction:column;gap:8px}
-  .detail-pane{display:block;flex:1;min-width:0;position:sticky;top:20px}
-  .detail-pane .card{padding:1.25rem 1.5rem}
-  .detail-pane .card-editor .ProseMirror img{max-width:220px;max-height:220px}
+  body{overflow:hidden}
+  .layout{display:flex;height:100vh;align-items:stretch}
+  .left-col{flex:0 0 400px;height:100vh;overflow-y:auto;border-right:0.5px solid var(--border)}
+  .left-col .sticky-header{max-width:none;margin:0}
+  .left-col .app{max-width:none;margin:0}
+  .sort-bar{flex-wrap:wrap}
+  #cards{display:flex;flex-direction:column;gap:8px}
+  .detail-pane{display:block;flex:1;min-width:0;height:100vh;overflow-y:auto;padding:16px}
+  .detail-pane .card{min-height:calc(100vh - 32px);padding:1.5rem 1.75rem}
+  .detail-pane .card-editor .ProseMirror img{max-width:240px;max-height:240px}
   .pv-item{display:block;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
   .pv-item:hover{border-color:var(--border2)}
   .pv-selected{border-color:var(--text);background:var(--bg2)}
@@ -206,6 +211,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
 </div>
+<div class="layout" id="layout">
+<div class="left-col" id="left-col">
 <div class="sticky-header">
   <div class="header">
     <h1>コレクション</h1>
@@ -236,10 +243,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div id="trash-panel" class="overlay" onclick="if(event.target===this)window.toggleTrash()"></div>
   <div id="cat-panel" class="overlay" onclick="if(event.target===this)window.toggleCatPanel()"></div>
   <div class="search-count" id="search-count"></div>
-  <div class="split" id="split">
-    <div class="cards" id="cards"></div>
-    <div class="detail-pane" id="detail-pane"></div>
-  </div>
+  <div class="cards" id="cards"></div>
+</div>
+</div>
+<div class="detail-pane" id="detail-pane"></div>
 </div>
 <div class="bottom-bar" id="bottom-bar">
   <div class="bb-buttons" id="bb-buttons">
@@ -699,11 +706,22 @@ loadCategories();
 loadNotes(true);
 
 window.addEventListener('scroll', function() {
-  if (searchQuery) return;
+  if (searchQuery || _isDesktop()) return;
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
     loadNotes(false);
   }
 });
+
+// PCでは左カラムが独自スクロールなので、そちらで追加読み込みを判定
+var _leftCol = document.getElementById('left-col');
+if (_leftCol) {
+  _leftCol.addEventListener('scroll', function() {
+    if (searchQuery || !_isDesktop()) return;
+    if (_leftCol.scrollTop + _leftCol.clientHeight >= _leftCol.scrollHeight - 300) {
+      loadNotes(false);
+    }
+  });
+}
 
 // PC⇔モバイルの境界をまたいだらレイアウトを組み直す
 window.matchMedia('(min-width:900px)').addEventListener('change', function() {
@@ -1213,12 +1231,6 @@ function renderDetail() {
   }
   if (_mountedDetailId && _mountedDetailId !== n.id) destroyEditor(_mountedDetailId);
   pane.innerHTML = detailCardHTML(n);
-  var hdr = document.querySelector('.sticky-header');
-  if (hdr) {
-    pane.style.top = (hdr.offsetHeight + 12) + 'px';
-    pane.style.maxHeight = 'calc(100vh - ' + (hdr.offsetHeight + 28) + 'px)';
-    pane.style.overflowY = 'auto';
-  }
   initEditor(n.id, n.body);
   _mountedDetailId = n.id;
   _updatePreviewSelection();
