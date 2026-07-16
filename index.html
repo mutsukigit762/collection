@@ -1272,6 +1272,24 @@ function closeMobileDetail() {
 }
 window.closeMobileDetail = closeMobileDetail;
 
+// 詳細画面：画面左端からのスワイプで一覧へ戻る（本文の編集・スクロールとは衝突しない）
+var _dsStartX = null, _dsStartY = null, _dsTracking = false;
+document.addEventListener('touchstart', function(e) {
+  if (_isDesktop() || !document.body.classList.contains('mobile-detail-open')) return;
+  if (e.touches.length !== 1 || e.touches[0].clientX > 24) return;
+  _dsStartX = e.touches[0].clientX;
+  _dsStartY = e.touches[0].clientY;
+  _dsTracking = true;
+}, { passive: true });
+document.addEventListener('touchmove', function(e) {
+  if (!_dsTracking) return;
+  var dx = e.touches[0].clientX - _dsStartX;
+  var dy = e.touches[0].clientY - _dsStartY;
+  if (Math.abs(dy) > Math.abs(dx)) { _dsTracking = false; return; }
+  if (dx > 70) { _dsTracking = false; closeMobileDetail(); }
+}, { passive: true });
+document.addEventListener('touchend', function() { _dsTracking = false; }, { passive: true });
+
 function renderCardsDesktop() {
   var el = document.getElementById('cards');
   var countEl = document.getElementById('search-count');
