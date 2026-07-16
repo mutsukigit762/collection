@@ -169,6 +169,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   }
 }
 /* カード一覧のサムネイル表示（スマホ・PC共通） */
+.pv-row-wrap{position:relative;overflow:hidden;border-radius:var(--radius-lg)}
+.pv-delete-btn{position:absolute;top:0;right:0;bottom:0;width:76px;background:var(--danger);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .pv-item{display:block;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
 .pv-item:hover{border-color:var(--border2)}
 .pv-selected{border-color:var(--text);background:var(--bg2)}
@@ -1218,9 +1220,12 @@ function cardPreviewHTML(n) {
   var snippet = plain ? esc(plain.slice(0, 300))
     : (m ? '<span class="pv-muted">（画像）</span>' : '<span class="pv-muted">（空）</span>');
   var sel = n.id === selectedCardId ? ' pv-selected' : '';
-  return '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
+  return '<div class="pv-row-wrap">'
+    + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
+    + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" onclick="event.stopPropagation();openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</span><span class="pv-date">' + esc(n.date) + '</span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
+    + '</div>'
     + '</div>';
 }
 
@@ -1296,6 +1301,82 @@ document.addEventListener('touchmove', function(e) {
 }, { passive: true });
 document.addEventListener('touchend', function() { _dsTracking = false; }, { passive: true });
 
+// 一覧のカード：左スワイプで削除ボタンを出す
+var PV_DELETE_W = 76;
+var _pvOpenId = null;
+var _pvSwipe = { id: null, startX: 0, startY: 0, baseOffset: 0, lastOffset: 0, active: false, moved: false };
+var _pvSuppressClick = false;
+
+function _pvSetOffset(id, offset, animate) {
+  var el = document.querySelector('#cards .pv-item[data-id="' + id + '"]');
+  if (!el) return;
+  el.style.transition = animate ? 'transform 0.18s ease' : 'none';
+  el.style.transform = offset ? 'translateX(' + offset + 'px)' : '';
+}
+function _pvCloseOpen() {
+  if (_pvOpenId) { _pvSetOffset(_pvOpenId, 0, true); _pvOpenId = null; }
+}
+
+document.addEventListener('touchstart', function(e) {
+  if (_isDesktop()) return;
+  var item = e.target.closest && e.target.closest('#cards .pv-item');
+  if (!item || e.touches.length !== 1) {
+    if (!(e.target.closest && e.target.closest('.pv-row-wrap'))) _pvCloseOpen();
+    return;
+  }
+  var id = item.getAttribute('data-id');
+  if (_pvOpenId && _pvOpenId !== id) _pvCloseOpen();
+  _pvSwipe.id = id;
+  _pvSwipe.startX = e.touches[0].clientX;
+  _pvSwipe.startY = e.touches[0].clientY;
+  _pvSwipe.baseOffset = (_pvOpenId === id) ? -PV_DELETE_W : 0;
+  _pvSwipe.lastOffset = _pvSwipe.baseOffset;
+  _pvSwipe.active = true;
+  _pvSwipe.moved = false;
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e) {
+  if (!_pvSwipe.active) return;
+  var dx = e.touches[0].clientX - _pvSwipe.startX;
+  var dy = e.touches[0].clientY - _pvSwipe.startY;
+  if (!_pvSwipe.moved && Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+  if (!_pvSwipe.moved && Math.abs(dy) > Math.abs(dx)) { _pvSwipe.active = false; return; }
+  _pvSwipe.moved = true;
+  var next = _pvSwipe.baseOffset + dx;
+  if (next > 0) next = 0;
+  if (next < -PV_DELETE_W) next = -PV_DELETE_W + (next + PV_DELETE_W) * 0.25;
+  _pvSwipe.lastOffset = next;
+  _pvSetOffset(_pvSwipe.id, next, false);
+}, { passive: true });
+
+document.addEventListener('touchend', function() {
+  if (!_pvSwipe.active) return;
+  _pvSwipe.active = false;
+  var wasOpen = _pvSwipe.baseOffset === -PV_DELETE_W;
+  if (!_pvSwipe.moved) {
+    // ちょい動きなしのタップ：開いていた行なら閉じるだけにして詳細を開かせない
+    if (wasOpen) { _pvSuppressClick = true; _pvCloseOpen(); }
+    return;
+  }
+  _pvSuppressClick = true;
+  if (_pvSwipe.lastOffset < -PV_DELETE_W / 2) {
+    _pvSetOffset(_pvSwipe.id, -PV_DELETE_W, true);
+    _pvOpenId = _pvSwipe.id;
+  } else {
+    _pvSetOffset(_pvSwipe.id, 0, true);
+    if (_pvOpenId === _pvSwipe.id) _pvOpenId = null;
+  }
+}, { passive: true });
+
+document.addEventListener('click', function(e) {
+  if (!_pvSuppressClick) return;
+  _pvSuppressClick = false;
+  if (e.target.closest && e.target.closest('#cards .pv-item')) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, true);
+
 function renderCardsDesktop() {
   var el = document.getElementById('cards');
   var countEl = document.getElementById('search-count');
@@ -1324,6 +1405,7 @@ function renderCards() {
   el.innerHTML = list.length
     ? list.map(cardPreviewHTML).join('')
     : '<div class="empty">' + (searchQuery ? IC.searchLg + '見つからなかった' : IC.inboxLg + 'まだ何もない') + '</div>';
+  _pvOpenId = null;
 
   // 開いていたメモが一覧から消えたら（カテゴリ切替・検索など）詳細画面を閉じる
   if (!list.some(function(n){ return n.id === selectedCardId; })) closeMobileDetail();
