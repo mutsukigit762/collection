@@ -45,6 +45,11 @@ select.sort-btn{padding-right:10px}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1rem}
 .card.jk-selected{border-color:var(--text)}
+/* 左スワイプでゴミ箱を出す土台（スマホのカード一覧） */
+.card-swipe{position:relative;border-radius:var(--radius-lg);overflow:hidden}
+.card-swipe .card{position:relative;z-index:1;background:var(--bg);transition:transform .22s cubic-bezier(.4,0,.2,1);will-change:transform;touch-action:pan-y}
+.card-swipe-del{position:absolute;top:0;right:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:#e5484d;color:#fff;border:none;cursor:pointer;font-family:inherit;z-index:0}
+.card-swipe-del svg{width:20px;height:20px}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
 .cat-btn{font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .cat-btn:hover{border-color:var(--border2)}
@@ -880,13 +885,15 @@ function cardHTML(n) {
   } else {
     bodyEl = makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>';
   }
-  return '<div class="card" id="card-' + n.id + '">'
+  return '<div class="card-swipe">'
+    + '<button class="card-swipe-del" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" tabindex="-1">' + IC.trash + '</button>'
+    + '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top">'
     + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
-    + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + bodyEl
     + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + bc + '</div>'
+    + '</div>'
     + '</div>';
 }
 
@@ -1336,6 +1343,7 @@ function renderCardsDesktop() {
 }
 
 function renderCards() {
+  if (window._resetSwipe) window._resetSwipe();
   if (_isDesktop()) { renderCardsDesktop(); return; }
 
   var el = document.getElementById('cards');
@@ -1753,6 +1761,70 @@ document.getElementById('tabs').addEventListener('wheel', function(e) {
 }, {passive: false});
 
 window.handleOverlayClick = handleOverlayClick;
+
+// ── 左スワイプでゴミ箱を出す（スマホのカード一覧） ──
+(function(){
+  var REVEAL = 72;
+  var cardsEl = document.getElementById('cards');
+  var sw = null;        // 進行中のスワイプ
+  var openWrap = null;  // 今ゴミ箱が出てるカード
+
+  function wrapOf(el){ return el && el.closest ? el.closest('.card-swipe') : null; }
+  function cardOf(wrap){ return wrap ? wrap.querySelector('.card') : null; }
+
+  function setOpen(wrap, open){
+    var card = cardOf(wrap);
+    if (!card) return;
+    card.style.transition = '';
+    card.style.transform = open ? 'translateX(-' + REVEAL + 'px)' : 'translateX(0)';
+    wrap.classList.toggle('swipe-open', open);
+    if (open){ if (openWrap && openWrap !== wrap) setOpen(openWrap, false); openWrap = wrap; }
+    else if (openWrap === wrap){ openWrap = null; }
+  }
+  // 再描画されたら状態リセット（古いDOM参照を捨てる）
+  window._resetSwipe = function(){ sw = null; openWrap = null; };
+
+  cardsEl.addEventListener('touchstart', function(e){
+    if (_isDesktop()) return;
+    var wrap = wrapOf(e.target);
+    if (openWrap && wrap !== openWrap) setOpen(openWrap, false); // 別の所を触ったら閉じる
+    if (!wrap) return;
+    if (e.target.closest('.card-swipe-del')) return;             // ゴミ箱ボタン自体はスワイプ扱いしない
+    var t = e.touches[0];
+    sw = { wrap: wrap, card: cardOf(wrap), x0: t.clientX, y0: t.clientY,
+           dx: 0, decided: false, horiz: false,
+           base: wrap.classList.contains('swipe-open') ? -REVEAL : 0 };
+  }, {passive:true});
+
+  cardsEl.addEventListener('touchmove', function(e){
+    if (!sw) return;
+    var t = e.touches[0];
+    var dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
+    if (!sw.decided){
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      sw.decided = true;
+      sw.horiz = Math.abs(dx) > Math.abs(dy);      // 横移動が縦より大きい時だけスワイプ
+      if (!sw.horiz){ sw = null; return; }         // 縦スクロールは邪魔しない
+      sw.card.style.transition = 'none';
+    }
+    if (!sw.horiz) return;
+    e.preventDefault();
+    var x = sw.base + dx;
+    if (x > 0) x = 0;                              // 右には開かない
+    if (x < -REVEAL) x = -REVEAL + (x + REVEAL) * 0.25; // これ以上はゴムのように抵抗
+    sw.dx = x;
+    sw.card.style.transform = 'translateX(' + x + 'px)';
+  }, {passive:false});
+
+  function end(){
+    if (!sw) return;
+    if (sw.horiz) setOpen(sw.wrap, sw.dx < -REVEAL/2); // 半分以上引いてたら開いたまま、そうでなければ閉じる
+    sw = null;
+  }
+  cardsEl.addEventListener('touchend', end);
+  cardsEl.addEventListener('touchcancel', end);
+})();
+
 setSyncStatus('接続中…');
 
 </script>
