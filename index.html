@@ -1265,7 +1265,12 @@ function renderDetail() {
   _updatePreviewSelection();
 }
 
+var _listScrollY = 0;
 function selectCard(id) {
+  // 詳細を開く直前に一覧のスクロール位置を覚えておく（戻った時に復元する）
+  if (!_isDesktop() && !document.body.classList.contains('mobile-detail-open')) {
+    _listScrollY = window.scrollY;
+  }
   if (selectedCardId === id && editors[id]) {
     if (!_isDesktop()) document.body.classList.add('mobile-detail-open');
     return;
@@ -1279,7 +1284,14 @@ function selectCard(id) {
 window.selectCard = selectCard;
 
 function closeMobileDetail() {
+  var wasOpen = document.body.classList.contains('mobile-detail-open');
   document.body.classList.remove('mobile-detail-open');
+  // 一覧が再表示されたらスクロール位置を戻す（描画確定後に）
+  if (wasOpen && !_isDesktop()) {
+    var y = _listScrollY;
+    window.scrollTo(0, y);
+    requestAnimationFrame(function(){ window.scrollTo(0, y); });
+  }
 }
 window.closeMobileDetail = closeMobileDetail;
 
