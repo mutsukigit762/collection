@@ -1295,6 +1295,17 @@ function renderDetail() {
   _updatePreviewSelection();
 }
 
+// 編集中のカードの一覧プレビュー（サムネイル・抜粋）を最新の内容で作り直す。
+// 「編集の確定」は他のカードにフォーカスを移した瞬間とみなす。
+function _refreshPreviewCard(id) {
+  if (!id) return;
+  var n = notes.find(function(x){ return x.id === id; });
+  if (!n) return;
+  var item = document.querySelector('#cards .pv-item[data-id="' + id + '"]');
+  var wrap = item && item.closest('.pv-row-wrap');
+  if (wrap) wrap.outerHTML = cardPreviewHTML(n);
+}
+
 var _listScrollY = 0;
 function selectCard(id) {
   // 詳細を開く直前に一覧のスクロール位置を覚えておく（戻った時に復元する）
@@ -1305,7 +1316,9 @@ function selectCard(id) {
     if (!_isDesktop()) document.body.classList.add('mobile-detail-open');
     return;
   }
+  var prevId = selectedCardId;
   selectedCardId = id;
+  if (prevId && prevId !== id) _refreshPreviewCard(prevId);
   renderDetail();
   var pane = document.getElementById('detail-pane');
   if (pane) pane.scrollTop = 0;
@@ -1316,6 +1329,7 @@ window.selectCard = selectCard;
 function closeMobileDetail() {
   var wasOpen = document.body.classList.contains('mobile-detail-open');
   document.body.classList.remove('mobile-detail-open');
+  if (wasOpen) _refreshPreviewCard(selectedCardId);
   // 一覧が再表示されたらスクロール位置を戻す（描画確定後に）
   if (wasOpen && !_isDesktop()) {
     var y = _listScrollY;
