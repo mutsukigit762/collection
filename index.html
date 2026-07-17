@@ -234,6 +234,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .left-col .app{max-width:none;margin:0}
   .sort-bar{flex-wrap:wrap}
   #cards{display:flex;flex-direction:column;gap:8px}
+  .pv-text{min-height:calc(1.45em * 3)}
   .detail-pane{display:block;flex:1 1 50%;min-width:0;height:100vh;overflow-y:auto;padding:16px}
   .detail-pane .card{min-height:calc(100vh - 32px);padding:1.5rem 1.75rem}
   .detail-pane .card-editor .ProseMirror img{max-width:240px;max-height:240px}
@@ -532,6 +533,14 @@ function initEditor(id, body) {
 
   var editorEl = document.getElementById('editor-' + id);
   if (editorEl) {
+    // contenteditable内のリンクはブラウザが自動でナビゲートしないので手動で開く。
+    // タップは touchend で確実に拾い、そのpreventDefaultで後続の合成clickも止めて二重発火を防ぐ。
+    editorEl.addEventListener('touchend', function(e) {
+      var link = e.target.closest && e.target.closest('a[href]');
+      if (!link) return;
+      e.preventDefault();
+      window.open(link.href, '_blank', 'noopener,noreferrer');
+    });
     editorEl.addEventListener('click', function(e) {
       var link = e.target.closest('a[href]');
       if (link) {
