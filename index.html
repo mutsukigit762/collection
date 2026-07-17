@@ -986,7 +986,7 @@ document.addEventListener('keydown', function(e) {
       return;
     }
     if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === '/') {
         if (_jkCurrentId()) { e.preventDefault(); _focusSelectedEditor(); }
         return;
       }
