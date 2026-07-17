@@ -909,8 +909,7 @@ window._addCatModal = async function() {
   categories.push(name);
   await saveCategoryToFirestore(name);
   if (currentNoteIdForCat) {
-    updateCatInDB(currentNoteIdForCat, name);
-    closeOverlay();
+    window._selectCat(currentNoteIdForCat, name);
     render();
   }
 };
