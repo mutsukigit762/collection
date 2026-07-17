@@ -814,6 +814,14 @@ async function updateCatInDB(id, cat) {
 async function deleteNote(id) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n) return;
+  // 削除後は1つ下のカードにフォーカスを移す（今表示中のカードを消した時だけ）
+  if (selectedCardId === id) {
+    var list = searchQuery ? notes : notes.filter(catFilterNote);
+    var idx = list.findIndex(function(x){ return x.id === id; });
+    var rest = list.filter(function(x){ return x.id !== id; });
+    var next = idx >= 0 ? (rest[idx] || rest[idx - 1]) : null;
+    selectedCardId = next ? next.id : null;
+  }
   trash.push(n);
   saveTrash(trash);
   notes = notes.filter(function(x){ return x.id !== id; });
