@@ -539,14 +539,14 @@ function initEditor(id, body) {
       var link = e.target.closest && e.target.closest('a[href]');
       if (!link) return;
       e.preventDefault();
-      window.open(link.href, '_blank', 'noopener,noreferrer');
+      window.open(link.href, '_blank', 'noopener,noreferrer,width=1000,height=800');
     });
     editorEl.addEventListener('click', function(e) {
       var link = e.target.closest('a[href]');
       if (link) {
         e.preventDefault();
         e.stopPropagation();
-        window.open(link.href, '_blank', 'noopener,noreferrer');
+        window.open(link.href, '_blank', 'noopener,noreferrer,width=1000,height=800');
         return;
       }
       var img = e.target.closest('img');
