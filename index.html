@@ -986,8 +986,17 @@ document.addEventListener('keydown', function(e) {
       return;
     }
     if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-      if (e.key === 'Enter' || e.key === '/') {
+      if (e.key === 'Enter' || e.key === 'i') {
         if (_jkCurrentId()) { e.preventDefault(); _focusSelectedEditor(); }
+        return;
+      }
+      if (e.key === '/') {
+        e.preventDefault();
+        if (_isDesktop()) {
+          document.getElementById('search-input').focus();
+        } else {
+          openBottomSearch();
+        }
         return;
       }
       if (e.key === 'n') { e.preventDefault(); addNote(); return; }
