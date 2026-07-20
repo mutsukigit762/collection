@@ -631,6 +631,8 @@ function updateByteCount(id, val) {
 function makeToolbar(id) {
   return '<div class="toolbar">'
     + '<button type="button" class="toolbar-btn" title="表を挿入" onclick="window._tbTable(\'' + id + '\')">' + IC.table + '</button>'
+    + '<button type="button" class="toolbar-btn" title="行を追加（カーソルが表の中にある時）" onclick="window._tbAddRow(\'' + id + '\')">+行</button>'
+    + '<button type="button" class="toolbar-btn" title="列を追加（カーソルが表の中にある時）" onclick="window._tbAddCol(\'' + id + '\')">+列</button>'
     + '</div>';
 }
 
@@ -644,6 +646,18 @@ window._tbTable = function(id) {
   var ed = editors[id];
   if (!ed) return;
   ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+};
+
+window._tbAddRow = function(id) {
+  var ed = editors[id];
+  if (!ed) return;
+  ed.chain().focus().addRowAfter().run();
+};
+
+window._tbAddCol = function(id) {
+  var ed = editors[id];
+  if (!ed) return;
+  ed.chain().focus().addColumnAfter().run();
 };
 
 async function loadCategories() {
