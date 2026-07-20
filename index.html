@@ -113,9 +113,9 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 .sync-status{font-size:11px;color:var(--text3);text-align:right;padding:0 0 6px}
 svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
-/* スマホ用ボトムバー */
+/* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
-@media(max-width:640px){
+@media(max-width:640px) and (pointer:coarse){
   .sticky-header .header > div{display:none}
   .sticky-header .search-wrap{display:none}
   .app{padding-bottom:92px}
