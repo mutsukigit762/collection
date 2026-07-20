@@ -89,6 +89,8 @@ select.sort-btn{padding-right:10px}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none}
 .date-edit-hour,.date-edit-min{padding:1px 2px}
+.date-edit-select-wrap{position:relative;display:inline-block}
+.date-edit-wheelcap{position:absolute;inset:0;cursor:pointer}
 .date-edit-ok{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 6px;margin-left:2px;cursor:pointer}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -886,21 +888,31 @@ function dateTimeLocalValue(n) {
 
 function _pad2(n) { return (n < 10 ? '0' : '') + n; }
 
-// マウスホイールの1ノッチ分の入力を必ず1ステップ分の移動に固定する
-// (ブラウザ標準のselectのホイール処理は1ノッチで複数進むことがあるため)
-function _wheelStepSelect(el) {
+// select自体はネイティブのホイール処理（OSレベルで1ノッチ複数進むことがある）を
+// JS側から止められないため、透明なオーバーレイでホイール入力を先取りし、
+// 1ノッチ＝必ず1ステップだけselectを動かす。クリックはselectのclick()に転送して開く。
+function _wheelCapSelect(wrapEl) {
+  var select = wrapEl.querySelector('select');
+  var cap = wrapEl.querySelector('.date-edit-wheelcap');
+  if (!select || !cap) return;
   var lastT = 0;
-  el.addEventListener('wheel', function(e) {
+  cap.addEventListener('wheel', function(e) {
     e.preventDefault();
     var now = Date.now();
-    if (now - lastT < 80) return;
+    if (now - lastT < 120) return;
     lastT = now;
     var dir = e.deltaY > 0 ? 1 : -1;
-    var idx = el.selectedIndex + dir;
+    var idx = select.selectedIndex + dir;
     if (idx < 0) idx = 0;
-    if (idx >= el.options.length) idx = el.options.length - 1;
-    el.selectedIndex = idx;
+    if (idx >= select.options.length) idx = select.options.length - 1;
+    select.selectedIndex = idx;
   }, { passive: false });
+  cap.addEventListener('click', function(e) {
+    e.stopPropagation();
+    select.focus();
+    if (typeof select.showPicker === 'function') { try { select.showPicker(); return; } catch(err) {} }
+    select.click();
+  });
 }
 
 function editNoteDate(noteId, evt) {
@@ -919,14 +931,15 @@ function editNoteDate(noteId, evt) {
   for (var mi = 0; mi < 60; mi++) minOpts += '<option value="' + _pad2(mi) + '"' + (_pad2(mi) === minPart ? ' selected' : '') + '>' + _pad2(mi) + '</option>';
   wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
     + '<input type="date" class="date-edit-input date-edit-date" value="' + datePart + '">'
-    + '<select class="date-edit-input date-edit-hour">' + hourOpts + '</select>:'
-    + '<select class="date-edit-input date-edit-min">' + minOpts + '</select>'
+    + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-hour">' + hourOpts + '</select><div class="date-edit-wheelcap"></div></span>:'
+    + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-min">' + minOpts + '</select><div class="date-edit-wheelcap"></div></span>'
     + '<button type="button" class="date-edit-ok" onclick="commitNoteDateFromWrap(\'' + noteId + '\')">OK</button>'
     + '</span>';
   var dateInp = wrap.querySelector('.date-edit-date');
   if (dateInp) dateInp.focus();
-  _wheelStepSelect(wrap.querySelector('.date-edit-hour'));
-  _wheelStepSelect(wrap.querySelector('.date-edit-min'));
+  var selWraps = wrap.querySelectorAll('.date-edit-select-wrap');
+  _wheelCapSelect(selWraps[0]);
+  _wheelCapSelect(selWraps[1]);
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
