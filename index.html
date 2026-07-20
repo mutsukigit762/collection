@@ -420,6 +420,17 @@ function formatNoteDate(n) {
   }
   return n.date ? (n.date + ' 00:00') : '';
 }
+function formatNoteDateParts(n) {
+  var full = formatNoteDate(n);
+  var sp = full.indexOf(' ');
+  if (sp < 0) return { date: full, time: '' };
+  return { date: full.slice(0, sp), time: full.slice(sp + 1) };
+}
+function dateSpanInnerHTML(n) {
+  var p = formatNoteDateParts(n);
+  return '<span class="date-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event, \'date\')">' + esc(p.date) + '</span> '
+    + '<span class="time-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event, \'time\')">' + esc(p.time) + '</span>';
+}
 function catStyle(name) {
   var c = catColor(name);
   return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
@@ -942,7 +953,7 @@ function _wheelCapSelect(wrapEl) {
   });
 }
 
-function editNoteDate(noteId, evt) {
+function editNoteDate(noteId, evt, part) {
   if (evt) evt.stopPropagation();
   var n = notes.find(function(x){ return x.id === noteId; });
   if (!n) return;
@@ -952,21 +963,29 @@ function editNoteDate(noteId, evt) {
   var datePart = val.slice(0, 10);
   var hourPart = val.slice(11, 13);
   var minPart = val.slice(14, 16);
-  var hourOpts = '';
-  for (var h = 0; h < 24; h++) hourOpts += '<option value="' + _pad2(h) + '"' + (_pad2(h) === hourPart ? ' selected' : '') + '>' + _pad2(h) + '</option>';
-  var minOpts = '';
-  for (var mi = 0; mi < 60; mi++) minOpts += '<option value="' + _pad2(mi) + '"' + (_pad2(mi) === minPart ? ' selected' : '') + '>' + _pad2(mi) + '</option>';
-  wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
-    + '<input type="date" class="date-edit-input date-edit-date" value="' + datePart + '">'
-    + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-hour">' + hourOpts + '</select><div class="date-edit-wheelcap"></div></span>:'
-    + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-min">' + minOpts + '</select><div class="date-edit-wheelcap"></div></span>'
-    + '<button type="button" class="date-edit-ok" onclick="commitNoteDateFromWrap(\'' + noteId + '\')">OK</button>'
-    + '</span>';
-  var dateInp = wrap.querySelector('.date-edit-date');
-  if (dateInp) dateInp.focus();
-  var selWraps = wrap.querySelectorAll('.date-edit-select-wrap');
-  _wheelCapSelect(selWraps[0]);
-  _wheelCapSelect(selWraps[1]);
+  if (part === 'time') {
+    var hourOpts = '';
+    for (var h = 0; h < 24; h++) hourOpts += '<option value="' + _pad2(h) + '"' + (_pad2(h) === hourPart ? ' selected' : '') + '>' + _pad2(h) + '</option>';
+    var minOpts = '';
+    for (var mi = 0; mi < 60; mi++) minOpts += '<option value="' + _pad2(mi) + '"' + (_pad2(mi) === minPart ? ' selected' : '') + '>' + _pad2(mi) + '</option>';
+    wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
+      + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-hour">' + hourOpts + '</select><div class="date-edit-wheelcap"></div></span>:'
+      + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-min">' + minOpts + '</select><div class="date-edit-wheelcap"></div></span>'
+      + '<button type="button" class="date-edit-ok" onclick="commitNoteTimeFromWrap(\'' + noteId + '\')">OK</button>'
+      + '</span>';
+    var selWraps = wrap.querySelectorAll('.date-edit-select-wrap');
+    _wheelCapSelect(selWraps[0]);
+    _wheelCapSelect(selWraps[1]);
+    var hourSel = wrap.querySelector('.date-edit-hour');
+    if (hourSel) hourSel.focus();
+  } else {
+    wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
+      + '<input type="date" class="date-edit-input date-edit-date" value="' + datePart + '">'
+      + '<button type="button" class="date-edit-ok" onclick="commitNoteDateOnlyFromWrap(\'' + noteId + '\')">OK</button>'
+      + '</span>';
+    var dateInp = wrap.querySelector('.date-edit-date');
+    if (dateInp) dateInp.focus();
+  }
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
@@ -977,16 +996,29 @@ function editNoteDate(noteId, evt) {
 }
 window.editNoteDate = editNoteDate;
 
-function commitNoteDateFromWrap(noteId) {
+function commitNoteDateOnlyFromWrap(noteId) {
   var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
   if (!wrap) return;
   var d = wrap.querySelector('.date-edit-date').value;
+  if (!d) { renderDateSpan(noteId); return; }
+  var n = notes.find(function(x){ return x.id === noteId; });
+  if (!n) return;
+  var time = dateTimeLocalValue(n).slice(11, 16);
+  commitNoteDate(noteId, d + 'T' + time);
+}
+window.commitNoteDateOnlyFromWrap = commitNoteDateOnlyFromWrap;
+
+function commitNoteTimeFromWrap(noteId) {
+  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  if (!wrap) return;
   var h = wrap.querySelector('.date-edit-hour').value;
   var mi = wrap.querySelector('.date-edit-min').value;
-  if (!d) { renderDateSpan(noteId); return; }
+  var n = notes.find(function(x){ return x.id === noteId; });
+  if (!n) return;
+  var d = dateTimeLocalValue(n).slice(0, 10);
   commitNoteDate(noteId, d + 'T' + h + ':' + mi);
 }
-window.commitNoteDateFromWrap = commitNoteDateFromWrap;
+window.commitNoteTimeFromWrap = commitNoteTimeFromWrap;
 
 async function commitNoteDate(noteId, val) {
   if (!val) return;
@@ -1007,7 +1039,7 @@ function renderDateSpan(noteId) {
   var n = notes.find(function(x){ return x.id === noteId; });
   var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
   if (!n || !wrap) return;
-  wrap.innerHTML = esc(formatNoteDate(n));
+  wrap.innerHTML = dateSpanInnerHTML(n);
   wrap.classList.toggle('date-unrecovered', _dateIsUnrecovered(n));
 }
 window.renderDateSpan = renderDateSpan;
@@ -1472,7 +1504,7 @@ function cardPreviewHTML(n) {
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
-    + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>'
+    + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
     + '</div>'
@@ -1486,7 +1518,7 @@ function detailCardHTML(n) {
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
-    + '<div class="card-footer"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '" onclick="editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '<div class="card-footer"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
 }
 
