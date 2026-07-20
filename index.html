@@ -376,6 +376,21 @@ const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
 const TRASH_KEY = 'collection_trash_local';
 
+function _hashStr(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+function catColor(name) {
+  if (!name || name === NO_CAT) return null;
+  var hue = _hashStr(name) % 360;
+  return { bg: 'hsl(' + hue + ',65%,92%)', border: 'hsl(' + hue + ',50%,78%)', text: 'hsl(' + hue + ',55%,32%)' };
+}
+function catStyle(name) {
+  var c = catColor(name);
+  return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
+}
+
 function loadTrash() {
   try { return JSON.parse(localStorage.getItem(TRASH_KEY)) || []; } catch(e) { return []; }
 }
@@ -891,9 +906,9 @@ window._selectCat = function(noteId, cat) {
   if (n) n.cat = cat;
   closeOverlay();
   var btn = document.querySelector('#card-' + noteId + ' .cat-btn');
-  if (btn) btn.textContent = cat;
+  if (btn) { btn.textContent = cat; btn.style.cssText = catStyle(cat); }
   var pv = document.querySelector('#cards .pv-item[data-id="' + noteId + '"] .pv-cat');
-  if (pv) pv.textContent = cat;
+  if (pv) { pv.textContent = cat; pv.style.cssText = catStyle(cat); }
 };
 window._catModalFilter = function(val) {
   var q = val.toLowerCase();
@@ -1260,7 +1275,7 @@ function cardPreviewHTML(n) {
   return '<div class="pv-row-wrap">'
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
-    + '<div class="pv-meta"><span class="pv-cat" onclick="event.stopPropagation();openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</span>'
+    + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</span>'
     + '<span class="pv-meta-right"><span class="pv-date">' + esc(n.date) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
@@ -1271,7 +1286,7 @@ function cardPreviewHTML(n) {
 function detailCardHTML(n) {
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top">'
-    + '<button class="cat-btn" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
+    + '<button class="cat-btn" style="' + esc(catStyle(n.cat)) + '" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
