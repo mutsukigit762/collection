@@ -284,7 +284,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">更新順</button>
+    <button class="sort-btn active" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
     <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">Clear</button>
@@ -437,7 +437,7 @@ var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
 var searchQuery = '';
-var sortField = 'updatedAt';
+var sortField = 'date';
 var sortDir = 'desc';
 var filterYear = '';
 var filterMonth = '';
