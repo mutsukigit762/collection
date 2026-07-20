@@ -36,8 +36,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .sort-btn.active{background:var(--text);color:var(--bg3);border-color:var(--text)}
 select.sort-btn{padding-right:10px}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
+.tab-clear{display:inline-flex;align-items:center;justify-content:center;color:var(--text2)}
+.tab-clear:hover{color:var(--text)}
+.tab-clear svg{width:12px;height:12px}
 .tab.tab-match{color:var(--warning-text);border-bottom-color:var(--warning-text);font-weight:600;background:var(--warning-bg)}
 .tab:hover{color:var(--text)}
 .tab-add{padding:8px 10px;font-size:13px;cursor:pointer;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;font-family:inherit}
@@ -1235,12 +1238,17 @@ function renderTabs() {
   var tabs = allTabs();
   t.innerHTML = tabs.map(function(c) {
     var cls = 'tab';
+    var isActive = false;
     if (searchQuery) {
       if (_searchMatchedCats.indexOf(c) >= 0) cls += ' tab-match';
     } else if (c === currentCat) {
       cls += ' active';
+      isActive = true;
     }
-    return '<button class="' + cls + '" onclick="switchCat(\'' + esc(c) + '\')">' + esc(c) + '</button>';
+    var clearBtn = (isActive && c !== ALL_TAB)
+      ? '<span class="tab-clear" onclick="event.stopPropagation();switchCat(\'' + ALL_TAB + '\')">' + IC.x + '</span>'
+      : '';
+    return '<button class="' + cls + '" onclick="switchCat(\'' + esc(c) + '\')">' + esc(c) + clearBtn + '</button>';
   }).join('') + '<button class="tab-add" onclick="addCatInline()">' + IC.plus + '</button>';
   if (searchQuery && _searchMatchedCats.length) {
     var firstMatch = t.querySelector('.tab-match');
