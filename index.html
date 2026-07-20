@@ -858,6 +858,23 @@ function dateTimeLocalValue(n) {
 
 function _pad2(n) { return (n < 10 ? '0' : '') + n; }
 
+// マウスホイールの1ノッチ分の入力を必ず1ステップ分の移動に固定する
+// (ブラウザ標準のselectのホイール処理は1ノッチで複数進むことがあるため)
+function _wheelStepSelect(el) {
+  var lastT = 0;
+  el.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var now = Date.now();
+    if (now - lastT < 80) return;
+    lastT = now;
+    var dir = e.deltaY > 0 ? 1 : -1;
+    var idx = el.selectedIndex + dir;
+    if (idx < 0) idx = 0;
+    if (idx >= el.options.length) idx = el.options.length - 1;
+    el.selectedIndex = idx;
+  }, { passive: false });
+}
+
 function editNoteDate(noteId, evt) {
   if (evt) evt.stopPropagation();
   var n = notes.find(function(x){ return x.id === noteId; });
@@ -880,6 +897,8 @@ function editNoteDate(noteId, evt) {
     + '</span>';
   var dateInp = wrap.querySelector('.date-edit-date');
   if (dateInp) dateInp.focus();
+  _wheelStepSelect(wrap.querySelector('.date-edit-hour'));
+  _wheelStepSelect(wrap.querySelector('.date-edit-min'));
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
