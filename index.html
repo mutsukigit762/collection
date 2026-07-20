@@ -1554,6 +1554,8 @@ function switchCat(c) {
   }
   currentCat = c;
   _scrollTabIntoView = true;
+  window.scrollTo({ top: 0 });
+  if (_leftCol) _leftCol.scrollTop = 0;
   loadNotes(true);
 }
 var _searchTimer = null;
