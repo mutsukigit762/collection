@@ -389,6 +389,13 @@ function catColor(name) {
   var hue = _hashStr(name) % 360;
   return { bg: 'hsl(' + hue + ',65%,92%)', border: 'hsl(' + hue + ',50%,78%)', text: 'hsl(' + hue + ',55%,32%)' };
 }
+function formatNoteDate(n) {
+  if (n.created_at) {
+    var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(n.created_at);
+    if (m) return m[1] + ' ' + m[2];
+  }
+  return n.date || '';
+}
 function catStyle(name) {
   var c = catColor(name);
   return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
@@ -710,7 +717,7 @@ async function loadNotes(reset) {
     var snapshot = await getDocs(q);
     var newNotes = snapshot.docs.map(function(d) {
       var data = d.data();
-      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', deleted: data.deleted || false, images: data.images || [] };
+      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', created_at: data.created_at || '', deleted: data.deleted || false, images: data.images || [] };
     });
     if (reset) { notes = newNotes; } else { notes = notes.concat(newNotes); }
     if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
@@ -745,7 +752,7 @@ async function searchNotes(q2) {
     var data = await res.json();
     var lq = q2.toLowerCase();
     notes = (data.hits || []).map(function(h) {
-      return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '' };
+      return { id: h.objectID, body: h.body || '', cat: h.cat || NO_CAT, date: h.date || '', created_at: h.created_at || '' };
     }).filter(function(n) {
       var plain = htmlToPlainText(n.body).toLowerCase();
       return plain.indexOf(lq) >= 0;
@@ -1284,7 +1291,7 @@ function cardPreviewHTML(n) {
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
-    + '<span class="pv-meta-right"><span class="pv-date">' + esc(n.date) + '</span>'
+    + '<span class="pv-meta-right"><span class="pv-date">' + esc(formatNoteDate(n)) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
     + '</div>'
@@ -1298,7 +1305,7 @@ function detailCardHTML(n) {
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
-    + '<div class="card-footer"><span class="card-date">' + esc(n.date) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '<div class="card-footer"><span class="card-date">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
 }
 
