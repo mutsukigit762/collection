@@ -78,7 +78,10 @@ select.sort-btn{padding-right:10px}
 .img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px;cursor:pointer}
 .card-date:hover{color:var(--text2)}
+.date-edit-wrap{display:inline-flex;align-items:center;gap:2px}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none}
+.date-edit-hour,.date-edit-min{padding:1px 2px}
+.date-edit-ok{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 6px;margin-left:2px;cursor:pointer}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
@@ -847,6 +850,8 @@ function dateTimeLocalValue(n) {
   return (n.date || new Date().toISOString().slice(0, 10)) + 'T00:00';
 }
 
+function _pad2(n) { return (n < 10 ? '0' : '') + n; }
+
 function editNoteDate(noteId, evt) {
   if (evt) evt.stopPropagation();
   var n = notes.find(function(x){ return x.id === noteId; });
@@ -854,11 +859,41 @@ function editNoteDate(noteId, evt) {
   var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
   if (!wrap) return;
   var val = dateTimeLocalValue(n);
-  wrap.innerHTML = '<input type="datetime-local" class="date-edit-input" value="' + val + '" onclick="event.stopPropagation()" onchange="commitNoteDate(\'' + noteId + '\', this.value)" onblur="renderDateSpan(\'' + noteId + '\')">';
-  var inp = wrap.querySelector('.date-edit-input');
-  if (inp) inp.focus();
+  var datePart = val.slice(0, 10);
+  var hourPart = val.slice(11, 13);
+  var minPart = val.slice(14, 16);
+  var hourOpts = '';
+  for (var h = 0; h < 24; h++) hourOpts += '<option value="' + _pad2(h) + '"' + (_pad2(h) === hourPart ? ' selected' : '') + '>' + _pad2(h) + '</option>';
+  var minOpts = '';
+  for (var mi = 0; mi < 60; mi++) minOpts += '<option value="' + _pad2(mi) + '"' + (_pad2(mi) === minPart ? ' selected' : '') + '>' + _pad2(mi) + '</option>';
+  wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
+    + '<input type="date" class="date-edit-input date-edit-date" value="' + datePart + '">'
+    + '<select class="date-edit-input date-edit-hour">' + hourOpts + '</select>:'
+    + '<select class="date-edit-input date-edit-min">' + minOpts + '</select>'
+    + '<button type="button" class="date-edit-ok" onclick="commitNoteDateFromWrap(\'' + noteId + '\')">OK</button>'
+    + '</span>';
+  var dateInp = wrap.querySelector('.date-edit-date');
+  if (dateInp) dateInp.focus();
+  setTimeout(function() {
+    document.addEventListener('click', function _outside(ev) {
+      if (wrap.contains(ev.target)) return;
+      document.removeEventListener('click', _outside);
+      renderDateSpan(noteId);
+    });
+  }, 0);
 }
 window.editNoteDate = editNoteDate;
+
+function commitNoteDateFromWrap(noteId) {
+  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  if (!wrap) return;
+  var d = wrap.querySelector('.date-edit-date').value;
+  var h = wrap.querySelector('.date-edit-hour').value;
+  var mi = wrap.querySelector('.date-edit-min').value;
+  if (!d) { renderDateSpan(noteId); return; }
+  commitNoteDate(noteId, d + 'T' + h + ':' + mi);
+}
+window.commitNoteDateFromWrap = commitNoteDateFromWrap;
 
 async function commitNoteDate(noteId, val) {
   if (!val) return;
