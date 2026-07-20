@@ -77,6 +77,7 @@ select.sort-btn{padding-right:10px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
 .img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px;cursor:pointer}
+.date-unrecovered{color:#e11d48 !important;font-weight:600}
 .card-date:hover{color:var(--text2)}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none}
@@ -394,6 +395,9 @@ function catColor(name) {
   if (!name || name === NO_CAT) return null;
   var hue = _hashStr(name) % 360;
   return { bg: 'hsl(' + hue + ',65%,92%)', border: 'hsl(' + hue + ',50%,78%)', text: 'hsl(' + hue + ',55%,32%)' };
+}
+function _dateIsUnrecovered(n) {
+  return !n.created_at;
 }
 function formatNoteDate(n) {
   if (n.created_at) {
@@ -940,6 +944,7 @@ function renderDateSpan(noteId) {
   var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
   if (!n || !wrap) return;
   wrap.innerHTML = esc(formatNoteDate(n));
+  wrap.classList.toggle('date-unrecovered', _dateIsUnrecovered(n));
 }
 window.renderDateSpan = renderDateSpan;
 
@@ -1403,7 +1408,7 @@ function cardPreviewHTML(n) {
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
-    + '<span class="pv-meta-right"><span class="pv-date" data-date-id="' + n.id + '" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>'
+    + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
     + '</div>'
@@ -1417,7 +1422,7 @@ function detailCardHTML(n) {
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
-    + '<div class="card-footer"><span class="card-date" data-date-id="' + n.id + '" onclick="editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '<div class="card-footer"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '" onclick="editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
 }
 
