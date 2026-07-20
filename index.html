@@ -76,7 +76,9 @@ select.sort-btn{padding-right:10px}
 .img-modal-arrow.next{right:12px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
 .img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
-.card-date{font-size:11px;color:var(--text3);margin-top:6px}
+.card-date{font-size:11px;color:var(--text3);margin-top:6px;cursor:pointer}
+.card-date:hover{color:var(--text2)}
+.date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
@@ -185,7 +187,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 .pv-cat:hover{border-color:var(--border2);color:var(--text)}
 .pv-selected .pv-cat{background:var(--bg3)}
-.pv-date{font-size:10px;color:var(--text3);white-space:nowrap}
+.pv-date{font-size:10px;color:var(--text3);white-space:nowrap;cursor:pointer}
+.pv-date:hover{color:var(--text2)}
 .pv-row{display:flex;gap:8px;align-items:flex-start}
 .pv-thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;flex:0 0 auto}
 .pv-text{font-size:12px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
@@ -836,6 +839,50 @@ async function updateCatInDB(id, cat) {
   } catch(e) { console.error(e); }
 }
 
+function dateTimeLocalValue(n) {
+  if (n.created_at) {
+    var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(n.created_at);
+    if (m) return m[1] + 'T' + m[2];
+  }
+  return (n.date || new Date().toISOString().slice(0, 10)) + 'T00:00';
+}
+
+function editNoteDate(noteId, evt) {
+  if (evt) evt.stopPropagation();
+  var n = notes.find(function(x){ return x.id === noteId; });
+  if (!n) return;
+  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  if (!wrap) return;
+  var val = dateTimeLocalValue(n);
+  wrap.innerHTML = '<input type="datetime-local" class="date-edit-input" value="' + val + '" onclick="event.stopPropagation()" onchange="commitNoteDate(\'' + noteId + '\', this.value)" onblur="renderDateSpan(\'' + noteId + '\')">';
+  var inp = wrap.querySelector('.date-edit-input');
+  if (inp) inp.focus();
+}
+window.editNoteDate = editNoteDate;
+
+async function commitNoteDate(noteId, val) {
+  if (!val) return;
+  var n = notes.find(function(x){ return x.id === noteId; });
+  if (!n) return;
+  var newCreatedAt = val + ':00';
+  var newDate = val.slice(0, 10);
+  n.created_at = newCreatedAt;
+  n.date = newDate;
+  try {
+    await setDoc(doc(db, NOTES_COLL, noteId), { created_at: newCreatedAt, date: newDate, updatedAt: serverTimestamp() }, { merge: true });
+  } catch(e) { console.error(e); }
+  renderDateSpan(noteId);
+}
+window.commitNoteDate = commitNoteDate;
+
+function renderDateSpan(noteId) {
+  var n = notes.find(function(x){ return x.id === noteId; });
+  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  if (!n || !wrap) return;
+  wrap.innerHTML = esc(formatNoteDate(n));
+}
+window.renderDateSpan = renderDateSpan;
+
 async function deleteNote(id) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n) return;
@@ -1291,7 +1338,7 @@ function cardPreviewHTML(n) {
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
-    + '<span class="pv-meta-right"><span class="pv-date">' + esc(formatNoteDate(n)) + '</span>'
+    + '<span class="pv-meta-right"><span class="pv-date" data-date-id="' + n.id + '" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
     + '</div>'
@@ -1305,7 +1352,7 @@ function detailCardHTML(n) {
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
-    + '<div class="card-footer"><span class="card-date">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '<div class="card-footer"><span class="card-date" data-date-id="' + n.id + '" onclick="editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
 }
 
