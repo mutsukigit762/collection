@@ -1055,7 +1055,7 @@ function _jkMove(dir) {
     if (ni < 0) ni = 0;
     if (ni >= items.length) ni = items.length - 1;
   }
-  selectCard(ids[ni]);
+  focusCard(ids[ni]);
   if (items[ni]) items[ni].scrollIntoView({ block: 'nearest' });
 }
 function _anyModalOpen() {
@@ -1100,7 +1100,12 @@ document.addEventListener('keydown', function(e) {
     }
     if (!e.metaKey && !e.ctrlKey && !e.altKey) {
       if (e.key === 'Enter' || e.key === 'i') {
-        if (_jkCurrentId()) { e.preventDefault(); _focusSelectedEditor(); }
+        var _eid = _jkCurrentId();
+        if (_eid) {
+          e.preventDefault();
+          if (!_isDesktop()) openCard(_eid);
+          _focusSelectedEditor();
+        }
         return;
       }
       if (e.key === '/') {
@@ -1377,7 +1382,7 @@ function cardPreviewHTML(n) {
   var sel = n.id === selectedCardId ? ' pv-selected' : '';
   return '<div class="pv-row-wrap">'
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
-    + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="selectCard(\'' + n.id + '\')">'
+    + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
     + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
     + '<span class="pv-meta-right"><span class="pv-date" data-date-id="' + n.id + '" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">' + esc(formatNoteDate(n)) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
@@ -1434,23 +1439,39 @@ function _refreshPreviewCard(id) {
 }
 
 var _listScrollY = 0;
-function selectCard(id) {
-  // 詳細を開く直前に一覧のスクロール位置を覚えておく（戻った時に復元する）
-  if (!_isDesktop() && !document.body.classList.contains('mobile-detail-open')) {
-    _listScrollY = window.scrollY;
-  }
-  if (selectedCardId === id && editors[id]) {
-    if (!_isDesktop()) document.body.classList.add('mobile-detail-open');
-    return;
-  }
+// 一覧内でのフォーカス移動のみ（モバイルでは詳細画面へは遷移しない）
+function focusCard(id) {
+  if (selectedCardId === id) return;
   var prevId = selectedCardId;
   selectedCardId = id;
   if (prevId && prevId !== id) _refreshPreviewCard(prevId);
   renderDetail();
   var pane = document.getElementById('detail-pane');
   if (pane) pane.scrollTop = 0;
+}
+window.focusCard = focusCard;
+
+// フォーカス＋詳細を開く（デスクトップは常にこれ、モバイルは選択済みカードの2回目タップ/Enterで呼ぶ）
+function openCard(id) {
+  // 詳細を開く直前に一覧のスクロール位置を覚えておく（戻った時に復元する）
+  if (!_isDesktop() && !document.body.classList.contains('mobile-detail-open')) {
+    _listScrollY = window.scrollY;
+  }
+  focusCard(id);
   if (!_isDesktop()) document.body.classList.add('mobile-detail-open');
 }
+window.openCard = openCard;
+
+// カードクリック時の分岐：デスクトップは即座に詳細を開く。
+// モバイルは1回目のタップでフォーカスのみ、フォーカス済みカードへの2回目のタップで詳細を開く。
+function onCardClick(id) {
+  if (_isDesktop()) { openCard(id); return; }
+  if (selectedCardId === id) { openCard(id); }
+  else { focusCard(id); }
+}
+window.onCardClick = onCardClick;
+
+function selectCard(id) { openCard(id); }
 window.selectCard = selectCard;
 
 function closeMobileDetail() {
