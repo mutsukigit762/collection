@@ -122,8 +122,10 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 .cat-modal-add input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none}
 .sync-status{font-size:11px;color:var(--text3);text-align:right;padding:0 0 6px}
 svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
-::selection{background:rgba(26,26,26,0.14);color:inherit}
-::-moz-selection{background:rgba(26,26,26,0.14);color:inherit}
+::selection{background:#d9cfc0;color:#1a1a1a}
+::-moz-selection{background:#d9cfc0;color:#1a1a1a}
+.card-editor .ProseMirror ::selection{background:#d9cfc0;color:#1a1a1a}
+.card-editor .ProseMirror ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
@@ -954,12 +956,15 @@ function _wheelCapSelect(wrapEl) {
   });
 }
 
+var _dateEditWrapEl = null;
 function editNoteDate(noteId, evt, part) {
   if (evt) evt.stopPropagation();
   var n = notes.find(function(x){ return x.id === noteId; });
   if (!n) return;
-  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  var wrap = evt && evt.currentTarget ? evt.currentTarget.closest('[data-date-id]') : null;
+  if (!wrap) wrap = document.querySelector('[data-date-id="' + noteId + '"]');
   if (!wrap) return;
+  _dateEditWrapEl = wrap;
   var val = dateTimeLocalValue(n);
   var datePart = val.slice(0, 10);
   var hourPart = val.slice(11, 13);
@@ -998,7 +1003,7 @@ function editNoteDate(noteId, evt, part) {
 window.editNoteDate = editNoteDate;
 
 function commitNoteDateOnlyFromWrap(noteId) {
-  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  var wrap = _dateEditWrapEl;
   if (!wrap) return;
   var d = wrap.querySelector('.date-edit-date').value;
   if (!d) { renderDateSpan(noteId); return; }
@@ -1010,7 +1015,7 @@ function commitNoteDateOnlyFromWrap(noteId) {
 window.commitNoteDateOnlyFromWrap = commitNoteDateOnlyFromWrap;
 
 function commitNoteTimeFromWrap(noteId) {
-  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  var wrap = _dateEditWrapEl;
   if (!wrap) return;
   var h = wrap.querySelector('.date-edit-hour').value;
   var mi = wrap.querySelector('.date-edit-min').value;
@@ -1038,10 +1043,11 @@ window.commitNoteDate = commitNoteDate;
 
 function renderDateSpan(noteId) {
   var n = notes.find(function(x){ return x.id === noteId; });
-  var wrap = document.querySelector('[data-date-id="' + noteId + '"]');
+  var wrap = _dateEditWrapEl;
   if (!n || !wrap) return;
   wrap.innerHTML = dateSpanInnerHTML(n);
   wrap.classList.toggle('date-unrecovered', _dateIsUnrecovered(n));
+  _dateEditWrapEl = null;
 }
 window.renderDateSpan = renderDateSpan;
 
