@@ -891,7 +891,6 @@ async function addNote() {
       deleted: false
     });
     currentCat = cat;
-    selectedCardId = docRef.id;
     await loadNotes(true);
     if (!_isDesktop()) selectCard(docRef.id);
     var tries = 0;
