@@ -1586,9 +1586,7 @@ window.openCard = openCard;
 // カードクリック時の分岐：デスクトップは即座に詳細を開く。
 // モバイルは1回目のタップでフォーカスのみ、フォーカス済みカードへの2回目のタップで詳細を開く。
 function onCardClick(id) {
-  if (_isDesktop()) { openCard(id); return; }
-  if (selectedCardId === id) { openCard(id); }
-  else { focusCard(id); }
+  openCard(id);
 }
 window.onCardClick = onCardClick;
 
