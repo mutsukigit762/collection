@@ -284,9 +284,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <button class="sort-btn active" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
-    <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="">年</option></select>
-    <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
-    <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
+    <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>年</option></select>
+    <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>月</option></select>
+    <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>日</option></select>
     <button class="sort-btn" id="filter-dir-label" onclick="toggleFilterDir()" style="display:none"></button>
   </div>
 </div>
