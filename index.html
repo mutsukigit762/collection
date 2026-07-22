@@ -1030,13 +1030,19 @@ function editNoteDate(noteId, evt) {
   wrap.querySelector('.date-edit-year').addEventListener('change', function(){ _syncDayOptions(wrap); });
   wrap.querySelector('.date-edit-month').addEventListener('change', function(){ _syncDayOptions(wrap); });
 
-  // タイムスタンプの外側を押したら、その時点の選択内容で確定する
+  // タイムスタンプの外側を押したら、その時点の選択内容で確定する。
+  // その一押しは確定だけに使い、下の要素（カード等）には渡さない。
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
-      document.removeEventListener('click', _outside);
+      // select のピッカーを開いている最中のタップは確定扱いにしない
+      var ae = document.activeElement;
+      if (ae && ae.tagName === 'SELECT' && wrap.contains(ae)) return;
+      document.removeEventListener('click', _outside, true);
+      ev.preventDefault();
+      ev.stopPropagation();
       commitNoteDateFromWrap(noteId, wrap);
-    });
+    }, true);
   }, 0);
 }
 window.editNoteDate = editNoteDate;
