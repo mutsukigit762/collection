@@ -222,7 +222,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     z-index:60;
     background:var(--bg3);
     overflow-y:auto;
-    padding:0 1rem 1rem;
+    padding:calc(12px + env(safe-area-inset-top)) 1rem 1rem;
     transform:translateX(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
@@ -232,11 +232,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     pointer-events:auto;
   }
   .detail-mobile-bar{
-    display:flex;align-items:center;
-    position:sticky;top:0;
-    background:var(--bg3);
-    padding:calc(12px + env(safe-area-inset-top)) 0 10px;
-    margin-bottom:4px;
+    display:none;
   }
   .detail-back-btn{background:none;border:none;color:var(--text);display:flex;align-items:center;gap:4px;font-size:14px;font-family:inherit;cursor:pointer;padding:4px 4px 4px 0}
   /* 一覧カード：文字を大きく、行数にかかわらず高さを3行分で揃える */
