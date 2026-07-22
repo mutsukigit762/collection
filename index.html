@@ -86,9 +86,10 @@ select.sort-btn{padding-right:10px}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px;cursor:pointer}
 .date-unrecovered{color:#e11d48 !important;font-weight:600}
 .card-date:hover{color:var(--text2)}
-.date-edit-wrap{display:inline-flex;align-items:center;gap:2px}
+.date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
+.datetime-part{cursor:pointer}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none}
-.date-edit-hour,.date-edit-min{padding:1px 2px}
+.date-edit-year,.date-edit-month,.date-edit-day,.date-edit-hour,.date-edit-min{padding:1px 2px}
 .date-edit-select-wrap{position:relative;display:inline-block}
 .date-edit-wheelcap{position:absolute;inset:0;cursor:pointer}
 .date-edit-ok{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 6px;margin-left:2px;cursor:pointer}
@@ -427,8 +428,8 @@ function formatNoteDateParts(n) {
 }
 function dateSpanInnerHTML(n) {
   var p = formatNoteDateParts(n);
-  return '<span class="date-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event, \'date\')">' + esc(p.date) + '</span> '
-    + '<span class="time-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event, \'time\')">' + esc(p.time) + '</span>';
+  return '<span class="datetime-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">'
+    + esc(p.date) + ' ' + esc(p.time) + '</span>';
 }
 function catStyle(name) {
   var c = catColor(name);
@@ -968,7 +969,32 @@ function _wheelCapSelect(wrapEl) {
 }
 
 var _dateEditWrapEl = null;
-function editNoteDate(noteId, evt, part) {
+
+function _optsHTML(list, cur) {
+  return list.map(function(v) {
+    return '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + v + '</option>';
+  }).join('');
+}
+function _rangeStrs(from, to) {
+  var a = [];
+  for (var i = from; i <= to; i++) a.push(_pad2(i));
+  return a;
+}
+function _daysInMonth(y, m) {
+  return new Date(Number(y), Number(m), 0).getDate();
+}
+// 年・月を変えたとき、日の選択肢をその月の日数に合わせて作り直す
+function _syncDayOptions(wrap) {
+  var ySel = wrap.querySelector('.date-edit-year');
+  var mSel = wrap.querySelector('.date-edit-month');
+  var dSel = wrap.querySelector('.date-edit-day');
+  if (!ySel || !mSel || !dSel) return;
+  var max = _daysInMonth(ySel.value, mSel.value);
+  var cur = Number(dSel.value);
+  dSel.innerHTML = _optsHTML(_rangeStrs(1, max), _pad2(Math.min(cur, max)));
+}
+
+function editNoteDate(noteId, evt) {
   if (evt) evt.stopPropagation();
   var n = notes.find(function(x){ return x.id === noteId; });
   if (!n) return;
@@ -977,32 +1003,38 @@ function editNoteDate(noteId, evt, part) {
   if (!wrap) return;
   _dateEditWrapEl = wrap;
   var val = dateTimeLocalValue(n);
-  var datePart = val.slice(0, 10);
+  var yearPart = val.slice(0, 4);
+  var monthPart = val.slice(5, 7);
+  var dayPart = val.slice(8, 10);
   var hourPart = val.slice(11, 13);
   var minPart = val.slice(14, 16);
-  if (part === 'time') {
-    var hourOpts = '';
-    for (var h = 0; h < 24; h++) hourOpts += '<option value="' + _pad2(h) + '"' + (_pad2(h) === hourPart ? ' selected' : '') + '>' + _pad2(h) + '</option>';
-    var minOpts = '';
-    for (var mi = 0; mi < 60; mi++) minOpts += '<option value="' + _pad2(mi) + '"' + (_pad2(mi) === minPart ? ' selected' : '') + '>' + _pad2(mi) + '</option>';
-    wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
-      + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-hour">' + hourOpts + '</select><div class="date-edit-wheelcap"></div></span>:'
-      + '<span class="date-edit-select-wrap"><select class="date-edit-input date-edit-min">' + minOpts + '</select><div class="date-edit-wheelcap"></div></span>'
-      + '<button type="button" class="date-edit-ok" onclick="commitNoteTimeFromWrap(\'' + noteId + '\')">OK</button>'
-      + '</span>';
-    var selWraps = wrap.querySelectorAll('.date-edit-select-wrap');
-    _wheelCapSelect(selWraps[0]);
-    _wheelCapSelect(selWraps[1]);
-    var hourSel = wrap.querySelector('.date-edit-hour');
-    if (hourSel) hourSel.focus();
-  } else {
-    wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
-      + '<input type="date" class="date-edit-input date-edit-date" value="' + datePart + '">'
-      + '<button type="button" class="date-edit-ok" onclick="commitNoteDateOnlyFromWrap(\'' + noteId + '\')">OK</button>'
-      + '</span>';
-    var dateInp = wrap.querySelector('.date-edit-date');
-    if (dateInp) dateInp.focus();
-  }
+
+  var nowY = new Date().getFullYear();
+  var years = [];
+  for (var y = nowY; y >= 2017; y--) years.push(String(y));
+  if (years.indexOf(yearPart) < 0) years.push(yearPart);
+
+  var sel = function(cls, opts) {
+    return '<span class="date-edit-select-wrap"><select class="date-edit-input ' + cls + '">'
+      + opts + '</select><div class="date-edit-wheelcap"></div></span>';
+  };
+
+  wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
+    + sel('date-edit-year', _optsHTML(years, yearPart)) + '-'
+    + sel('date-edit-month', _optsHTML(_rangeStrs(1, 12), monthPart)) + '-'
+    + sel('date-edit-day', _optsHTML(_rangeStrs(1, _daysInMonth(yearPart, monthPart)), dayPart)) + ' '
+    + sel('date-edit-hour', _optsHTML(_rangeStrs(0, 23), hourPart)) + ':'
+    + sel('date-edit-min', _optsHTML(_rangeStrs(0, 59), minPart))
+    + '<button type="button" class="date-edit-ok" onclick="commitNoteDateFromWrap(\'' + noteId + '\')">OK</button>'
+    + '</span>';
+
+  wrap.querySelectorAll('.date-edit-select-wrap').forEach(function(w) { _wheelCapSelect(w); });
+  wrap.querySelector('.date-edit-year').addEventListener('change', function(){ _syncDayOptions(wrap); });
+  wrap.querySelector('.date-edit-month').addEventListener('change', function(){ _syncDayOptions(wrap); });
+
+  var firstSel = wrap.querySelector('.date-edit-year');
+  if (firstSel) firstSel.focus();
+
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
@@ -1013,29 +1045,17 @@ function editNoteDate(noteId, evt, part) {
 }
 window.editNoteDate = editNoteDate;
 
-function commitNoteDateOnlyFromWrap(noteId) {
+function commitNoteDateFromWrap(noteId) {
   var wrap = _dateEditWrapEl;
   if (!wrap) return;
-  var d = wrap.querySelector('.date-edit-date').value;
-  if (!d) { renderDateSpan(noteId); return; }
-  var n = notes.find(function(x){ return x.id === noteId; });
-  if (!n) return;
-  var time = dateTimeLocalValue(n).slice(11, 16);
-  commitNoteDate(noteId, d + 'T' + time);
-}
-window.commitNoteDateOnlyFromWrap = commitNoteDateOnlyFromWrap;
-
-function commitNoteTimeFromWrap(noteId) {
-  var wrap = _dateEditWrapEl;
-  if (!wrap) return;
+  var y = wrap.querySelector('.date-edit-year').value;
+  var mo = wrap.querySelector('.date-edit-month').value;
+  var d = wrap.querySelector('.date-edit-day').value;
   var h = wrap.querySelector('.date-edit-hour').value;
   var mi = wrap.querySelector('.date-edit-min').value;
-  var n = notes.find(function(x){ return x.id === noteId; });
-  if (!n) return;
-  var d = dateTimeLocalValue(n).slice(0, 10);
-  commitNoteDate(noteId, d + 'T' + h + ':' + mi);
+  commitNoteDate(noteId, y + '-' + mo + '-' + d + 'T' + h + ':' + mi);
 }
-window.commitNoteTimeFromWrap = commitNoteTimeFromWrap;
+window.commitNoteDateFromWrap = commitNoteDateFromWrap;
 
 async function commitNoteDate(noteId, val) {
   if (!val) return;
