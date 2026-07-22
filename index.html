@@ -443,6 +443,13 @@ function saveTrash(t) { localStorage.setItem(TRASH_KEY, JSON.stringify(t)); }
 var categories = [];
 var _catFilterTimes = {};
 try { _catFilterTimes = JSON.parse(localStorage.getItem('catFilterTimes') || '{}'); } catch(e) { _catFilterTimes = {}; }
+// カテゴリを「さわった」時刻を記録する（タブ切替・カテゴリ変更モーダルでの選択/新規追加）
+function touchCat(name) {
+  if (!name || name === ALL_TAB || name === NO_CAT) return;
+  _catFilterTimes[name] = Date.now();
+  try { localStorage.setItem('catFilterTimes', JSON.stringify(_catFilterTimes)); } catch(e) {}
+  resortCategories();
+}
 var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
@@ -693,9 +700,9 @@ async function loadCategories() {
   } catch(e) { console.error(e); }
 }
 
+var _catNoteTimes = {};
 async function sortCategoriesByActivity() {
   try {
-    var times = {};
     await Promise.all(categories.map(async function(c) {
       var snap = await getDocs(query(collection(db, NOTES_COLL),
         where('cat', '==', c), where('deleted', '==', false),
@@ -705,11 +712,20 @@ async function sortCategoriesByActivity() {
         var ua = snap.docs[0].data().updatedAt;
         t = ua && ua.toMillis ? ua.toMillis() : 0;
       }
-      times[c] = Math.max(t, _catFilterTimes[c] || 0);
+      _catNoteTimes[c] = t;
     }));
-    categories.sort(function(a, b){ return (times[b] || 0) - (times[a] || 0); });
-    renderTabs();
+    resortCategories();
   } catch(e) { console.error(e); }
+}
+
+// 取得済みの時刻だけを使って即座に並び替える（Firestoreへは問い合わせない）
+function resortCategories() {
+  categories.sort(function(a, b) {
+    var ta = Math.max(_catNoteTimes[a] || 0, _catFilterTimes[a] || 0);
+    var tb = Math.max(_catNoteTimes[b] || 0, _catFilterTimes[b] || 0);
+    return tb - ta;
+  });
+  renderTabs();
 }
 
 async function saveCategoryToFirestore(name) {
@@ -1122,6 +1138,7 @@ function openCatModal(noteId) {
 window._closeOv = closeOverlay;
 window._selectCat = function(noteId, cat) {
   updateCatInDB(noteId, cat);
+  touchCat(cat);
   var n = notes.find(function(x){ return x.id === noteId; });
   if (n) n.cat = cat;
   closeOverlay();
@@ -1143,6 +1160,7 @@ window._addCatModal = async function() {
   if (!name || categories.indexOf(name) >= 0) return;
   categories.push(name);
   await saveCategoryToFirestore(name);
+  touchCat(name);
   if (currentNoteIdForCat) {
     window._selectCat(currentNoteIdForCat, name);
     render();
@@ -1798,10 +1816,7 @@ function switchCat(c) {
     searchQuery = '';
     document.getElementById('search-clear').style.display = 'none';
   }
-  if (c !== ALL_TAB && c !== NO_CAT) {
-    _catFilterTimes[c] = Date.now();
-    try { localStorage.setItem('catFilterTimes', JSON.stringify(_catFilterTimes)); } catch(e) {}
-  }
+  touchCat(c);
   currentCat = c;
   _scrollTabIntoView = true;
   window.scrollTo({ top: 0 });
