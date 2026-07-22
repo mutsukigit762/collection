@@ -91,6 +91,7 @@ select.sort-btn{padding-right:10px}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none;appearance:none;-webkit-appearance:none;-moz-appearance:none;text-align:center}
 .date-edit-year,.date-edit-month,.date-edit-day,.date-edit-hour,.date-edit-min{padding:1px 3px}
 .date-edit-select-wrap{position:relative;display:inline-block}
+.date-edit-gap{display:inline-block;width:12px}
 .date-edit-wheelcap{position:absolute;inset:0;cursor:pointer}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -1021,7 +1022,8 @@ function editNoteDate(noteId, evt) {
   wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
     + sel('date-edit-year', _optsHTML(years, yearPart)) + '-'
     + sel('date-edit-month', _optsHTML(_rangeStrs(1, 12), monthPart)) + '-'
-    + sel('date-edit-day', _optsHTML(_rangeStrs(1, _daysInMonth(yearPart, monthPart)), dayPart)) + ' '
+    + sel('date-edit-day', _optsHTML(_rangeStrs(1, _daysInMonth(yearPart, monthPart)), dayPart))
+    + '<span class="date-edit-gap"></span>'
     + sel('date-edit-hour', _optsHTML(_rangeStrs(0, 23), hourPart)) + ':'
     + sel('date-edit-min', _optsHTML(_rangeStrs(0, 59), minPart))
     + '</span>';
