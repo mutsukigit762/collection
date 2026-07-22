@@ -289,13 +289,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
     <button class="sort-btn active" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
-    <button class="sort-btn" id="sort-dir" onclick="toggleSortDir()">降順</button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="">年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="">月</option></select>
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="">日</option></select>
-    <span class="sort-btn" id="filter-dir-label" style="opacity:0.5;cursor:default;display:none"></span>
+    <button class="sort-btn" id="filter-dir-label" onclick="toggleFilterDir()" style="display:none"></button>
   </div>
 </div>
 <div class="app">
@@ -1251,7 +1250,7 @@ document.addEventListener('keydown', function(e) {
         return;
       }
       if (e.key === '1') { e.preventDefault(); toggleSortField(); return; }
-      if (e.key === '2') { e.preventDefault(); toggleSortDir(); return; }
+      if (e.key === '2') { e.preventDefault(); toggleFilterDir(); return; }
       if (e.key === '3') { e.preventDefault(); resetDateFilter(); return; }
       if (e.key === '4') { e.preventDefault(); _openSelect('filter-year'); return; }
       if (e.key === '5') { e.preventDefault(); _openSelect('filter-month'); return; }
@@ -1870,7 +1869,8 @@ function toggleSortField() {
   filterYear = saved.year || '';
   filterMonth = saved.month || '';
   filterDay = saved.day || '';
-  filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
+  filterDir = filterYear ? (filterDir || 'before') : '';
+  sortDir = filterDir === 'after' ? 'asc' : 'desc';
   document.getElementById('filter-year').value = filterYear;
   document.getElementById('filter-month').value = filterMonth;
   document.getElementById('filter-day').value = filterDay;
@@ -1880,7 +1880,7 @@ function toggleSortField() {
 window.toggleSortField = toggleSortField;
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
-  if (el) { el.textContent = filterYear ? (sortDir === 'desc' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
+  if (el) { el.textContent = filterYear ? (filterDir === 'before' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
 }
 function resetDateFilter() {
   filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
@@ -1892,18 +1892,20 @@ function resetDateFilter() {
   loadNotes(true);
 }
 window.resetDateFilter = resetDateFilter;
-function toggleSortDir() {
-  sortDir = sortDir === 'desc' ? 'asc' : 'desc';
-  document.getElementById('sort-dir').textContent = sortDir === 'desc' ? '降順' : '昇順';
-  filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
+function toggleFilterDir() {
+  if (!filterYear) return;
+  filterDir = filterDir === 'before' ? 'after' : 'before';
+  sortDir = filterDir === 'after' ? 'asc' : 'desc';
   _updateFilterDirLabel();
   loadNotes(true);
 }
+window.toggleFilterDir = toggleFilterDir;
 function onDateFilterChange() {
   filterYear = document.getElementById('filter-year').value;
   filterMonth = document.getElementById('filter-month').value;
   filterDay = document.getElementById('filter-day').value;
-  filterDir = filterYear ? (sortDir === 'desc' ? 'before' : 'after') : '';
+  filterDir = filterYear ? (filterDir || 'before') : '';
+  sortDir = filterDir === 'after' ? 'asc' : 'desc';
   _updateFilterDirLabel();
   window.scrollTo({ top: 0 });
   loadNotes(true);
@@ -1932,7 +1934,6 @@ function initFilterSelects() {
   }
 }
 initFilterSelects();
-window.toggleSortDir = toggleSortDir;
 window.onDateFilterChange = onDateFilterChange;
 window.clearSearch = clearSearch;
 
