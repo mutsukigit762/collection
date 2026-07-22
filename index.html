@@ -88,11 +88,7 @@ select.sort-btn{padding-right:10px}
 .card-date:hover{color:var(--text2)}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
 .datetime-part{cursor:pointer}
-.date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1px 4px;outline:none;appearance:none;-webkit-appearance:none;-moz-appearance:none;text-align:center}
-.date-edit-year,.date-edit-month,.date-edit-day,.date-edit-hour,.date-edit-min{padding:1px 3px}
-.date-edit-select-wrap{position:relative;display:inline-block}
-.date-edit-gap{display:inline-block;width:12px}
-.date-edit-wheelcap{position:absolute;inset:0;cursor:pointer}
+.date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
@@ -940,59 +936,7 @@ function dateTimeLocalValue(n) {
   return (n.date || nowJstStamp().slice(0, 10)) + 'T00:00';
 }
 
-function _pad2(n) { return (n < 10 ? '0' : '') + n; }
-
-// select自体はネイティブのホイール処理（OSレベルで1ノッチ複数進むことがある）を
-// JS側から止められないため、透明なオーバーレイでホイール入力を先取りし、
-// 1ノッチ＝必ず1ステップだけselectを動かす。クリックはselectのclick()に転送して開く。
-function _wheelCapSelect(wrapEl) {
-  var select = wrapEl.querySelector('select');
-  var cap = wrapEl.querySelector('.date-edit-wheelcap');
-  if (!select || !cap) return;
-  var lastT = 0;
-  cap.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    var now = Date.now();
-    if (now - lastT < 120) return;
-    lastT = now;
-    var dir = e.deltaY > 0 ? 1 : -1;
-    var len = select.options.length;
-    var idx = (select.selectedIndex + dir + len) % len;
-    select.selectedIndex = idx;
-  }, { passive: false });
-  cap.addEventListener('click', function(e) {
-    e.stopPropagation();
-    select.focus();
-    if (typeof select.showPicker === 'function') { try { select.showPicker(); return; } catch(err) {} }
-    select.click();
-  });
-}
-
 var _dateEditWrapEl = null;
-
-function _optsHTML(list, cur) {
-  return list.map(function(v) {
-    return '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + v + '</option>';
-  }).join('');
-}
-function _rangeStrs(from, to) {
-  var a = [];
-  for (var i = from; i <= to; i++) a.push(_pad2(i));
-  return a;
-}
-function _daysInMonth(y, m) {
-  return new Date(Number(y), Number(m), 0).getDate();
-}
-// 年・月を変えたとき、日の選択肢をその月の日数に合わせて作り直す
-function _syncDayOptions(wrap) {
-  var ySel = wrap.querySelector('.date-edit-year');
-  var mSel = wrap.querySelector('.date-edit-month');
-  var dSel = wrap.querySelector('.date-edit-day');
-  if (!ySel || !mSel || !dSel) return;
-  var max = _daysInMonth(ySel.value, mSel.value);
-  var cur = Number(dSel.value);
-  dSel.innerHTML = _optsHTML(_rangeStrs(1, max), _pad2(Math.min(cur, max)));
-}
 
 function editNoteDate(noteId, evt) {
   if (evt) evt.stopPropagation();
@@ -1003,43 +947,22 @@ function editNoteDate(noteId, evt) {
   if (!wrap) return;
   _dateEditWrapEl = wrap;
   var val = dateTimeLocalValue(n);
-  var yearPart = val.slice(0, 4);
-  var monthPart = val.slice(5, 7);
-  var dayPart = val.slice(8, 10);
-  var hourPart = val.slice(11, 13);
-  var minPart = val.slice(14, 16);
-
-  var nowY = new Date().getFullYear();
-  var years = [];
-  for (var y = nowY; y >= 2017; y--) years.push(String(y));
-  if (years.indexOf(yearPart) < 0) years.push(yearPart);
-
-  var sel = function(cls, opts) {
-    return '<span class="date-edit-select-wrap"><select class="date-edit-input ' + cls + '">'
-      + opts + '</select><div class="date-edit-wheelcap"></div></span>';
-  };
 
   wrap.innerHTML = '<span class="date-edit-wrap" onclick="event.stopPropagation()">'
-    + sel('date-edit-year', _optsHTML(years, yearPart)) + '-'
-    + sel('date-edit-month', _optsHTML(_rangeStrs(1, 12), monthPart)) + '-'
-    + sel('date-edit-day', _optsHTML(_rangeStrs(1, _daysInMonth(yearPart, monthPart)), dayPart))
-    + '<span class="date-edit-gap"></span>'
-    + sel('date-edit-hour', _optsHTML(_rangeStrs(0, 23), hourPart)) + ':'
-    + sel('date-edit-min', _optsHTML(_rangeStrs(0, 59), minPart))
+    + '<input type="datetime-local" class="date-edit-input date-edit-dt" value="' + val + '">'
     + '</span>';
 
-  wrap.querySelectorAll('.date-edit-select-wrap').forEach(function(w) { _wheelCapSelect(w); });
-  wrap.querySelector('.date-edit-year').addEventListener('change', function(){ _syncDayOptions(wrap); });
-  wrap.querySelector('.date-edit-month').addEventListener('change', function(){ _syncDayOptions(wrap); });
+  var inp = wrap.querySelector('.date-edit-dt');
+  // 値が決まったらすぐ保存する（ピッカーを閉じた時点で確定）
+  inp.addEventListener('change', function() {
+    commitNoteDateFromWrap(noteId, wrap);
+  });
 
-  // タイムスタンプの外側を押したら、その時点の選択内容で確定する。
+  // タイムスタンプの外側を押したら確定する。
   // その一押しは確定だけに使い、下の要素（カード等）には渡さない。
   setTimeout(function() {
     document.addEventListener('click', function _outside(ev) {
       if (wrap.contains(ev.target)) return;
-      // select のピッカーを開いている最中のタップは確定扱いにしない
-      var ae = document.activeElement;
-      if (ae && ae.tagName === 'SELECT' && wrap.contains(ae)) return;
       document.removeEventListener('click', _outside, true);
       ev.preventDefault();
       ev.stopPropagation();
@@ -1052,15 +975,12 @@ window.editNoteDate = editNoteDate;
 function commitNoteDateFromWrap(noteId, wrapEl) {
   var wrap = wrapEl || _dateEditWrapEl;
   if (!wrap) return;
-  var ySel = wrap.querySelector('.date-edit-year');
-  if (!ySel) return;
-  var y = ySel.value;
-  var mo = wrap.querySelector('.date-edit-month').value;
-  var d = wrap.querySelector('.date-edit-day').value;
-  var h = wrap.querySelector('.date-edit-hour').value;
-  var mi = wrap.querySelector('.date-edit-min').value;
+  var inp = wrap.querySelector('.date-edit-dt');
+  if (!inp) return;
   _dateEditWrapEl = wrap;
-  commitNoteDate(noteId, y + '-' + mo + '-' + d + 'T' + h + ':' + mi);
+  // 空にされた場合は編集前の値に戻すだけにする
+  if (!inp.value) { renderDateSpan(noteId); return; }
+  commitNoteDate(noteId, inp.value.slice(0, 16));
 }
 window.commitNoteDateFromWrap = commitNoteDateFromWrap;
 
