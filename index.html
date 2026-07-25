@@ -127,11 +127,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
 @media(max-width:640px) and (pointer:coarse){
-  .sticky-header .header > div{display:none}
-  .sticky-header .search-wrap{display:none}
-  .app{padding-bottom:92px}
   .bottom-bar{
-    display:block;
+    display:none;
     position:fixed;
     bottom:0;left:0;right:0;
     z-index:50;
