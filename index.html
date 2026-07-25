@@ -753,6 +753,12 @@ function allTabs() {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function escAndHighlight(s, q) {
+  var escaped = esc(s);
+  if (!q) return escaped;
+  var escQ = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp('(' + escQ + ')', 'ig'), '<mark>$1</mark>');
+}
 function setSyncStatus(msg) {
   document.getElementById('sync-status').textContent = msg;
 }
@@ -1464,7 +1470,7 @@ function cardPreviewHTML(n) {
   var plain = htmlToPlainText(n.body || '').trim();
   var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
   var thumb = m ? '<img class="pv-thumb" src="' + esc(m[1]) + '" loading="lazy">' : '';
-  var snippet = plain ? esc(plain.slice(0, 300))
+  var snippet = plain ? escAndHighlight(plain.slice(0, 300), searchQuery)
     : (m ? '<span class="pv-muted">（画像）</span>' : '<span class="pv-muted">（空）</span>');
   var sel = n.id === selectedCardId ? ' pv-selected' : '';
   return '<div class="pv-row-wrap">'
