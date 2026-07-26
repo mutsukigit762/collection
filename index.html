@@ -283,7 +283,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">更新順</button>
+    <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>年</option></select>
@@ -456,7 +456,7 @@ var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
 var searchQuery = '';
-var sortField = 'updatedAt';
+var sortField = 'date';
 var sortDir = 'desc';
 var filterYear = '';
 var filterMonth = '';
@@ -1933,7 +1933,6 @@ function toggleSortField() {
   sortField = newField;
   var btn = document.getElementById('sort-field-toggle');
   btn.textContent = sortField === 'updatedAt' ? '更新順' : '作成順';
-  btn.classList.toggle('active', sortField === 'date');
   var saved = _filterState[sortField] || {};
   filterYear = saved.year || '';
   filterMonth = saved.month || '';
