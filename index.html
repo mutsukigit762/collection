@@ -795,8 +795,12 @@ async function buildQuery(isNext) {
       constraints.push(where('date', '>=', dateStr));
     }
   }
-  constraints.push(limit(PAGE_SIZE));
-  if (isNext && lastDoc) constraints.push(startAfter(lastDoc));
+  // 未回収フィルタ中は「created_atが無い」をFirestoreで検索できないので、
+  // ページングせず全件取ってからクライアント側で絞る
+  if (!unrecoveredOnly) {
+    constraints.push(limit(PAGE_SIZE));
+    if (isNext && lastDoc) constraints.push(startAfter(lastDoc));
+  }
   return query(collection(db, NOTES_COLL), ...constraints);
 }
 
@@ -813,9 +817,15 @@ async function loadNotes(reset) {
       var data = d.data();
       return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', created_at: data.created_at || '', deleted: data.deleted || false, images: data.images || [] };
     });
-    if (reset) { notes = newNotes; } else { notes = notes.concat(newNotes); }
-    if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
-    hasMore = snapshot.docs.length === PAGE_SIZE;
+    if (unrecoveredOnly) {
+      notes = newNotes.filter(_dateIsUnrecovered);
+      lastDoc = null;
+      hasMore = false;
+    } else {
+      if (reset) { notes = newNotes; } else { notes = notes.concat(newNotes); }
+      if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      hasMore = snapshot.docs.length === PAGE_SIZE;
+    }
     setSyncStatus('');
     render();
   } catch(e) {
@@ -908,6 +918,11 @@ async function addNote() {
       deleted: false
     });
     currentCat = cat;
+    // 新規メモはcreated_atを持つので、未回収フィルタ中だと絞り込みで消えてしまう
+    if (unrecoveredOnly) {
+      unrecoveredOnly = false;
+      document.getElementById('unrecovered-filter-toggle').classList.remove('active');
+    }
     await loadNotes(true);
     if (!_isDesktop()) selectCard(docRef.id);
     var tries = 0;
@@ -1739,7 +1754,8 @@ function renderCards() {
 function toggleUnrecoveredFilter() {
   unrecoveredOnly = !unrecoveredOnly;
   document.getElementById('unrecovered-filter-toggle').classList.toggle('active', unrecoveredOnly);
-  render();
+  window.scrollTo({ top: 0 });
+  loadNotes(true);
 }
 
 function render() {
