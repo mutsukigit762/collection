@@ -18,11 +18,14 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
 /* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
    効かないので、同じ操作感を自前で用意している。#ptr はその時に出るスピナー */
-.ptr{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;opacity:0;transform:translateY(-34px)}
-.ptr.ease{transition:opacity .18s ease,transform .18s ease}
-.ptr-spinner{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--text2);border-radius:50%;background:var(--bg);box-shadow:0 1px 5px rgba(0,0,0,0.14)}
-.ptr.spin .ptr-spinner{animation:ptr-rot .7s linear infinite}
+.ptr{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;opacity:0;transform:translateY(-30px)}
+.ptr.ease{transition:opacity .2s ease,transform .2s ease}
+.ptr-spinner{color:var(--text2)}
+/* 実際のiOSと同じく、なめらかにではなく1コマずつカクカク回す */
+.ptr.spin .ptr-spinner{animation:ptr-rot .9s steps(12) infinite}
 @keyframes ptr-rot{to{transform:rotate(360deg)}}
+/* 引っ張っている間、ページの中身も指について下がる（指を離した時だけ滑らかに戻す） */
+.left-col.ease{transition:transform .25s ease}
 .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:1rem 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
@@ -272,7 +275,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </style>
 </head>
 <body>
-<div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-spinner"></div></div>
+<div class="ptr" id="ptr" aria-hidden="true"><svg class="ptr-spinner" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(0 12 12)" opacity="0.15"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(30 12 12)" opacity="0.23"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(60 12 12)" opacity="0.3"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(90 12 12)" opacity="0.38"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(120 12 12)" opacity="0.46"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(150 12 12)" opacity="0.54"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(180 12 12)" opacity="0.61"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(210 12 12)" opacity="0.69"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(240 12 12)" opacity="0.77"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(270 12 12)" opacity="0.85"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(300 12 12)" opacity="0.92"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(330 12 12)" opacity="1.0"/></svg></div>
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
 </div>
@@ -1833,19 +1836,27 @@ var PTR_MAX = 104;      // 引っ張れる上限
 var _ptrEl = document.getElementById('ptr');
 var _ptr = { startX: 0, startY: 0, active: false, pulling: false, dist: 0, busy: false };
 
+// 引っ張りに合わせて動かす、ページの中身そのもの
+var _ptrPage = document.getElementById('left-col');
+
 function _ptrDraw(dist) {
   _ptrEl.classList.remove('ease');
+  _ptrPage.classList.remove('ease');
+  // ページの中身を丸ごと下げて、空いた隙間にスピナーを置く
+  _ptrPage.style.transform = 'translateY(' + dist + 'px)';
   _ptrEl.style.opacity = Math.min(1, dist / PTR_TRIGGER);
-  _ptrEl.style.transform = 'translateY(' + (dist - 34) + 'px)';
-  // 引いた量に合わせてスピナーも回す（離す前から反応している感じを出す）
-  _ptrEl.firstElementChild.style.transform = 'rotate(' + Math.round(dist * 3) + 'deg)';
+  _ptrEl.style.transform = 'translateY(' + (dist / 2 - 8) + 'px)';
+  // 引いた量に合わせてスピナーも1コマずつ回す（離す前から反応している感じを出す）
+  _ptrEl.firstElementChild.style.transform = 'rotate(' + (Math.round(dist * 4 / 30) * 30) + 'deg)';
 }
 function _ptrReset() {
   _ptrEl.classList.add('ease');
   _ptrEl.classList.remove('spin');
   _ptrEl.style.opacity = '0';
-  _ptrEl.style.transform = 'translateY(-34px)';
+  _ptrEl.style.transform = 'translateY(-30px)';
   _ptrEl.firstElementChild.style.transform = '';
+  _ptrPage.classList.add('ease');
+  _ptrPage.style.transform = '';
 }
 function _ptrCanStart() {
   return !_isDesktop()
@@ -1887,13 +1898,16 @@ document.addEventListener('touchend', function() {
   _ptr.pulling = false;
   if (!pulled) return;
   if (dist < PTR_TRIGGER) { _ptrReset(); return; }
-  // 十分引いた：スピナーを回したままアプリごと読み込み直す
+  // 十分引いた：スピナーを回したままアプリごと読み込み直す。
+  // ページの中身はしきい値の位置まで戻して、その状態で読み込みを待たせる
   _ptr.busy = true;
   _ptrEl.classList.add('ease');
   _ptrEl.style.opacity = '1';
-  _ptrEl.style.transform = 'translateY(' + (PTR_TRIGGER - 34) + 'px)';
+  _ptrEl.style.transform = 'translateY(' + (PTR_TRIGGER / 2 - 8) + 'px)';
   _ptrEl.firstElementChild.style.transform = '';
   _ptrEl.classList.add('spin');
+  _ptrPage.classList.add('ease');
+  _ptrPage.style.transform = 'translateY(' + PTR_TRIGGER + 'px)';
   location.reload();
 }, { passive: true });
 
