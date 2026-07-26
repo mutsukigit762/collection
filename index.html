@@ -1007,10 +1007,12 @@ window.commitNoteDate = commitNoteDate;
 
 function renderDateSpan(noteId) {
   var n = notes.find(function(x){ return x.id === noteId; });
-  var wrap = _dateEditWrapEl;
-  if (!n || !wrap) return;
-  wrap.innerHTML = dateSpanInnerHTML(n);
-  wrap.classList.toggle('date-unrecovered', _dateIsUnrecovered(n));
+  if (!n) return;
+  var wraps = document.querySelectorAll('[data-date-id="' + noteId + '"]');
+  wraps.forEach(function(wrap) {
+    wrap.innerHTML = dateSpanInnerHTML(n);
+    wrap.classList.toggle('date-unrecovered', _dateIsUnrecovered(n));
+  });
   _dateEditWrapEl = null;
 }
 window.renderDateSpan = renderDateSpan;
