@@ -16,6 +16,13 @@
   --danger:#dc2626;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
+/* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
+   効かないので、同じ操作感を自前で用意している。#ptr はその時に出るスピナー */
+.ptr{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;opacity:0;transform:translateY(-34px)}
+.ptr.ease{transition:opacity .18s ease,transform .18s ease}
+.ptr-spinner{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--text2);border-radius:50%;background:var(--bg);box-shadow:0 1px 5px rgba(0,0,0,0.14)}
+.ptr.spin .ptr-spinner{animation:ptr-rot .7s linear infinite}
+@keyframes ptr-rot{to{transform:rotate(360deg)}}
 .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:1rem 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
@@ -265,6 +272,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </style>
 </head>
 <body>
+<div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-spinner"></div></div>
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
 </div>
@@ -1816,6 +1824,77 @@ document.addEventListener('touchend', function() {
 // ゴミ箱を出したあと、縦スクロールしたら自動で隠す
 window.addEventListener('scroll', function() {
   if (_pvOpenId) _pvCloseOpen();
+}, { passive: true });
+
+// 一覧を一番上から下に引っ張って更新（Safariの引っ張りリロードと同じ動き）。
+// 上の2つのスワイプは横方向専用なので、縦優位のこの操作とはぶつからない。
+var PTR_TRIGGER = 64;   // これ以上引いたら更新する
+var PTR_MAX = 104;      // 引っ張れる上限
+var _ptrEl = document.getElementById('ptr');
+var _ptr = { startX: 0, startY: 0, active: false, pulling: false, dist: 0, busy: false };
+
+function _ptrDraw(dist) {
+  _ptrEl.classList.remove('ease');
+  _ptrEl.style.opacity = Math.min(1, dist / PTR_TRIGGER);
+  _ptrEl.style.transform = 'translateY(' + (dist - 34) + 'px)';
+  // 引いた量に合わせてスピナーも回す（離す前から反応している感じを出す）
+  _ptrEl.firstElementChild.style.transform = 'rotate(' + Math.round(dist * 3) + 'deg)';
+}
+function _ptrReset() {
+  _ptrEl.classList.add('ease');
+  _ptrEl.classList.remove('spin');
+  _ptrEl.style.opacity = '0';
+  _ptrEl.style.transform = 'translateY(-34px)';
+  _ptrEl.firstElementChild.style.transform = '';
+}
+function _ptrCanStart() {
+  return !_isDesktop()
+    && !_ptr.busy
+    && !document.body.classList.contains('mobile-detail-open')
+    && !_anyModalOpen()
+    && !_jkIsTyping()          // 検索の入力中に誤爆させない
+    && window.scrollY <= 0;
+}
+
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length !== 1 || !_ptrCanStart()) { _ptr.active = false; return; }
+  _ptr.startX = e.touches[0].clientX;
+  _ptr.startY = e.touches[0].clientY;
+  _ptr.active = true;
+  _ptr.pulling = false;
+  _ptr.dist = 0;
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e) {
+  if (!_ptr.active) return;
+  var dy = e.touches[0].clientY - _ptr.startY;
+  var dx = e.touches[0].clientX - _ptr.startX;
+  if (!_ptr.pulling) {
+    if (dy < 8) { if (dy < -4) _ptr.active = false; return; }   // まだ判定できない／上向きなら降りる
+    if (Math.abs(dx) > Math.abs(dy)) { _ptr.active = false; return; } // 横優位はカードのスワイプに任せる
+    if (window.scrollY > 0) { _ptr.active = false; return; }
+    _ptr.pulling = true;
+  }
+  e.preventDefault();   // 引っ張っている間はページ側のスクロール（ゴムのような動き）を止める
+  _ptr.dist = Math.min(dy * 0.5, PTR_MAX);
+  _ptrDraw(_ptr.dist);
+}, { passive: false });
+
+document.addEventListener('touchend', function() {
+  if (!_ptr.active) return;
+  var pulled = _ptr.pulling, dist = _ptr.dist;
+  _ptr.active = false;
+  _ptr.pulling = false;
+  if (!pulled) return;
+  if (dist < PTR_TRIGGER) { _ptrReset(); return; }
+  // 十分引いた：スピナーを回したままアプリごと読み込み直す
+  _ptr.busy = true;
+  _ptrEl.classList.add('ease');
+  _ptrEl.style.opacity = '1';
+  _ptrEl.style.transform = 'translateY(' + (PTR_TRIGGER - 34) + 'px)';
+  _ptrEl.firstElementChild.style.transform = '';
+  _ptrEl.classList.add('spin');
+  location.reload();
 }, { passive: true });
 
 document.addEventListener('click', function(e) {
