@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .fav-btn:hover{color:#e0245e;background:rgba(224,36,94,0.08)}
 .fav-btn.on{color:#e0245e}
 .fav-btn.on svg{fill:currentColor}
-#fav-filter-toggle.active{background:#e0245e;color:#fff;border-color:#e0245e}
+#fav-filter-toggle{padding:3px 6px;align-self:center}
 .search-wrap{position:relative;margin-bottom:1rem}
 .search-wrap input{width:100%;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:9px 32px 9px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none}
 .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);display:none;padding:2px}
@@ -291,7 +291,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>日</option></select>
     <button class="sort-btn" id="filter-dir-label" onclick="toggleFilterDir()" style="display:none"></button>
     <span style="flex:0 0 8px"></span>
-    <button class="sort-btn" id="fav-filter-toggle" onclick="toggleFavFilter()" title="お気に入りだけ表示">♥</button>
+    <button class="fav-btn" id="fav-filter-toggle" onclick="toggleFavFilter()" title="お気に入りだけ表示" aria-label="お気に入りだけ表示"></button>
   </div>
 </div>
 <div class="app">
@@ -396,6 +396,7 @@ document.getElementById('bb-trash').innerHTML = IC.trash + '<span>ゴミ箱</spa
 document.getElementById('bb-cat').innerHTML = IC.folder + '<span>カテゴリー</span>';
 document.getElementById('bb-add').innerHTML = IC.plus + '<span>追加</span>';
 document.getElementById('bb-search-close').innerHTML = IC.x;
+document.getElementById('fav-filter-toggle').innerHTML = IC.heart;
 
 const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
@@ -959,7 +960,7 @@ async function addNote() {
     // 新規メモはお気に入りではないので、♥フィルタ中だと絞り込みで消えてしまう
     if (favOnly) {
       favOnly = false;
-      document.getElementById('fav-filter-toggle').classList.remove('active');
+      document.getElementById('fav-filter-toggle').classList.remove('on');
     }
     await loadNotes(true);
     if (!_isDesktop()) selectCard(docRef.id);
@@ -1821,7 +1822,7 @@ function renderCards() {
 
 function toggleFavFilter() {
   favOnly = !favOnly;
-  document.getElementById('fav-filter-toggle').classList.toggle('active', favOnly);
+  document.getElementById('fav-filter-toggle').classList.toggle('on', favOnly);
   window.scrollTo({ top: 0 });
   loadNotes(true);
 }
