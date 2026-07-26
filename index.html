@@ -836,7 +836,7 @@ async function searchNotes(q2) {
         'X-Algolia-API-Key': ALGOLIA_SEARCH_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date'] })
+      body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date','created_at'] })
     });
     if (seq !== _searchSeq) return;
     var data = await res.json();
