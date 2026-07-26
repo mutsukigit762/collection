@@ -285,7 +285,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
-    <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
+    <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">更新順</button>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>月</option></select>
@@ -318,7 +318,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </div>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 import { Editor, Node, mergeAttributes } from 'https://esm.sh/@tiptap/core@2.4.0';
@@ -457,7 +457,7 @@ var trash = loadTrash();
 var notes = [];
 var currentCat = ALL_TAB;
 var searchQuery = '';
-var sortField = 'date';
+var sortField = 'updatedAt';
 var sortDir = 'desc';
 var filterYear = '';
 var filterMonth = '';
@@ -1103,6 +1103,38 @@ async function toggleFav(id) {
 }
 window.toggleFav = toggleFav;
 
+// created_at は日本時間の壁時計をそのまま並べた文字列なので、9時間ぶん戻して本当の時刻に直す
+function _createdAtDate(n) {
+  var s = n.created_at || (n.date ? n.date + 'T00:00:00' : '');
+  if (!s) return null;
+  var ms = Date.parse(s + 'Z');
+  return isNaN(ms) ? null : new Date(ms - 9 * 3600 * 1000);
+}
+
+// 体裁を整えただけのメモが更新順で上に来てしまった時に、updatedAt を作成時刻まで戻して元の位置に返す
+async function resetUpdatedAt(id) {
+  var n = notes.find(function(x){ return x.id === id; });
+  if (!n) return;
+  var d = _createdAtDate(n);
+  if (!d) return;
+  var prev = n.updatedAt;
+  n.updatedAt = Timestamp.fromDate(d);
+  try {
+    await setDoc(doc(db, NOTES_COLL, id), { updatedAt: n.updatedAt }, { merge: true });
+  } catch(e) {
+    console.error(e);
+    n.updatedAt = prev;
+    setSyncStatus('保存に失敗');
+    return;
+  }
+  setSyncStatus('更新日時を戻した');
+  setTimeout(function(){ setSyncStatus(''); }, 1500);
+  // 更新順で見ている時だけ、読み込み済みのぶんを並べ直して位置を反映する。
+  // loadNotes での作り直しはしない（並べ替えでページ外に出ると開いているメモから弾き出されるため）
+  if (sortField === 'updatedAt' && !searchQuery) { notes = _sortNotesLocal(notes); render(); }
+}
+window.resetUpdatedAt = resetUpdatedAt;
+
 async function deleteNote(id) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n) return;
@@ -1577,6 +1609,7 @@ function detailCardHTML(n) {
     + '<div class="card-top">'
     + '<button class="cat-btn" style="' + esc(catStyle(n.cat)) + '" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<span style="display:inline-flex;align-items:center;gap:2px">'
+    + '<button class="btn-icon" onclick="resetUpdatedAt(\'' + n.id + '\')" title="更新日時を作成日時に戻す" aria-label="更新日時を戻す">' + IC.restore + '</button>'
     + '<button class="fav-btn' + (n.fav ? ' on' : '') + '" data-fav-id="' + n.id + '" onclick="toggleFav(\'' + n.id + '\')" title="' + (n.fav ? 'お気に入りを外す' : 'お気に入りに追加') + '" aria-label="お気に入り">' + IC.heart + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</span>'
