@@ -41,15 +41,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .sort-bar{display:flex;gap:6px;padding:8px 0 10px;align-items:center}
 .sort-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer;appearance:none;-webkit-appearance:none}
 .sort-btn.active{background:var(--text);color:var(--bg3);border-color:var(--text)}
-/* 日付フィルタのピル。空のときは端末の言語に関係なく「日付」と出したいので、
-   ブラウザ既定のプレースホルダ（mm/dd/yyyy 等）は隠して自前のラベルを重ねる */
-.date-pill{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:96px}
-.date-pill input[type=date]{width:100%;font-family:inherit;font-size:12px;line-height:1.5;color:inherit;background:none;border:none;padding:0;margin:0;text-align:center;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none}
-.date-pill input[type=date]::-webkit-calendar-picker-indicator{display:none;-webkit-appearance:none}
-.date-pill input[type=date]::-webkit-date-and-time-value{text-align:center;margin:0}
-.date-pill.no-date input[type=date]{color:transparent}
-.date-pill-ph{position:absolute;left:0;right:0;text-align:center;pointer-events:none;display:none}
-.date-pill.no-date .date-pill-ph{display:block}
+select.sort-btn{padding-right:10px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
@@ -295,7 +287,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div class="sort-bar" id="sort-bar">
     <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">作成順</button>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
-    <span class="sort-btn date-pill no-date" id="filter-date-pill"><input type="date" id="filter-date"><span class="date-pill-ph">日付</span></span>
+    <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>年</option></select>
+    <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>月</option></select>
+    <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>日</option></select>
     <button class="sort-btn" id="filter-dir-label" onclick="toggleFilterDir()" style="display:none"></button>
     <span style="flex:0 0 8px"></span>
     <button class="sort-btn" id="fav-filter-toggle" onclick="toggleFavFilter()" title="お気に入りだけ表示" aria-label="お気に入りだけ表示"></button>
@@ -466,7 +460,9 @@ var currentCat = ALL_TAB;
 var searchQuery = '';
 var sortField = 'date';
 var sortDir = 'desc';
-var filterDate = '';
+var filterYear = '';
+var filterMonth = '';
+var filterDay = '';
 var filterDir = '';
 var favOnly = false;
 var trashOpen = false;
@@ -788,7 +784,7 @@ async function buildQuery(isNext) {
   // 必要になるので、並べ替えと日付絞り込みはクライアント側でやる（お気に入りは少数前提）
   var constraints = [];
   if (!favOnly) {
-    var orderField = (filterDate && filterDir) ? 'date' : sortField;
+    var orderField = (filterYear && filterDir) ? 'date' : sortField;
     constraints.push(orderBy(orderField, sortDir));
   }
   if (currentCat !== ALL_TAB) {
@@ -802,8 +798,15 @@ async function buildQuery(isNext) {
     constraints.push(where('deleted', '==', false));
   }
   if (favOnly) constraints.push(where('fav', '==', true));
-  if (filterDate && filterDir && !favOnly) {
-    constraints.push(where('date', filterDir === 'before' ? '<=' : '>=', filterDate));
+  if (filterYear && filterDir && !favOnly) {
+    var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
+    var d = filterDay ? filterDay : (filterDir === 'before' ? '31' : '01');
+    var dateStr = filterYear + '-' + m + '-' + d;
+    if (filterDir === 'before') {
+      constraints.push(where('date', '<=', dateStr));
+    } else {
+      constraints.push(where('date', '>=', dateStr));
+    }
   }
   if (!favOnly) {
     constraints.push(limit(PAGE_SIZE));
@@ -814,10 +817,13 @@ async function buildQuery(isNext) {
 
 // ♥フィルタ中だけ使う、クライアント側の日付絞り込みと並べ替え
 function _favDateBound() {
-  return (filterDate && filterDir) ? filterDate : null;
+  if (!filterYear || !filterDir) return null;
+  var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
+  var d = filterDay ? filterDay : (filterDir === 'before' ? '31' : '01');
+  return filterYear + '-' + m + '-' + d;
 }
 function _sortNotesLocal(list) {
-  var byDate = !!(filterDate && filterDir) || sortField === 'date';
+  var byDate = !!(filterYear && filterDir) || sortField === 'date';
   var dir = sortDir === 'asc' ? 1 : -1;
   return list.sort(function(a, b) {
     var va, vb;
@@ -1215,9 +1221,6 @@ function byteCountHTML(body) {
 function _jkIsTyping() {
   var a = document.activeElement;
   if (!a) return false;
-  // 日付フィルタは文字を打ち込む欄じゃなくてピッカーなので、ここでは「入力中」に数えない。
-  // （プルダウンだった頃と同じく、選んだ後もショートカットが効くようにするため）
-  if (a.id === 'filter-date') return false;
   return a.isContentEditable || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA';
 }
 function _jkMove(dir) {
@@ -1305,7 +1308,9 @@ document.addEventListener('keydown', function(e) {
       if (e.key === '1') { e.preventDefault(); toggleSortField(); return; }
       if (e.key === '2') { e.preventDefault(); toggleFilterDir(); return; }
       if (e.key === '3') { e.preventDefault(); resetDateFilter(); return; }
-      if (e.key === '4') { e.preventDefault(); _openSelect('filter-date'); return; }
+      if (e.key === '4') { e.preventDefault(); _openSelect('filter-year'); return; }
+      if (e.key === '5') { e.preventDefault(); _openSelect('filter-month'); return; }
+      if (e.key === '6') { e.preventDefault(); _openSelect('filter-day'); return; }
     }
   }
   if (e.metaKey && !e.shiftKey && e.key === 'h') {
@@ -1845,14 +1850,17 @@ async function updateFilterCount() {
     countEl.textContent = notes.filter(catFilterNote).length + '件';
     return;
   }
-  var key = [currentCat, filterDate, filterDir].join('|');
+  var key = [currentCat, filterYear, filterMonth, filterDay, filterDir].join('|');
   if (key === _filterCountKey) return;
   _filterCountKey = key;
   try {
     var constraints = [where('deleted', '==', false)];
     if (currentCat !== ALL_TAB) constraints.push(where('cat', '==', currentCat));
-    if (filterDate && filterDir) {
-      constraints.push(where('date', filterDir === 'before' ? '<=' : '>=', filterDate));
+    if (filterYear && filterDir) {
+      var m = filterMonth ? filterMonth : (filterDir === 'before' ? '12' : '01');
+      var d = filterDay ? filterDay : (filterDir === 'before' ? '31' : '01');
+      var dateStr = filterYear + '-' + m + '-' + d;
+      constraints.push(where('date', filterDir === 'before' ? '<=' : '>=', dateStr));
     }
     var snap = await getCountFromServer(query(collection(db, NOTES_COLL), ...constraints));
     if (searchQuery || key !== _filterCountKey) return;
@@ -1923,35 +1931,39 @@ window.switchCat = switchCat;
 var _filterState = {};
 function toggleSortField() {
   var newField = sortField === 'updatedAt' ? 'date' : 'updatedAt';
-  _filterState[sortField] = { date: filterDate };
+  _filterState[sortField] = { year: filterYear, month: filterMonth, day: filterDay };
   sortField = newField;
   var btn = document.getElementById('sort-field-toggle');
   btn.textContent = sortField === 'updatedAt' ? '更新順' : '作成順';
   var saved = _filterState[sortField] || {};
-  filterDate = saved.date || '';
-  filterDir = filterDate ? (filterDir || 'before') : '';
+  filterYear = saved.year || '';
+  filterMonth = saved.month || '';
+  filterDay = saved.day || '';
+  filterDir = filterYear ? (filterDir || 'before') : '';
   sortDir = filterDir === 'after' ? 'asc' : 'desc';
-  document.getElementById('filter-date').value = filterDate;
+  document.getElementById('filter-year').value = filterYear;
+  document.getElementById('filter-month').value = filterMonth;
+  document.getElementById('filter-day').value = filterDay;
   _updateFilterDirLabel();
   loadNotes(true);
 }
 window.toggleSortField = toggleSortField;
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
-  if (el) { el.textContent = filterDate ? (filterDir === 'before' ? '以前' : '以後') : ''; el.style.display = filterDate ? '' : 'none'; }
-  var pill = document.getElementById('filter-date-pill');
-  if (pill) { pill.classList.toggle('active', !!filterDate); pill.classList.toggle('no-date', !filterDate); }
+  if (el) { el.textContent = filterYear ? (filterDir === 'before' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
 }
 function resetDateFilter() {
-  filterDate = ''; filterDir = '';
+  filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
   _filterState[sortField] = {};
-  document.getElementById('filter-date').value = '';
+  document.getElementById('filter-year').value = '';
+  document.getElementById('filter-month').value = '';
+  document.getElementById('filter-day').value = '';
   _updateFilterDirLabel();
   loadNotes(true);
 }
 window.resetDateFilter = resetDateFilter;
 function toggleFilterDir() {
-  if (!filterDate) return;
+  if (!filterYear) return;
   filterDir = filterDir === 'before' ? 'after' : 'before';
   sortDir = filterDir === 'after' ? 'asc' : 'desc';
   _updateFilterDirLabel();
@@ -1959,21 +1971,40 @@ function toggleFilterDir() {
 }
 window.toggleFilterDir = toggleFilterDir;
 function onDateFilterChange() {
-  filterDate = document.getElementById('filter-date').value;
-  filterDir = filterDate ? (filterDir || 'before') : '';
+  filterYear = document.getElementById('filter-year').value;
+  filterMonth = document.getElementById('filter-month').value;
+  filterDay = document.getElementById('filter-day').value;
+  filterDir = filterYear ? (filterDir || 'before') : '';
   sortDir = filterDir === 'after' ? 'asc' : 'desc';
   _updateFilterDirLabel();
   window.scrollTo({ top: 0 });
   loadNotes(true);
 }
-function initFilterDate() {
-  var el = document.getElementById('filter-date');
-  el.min = '2017-01-01';
-  el.addEventListener('change', onDateFilterChange);
-  // カレンダーアイコンを消してあるので、ピルのどこを押してもピッカーが開くようにする
-  document.getElementById('filter-date-pill').addEventListener('click', function() { _openSelect('filter-date'); });
+function initFilterSelects() {
+  var yearSel = document.getElementById('filter-year');
+  var monthSel = document.getElementById('filter-month');
+  var now = new Date().getFullYear();
+  for (var y = now; y >= 2017; y--) {
+    var opt = document.createElement('option');
+    opt.value = y; opt.textContent = y + '年';
+    yearSel.appendChild(opt);
+  }
+  for (var mo = 12; mo >= 1; mo--) {
+    var opt2 = document.createElement('option');
+    opt2.value = String(mo).padStart(2, '0');
+    opt2.textContent = mo + '月';
+    monthSel.appendChild(opt2);
+  }
+  var daySel = document.getElementById('filter-day');
+  for (var dd = 31; dd >= 1; dd--) {
+    var opt3 = document.createElement('option');
+    opt3.value = String(dd).padStart(2, '0');
+    opt3.textContent = dd + '日';
+    daySel.appendChild(opt3);
+  }
 }
-initFilterDate();
+initFilterSelects();
+window.onDateFilterChange = onDateFilterChange;
 window.clearSearch = clearSearch;
 
 function toggleTrash() { trashOpen = !trashOpen; catPanelOpen = false; if (!trashOpen) _setModalOpen(false); render(); }
