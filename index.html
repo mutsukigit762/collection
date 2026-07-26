@@ -90,11 +90,12 @@ select.sort-btn{padding-right:10px}
 .img-modal-arrow.next{right:12px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
 .img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
-.card-date{font-size:11px;color:var(--text3);margin-top:6px;cursor:pointer}
+.card-date{font-size:11px;color:var(--text3);margin-top:6px}
 .date-unrecovered{color:#e11d48 !important;font-weight:600}
-.card-date:hover{color:var(--text2)}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
-.datetime-part{cursor:pointer}
+/* 押せる見た目（指カーソル・ホバーで色が変わる）は DATE_EDIT_ENABLED が true のときだけ付く */
+.datetime-part.editable{cursor:pointer}
+.datetime-part.editable:hover{color:var(--text2)}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -205,8 +206,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 .pv-cat:hover{border-color:var(--border2);color:var(--text)}
 .pv-selected .pv-cat{background:var(--bg3)}
-.pv-date{font-size:10px;color:var(--text3);white-space:nowrap;cursor:pointer}
-.pv-date:hover{color:var(--text2)}
+.pv-date{font-size:10px;color:var(--text3);white-space:nowrap}
 .pv-row{display:flex;gap:8px;align-items:flex-start}
 .pv-thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;flex:0 0 auto}
 .pv-text{font-size:12px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
@@ -369,6 +369,13 @@ const ALGOLIA_APP_ID = 'J90KE9AP6P';
 const ALGOLIA_SEARCH_KEY = 'dcd2d9c7819580a05c4e61dbe07d2046';
 const ALGOLIA_INDEX = 'collection_notes';
 
+// タイムスタンプをタップして日時を編集できるようにするかどうかのスイッチ。
+// false … タップしても何も起きない（日時は表示されるだけ）
+// true  … 元どおり、タップするとカレンダーが開いて日時を直せる
+// 仕組み本体（editNoteDate 以下）は消していないので、true に戻すだけで
+// 前と全く同じ使い心地で復活する。
+const DATE_EDIT_ENABLED = false;
+
 const IC = {
   x: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   plus: '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
@@ -430,8 +437,10 @@ function formatNoteDateParts(n) {
 }
 function dateSpanInnerHTML(n) {
   var p = formatNoteDateParts(n);
-  return '<span class="datetime-part" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">'
-    + esc(p.date) + ' ' + esc(p.time) + '</span>';
+  var text = esc(p.date) + ' ' + esc(p.time);
+  if (!DATE_EDIT_ENABLED) return '<span class="datetime-part">' + text + '</span>';
+  return '<span class="datetime-part editable" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">'
+    + text + '</span>';
 }
 function catStyle(name) {
   var c = catColor(name);
