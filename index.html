@@ -34,6 +34,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .sort-bar{display:flex;gap:6px;padding:8px 0 10px;align-items:center}
 .sort-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer;appearance:none;-webkit-appearance:none}
 .sort-btn.active{background:var(--text);color:var(--bg3);border-color:var(--text)}
+#unrecovered-filter-toggle.active{background:#e11d48;color:#fff;border-color:#e11d48}
 select.sort-btn{padding-right:10px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
@@ -285,6 +286,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>月</option></select>
     <select id="filter-day" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>日</option></select>
     <button class="sort-btn" id="filter-dir-label" onclick="toggleFilterDir()" style="display:none"></button>
+    <span style="flex:0 0 8px"></span>
+    <button class="sort-btn" id="unrecovered-filter-toggle" onclick="toggleUnrecoveredFilter()">未回収</button>
   </div>
 </div>
 <div class="app">
@@ -454,6 +457,7 @@ var filterYear = '';
 var filterMonth = '';
 var filterDay = '';
 var filterDir = '';
+var unrecoveredOnly = false;
 var trashOpen = false;
 var catPanelOpen = false;
 var currentNoteIdForCat = null;
@@ -1463,6 +1467,7 @@ var selectedCardId = null;
 var _mountedDetailId = null;
 
 function catFilterNote(n) {
+  if (unrecoveredOnly && !_dateIsUnrecovered(n)) return false;
   if (currentCat === ALL_TAB) return true;
   if (currentCat === NO_CAT) return !n.cat || n.cat === NO_CAT || n.cat === '';
   return n.cat === currentCat;
@@ -1731,6 +1736,12 @@ function renderCards() {
   _updatePreviewSelection();
 }
 
+function toggleUnrecoveredFilter() {
+  unrecoveredOnly = !unrecoveredOnly;
+  document.getElementById('unrecovered-filter-toggle').classList.toggle('active', unrecoveredOnly);
+  render();
+}
+
 function render() {
   var tabs = allTabs();
   if (tabs.indexOf(currentCat) < 0) currentCat = tabs[0] || ALL_TAB;
@@ -1745,9 +1756,13 @@ var _filterCountKey = null;
 async function updateFilterCount() {
   var countEl = document.getElementById('search-count');
   if (searchQuery) { _filterCountKey = null; return; }
-  var key = [currentCat, filterYear, filterMonth, filterDay, filterDir].join('|');
+  var key = [currentCat, filterYear, filterMonth, filterDay, filterDir, unrecoveredOnly].join('|');
   if (key === _filterCountKey) return;
   _filterCountKey = key;
+  if (unrecoveredOnly) {
+    countEl.textContent = notes.filter(catFilterNote).length + '件';
+    return;
+  }
   try {
     var constraints = [where('deleted', '==', false)];
     if (currentCat !== ALL_TAB) constraints.push(where('cat', '==', currentCat));
@@ -1844,6 +1859,7 @@ function toggleSortField() {
   loadNotes(true);
 }
 window.toggleSortField = toggleSortField;
+window.toggleUnrecoveredFilter = toggleUnrecoveredFilter;
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
   if (el) { el.textContent = filterYear ? (filterDir === 'before' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
