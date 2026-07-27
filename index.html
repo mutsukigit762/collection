@@ -141,9 +141,11 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
    スマホでメモを開いている間は隠れてしまい手ごたえが伝わらない */
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
 /* 出る時はふわっと下りてきて、消える時はさらにゆっくり薄くなる */
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);pointer-events:auto;cursor:pointer}
-/* 触って消した時だけ、待たずにさっと引く */
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);pointer-events:auto;touch-action:none}
+/* 払って消した時だけ、待たずにさっと引く */
 .toast.fast{transition:opacity .16s ease,transform .16s ease}
+/* 指で動かしている間は追従させたいので動きを止める */
+.toast.drag{transition:none}
 svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 ::selection{background:#d9cfc0;color:#1a1a1a}
 ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
@@ -831,12 +833,54 @@ function showToast(msg) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 2800);
 }
-// 邪魔な時は触れば消せる。放っておくより早めに、でも急に消えないくらいの速さで
-document.getElementById('toast').addEventListener('click', function() {
-  clearTimeout(_toastTimer);
-  this.classList.add('fast');
-  this.classList.remove('on');
-});
+// 邪魔な時は上に払えば消せる。
+// 一番上に出るので、そのまま指を動かすと「引っ張って更新」に拾われてしまう。
+// stopPropagation で document 側のジェスチャーに渡さないようにしている。
+var _toastSwipe = { y0: 0, dy: 0, active: false };
+(function() {
+  var el = document.getElementById('toast');
+  el.addEventListener('touchstart', function(e) {
+    if (!el.classList.contains('on') || e.touches.length !== 1) return;
+    e.stopPropagation();
+    clearTimeout(_toastTimer);          // 触っている間は勝手に消さない
+    _toastSwipe.y0 = e.touches[0].clientY;
+    _toastSwipe.dy = 0;
+    _toastSwipe.active = true;
+    el.classList.add('drag');
+  }, { passive: true });
+
+  el.addEventListener('touchmove', function(e) {
+    if (!_toastSwipe.active) return;
+    e.stopPropagation();
+    e.preventDefault();
+    var dy = e.touches[0].clientY - _toastSwipe.y0;
+    _toastSwipe.dy = dy < 0 ? dy : dy * 0.2;   // 下方向にはほとんど動かさない
+    el.style.transform = 'translateX(-50%) translateY(' + _toastSwipe.dy + 'px)';
+    el.style.opacity = String(Math.max(0, 1 + _toastSwipe.dy / 70));
+  }, { passive: false });
+
+  function end(e) {
+    if (!_toastSwipe.active) return;
+    if (e) e.stopPropagation();
+    _toastSwipe.active = false;
+    el.classList.remove('drag');
+    if (_toastSwipe.dy < -24) {
+      // 払いきった：そのまま上へ抜けて消える
+      el.classList.add('fast');
+      el.style.transform = 'translateX(-50%) translateY(' + (_toastSwipe.dy - 24) + 'px)';
+      el.style.opacity = '0';
+      el.classList.remove('on');
+      setTimeout(function(){ el.style.transform = ''; el.style.opacity = ''; }, 220);
+    } else {
+      // 戻す。触った後は短めに待ってから自然に消す
+      el.style.transform = '';
+      el.style.opacity = '';
+      _toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 1200);
+    }
+  }
+  el.addEventListener('touchend', end, { passive: true });
+  el.addEventListener('touchcancel', end, { passive: true });
+})();
 
 var PAGE_SIZE = 30;
 var lastDoc = null;
