@@ -387,6 +387,12 @@ const ALGOLIA_INDEX = 'collection_notes';
 // 前と全く同じ使い心地で復活する。
 const DATE_EDIT_ENABLED = false;
 
+// 日付フィルタを解除する「C」ボタンを出すかどうかのスイッチ。
+// false … ボタンが消える（キーボードの 3 も効かなくなる）
+// true  … 元どおり、ソートバーに C が並ぶ
+// 仕組み本体（resetDateFilter）は消していないので、true に戻すだけで復活する。
+const DATE_RESET_ENABLED = false;
+
 const IC = {
   x: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   plus: '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
@@ -1358,7 +1364,7 @@ document.addEventListener('keydown', function(e) {
       }
       if (e.key === '1') { e.preventDefault(); toggleSortField(); return; }
       if (e.key === '2') { e.preventDefault(); toggleFilterDir(); return; }
-      if (e.key === '3') { e.preventDefault(); resetDateFilter(); return; }
+      if (e.key === '3') { if (DATE_RESET_ENABLED) { e.preventDefault(); resetDateFilter(); } return; }
       if (e.key === '4') { e.preventDefault(); _openSelect('filter-year'); return; }
       if (e.key === '5') { e.preventDefault(); _openSelect('filter-month'); return; }
       if (e.key === '6') { e.preventDefault(); _openSelect('filter-day'); return; }
@@ -2138,6 +2144,8 @@ function initFilterSelects() {
   }
 }
 initFilterSelects();
+// スイッチが false の間だけ「C」ボタンを隠す（HTMLからは消していないので戻せる）
+if (!DATE_RESET_ENABLED) document.getElementById('filter-reset').style.display = 'none';
 window.onDateFilterChange = onDateFilterChange;
 window.clearSearch = clearSearch;
 
