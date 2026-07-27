@@ -136,6 +136,10 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 .cat-modal-add{display:flex;gap:8px;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)}
 .cat-modal-add input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none}
 .sync-status{font-size:11px;color:var(--text3);text-align:right;padding:0 0 6px}
+/* 画面のどこにいても見える一言表示。sync-status は一覧の中にあるので、
+   スマホでメモを開いている間は隠れてしまい手ごたえが伝わらない */
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,0.18);transition:opacity .18s ease,transform .18s ease}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 ::selection{background:#d9cfc0;color:#1a1a1a}
 ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
@@ -275,6 +279,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </style>
 </head>
 <body>
+<div class="toast" id="toast" aria-live="polite"></div>
 <div class="ptr" id="ptr" aria-hidden="true"><svg class="ptr-spinner" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(0 12 12)" opacity="0.15"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(45 12 12)" opacity="0.27"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(90 12 12)" opacity="0.39"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(135 12 12)" opacity="0.51"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(180 12 12)" opacity="0.64"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(225 12 12)" opacity="0.76"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(270 12 12)" opacity="0.88"/><rect x="10.9" y="1.6" width="2.2" height="6.4" rx="1.1" transform="rotate(315 12 12)" opacity="1.0"/></svg></div>
 <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
@@ -812,6 +817,16 @@ function setSyncStatus(msg) {
   document.getElementById('sync-status').textContent = msg;
 }
 
+// 画面のどこにいても見える一言表示。しばらくすると勝手に消える
+var _toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 1600);
+}
+
 var PAGE_SIZE = 30;
 var lastDoc = null;
 var hasMore = true;
@@ -1157,20 +1172,23 @@ async function resetUpdatedAt(id) {
   var d = _createdAtDate(n);
   if (!d) return;
   var prev = n.updatedAt;
+  // 保存の返事を待たずに先に反映して手ごたえを返す（♥ボタンと同じやり方）。
+  // 更新順で見ている時だけ、読み込み済みのぶんを並べ直して位置に反映する。
+  // loadNotes での作り直しはしない（並べ替えでページ外に出ると開いているメモから弾き出されるため）
+  var reorder = function() {
+    if (sortField === 'updatedAt' && !searchQuery) { notes = _sortNotesLocal(notes); render(); }
+  };
   n.updatedAt = Timestamp.fromDate(d);
+  showToast('更新日時を戻した');
+  reorder();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { updatedAt: n.updatedAt }, { merge: true });
   } catch(e) {
     console.error(e);
     n.updatedAt = prev;
-    setSyncStatus('保存に失敗');
-    return;
+    reorder();
+    showToast('保存に失敗した');
   }
-  setSyncStatus('更新日時を戻した');
-  setTimeout(function(){ setSyncStatus(''); }, 1500);
-  // 更新順で見ている時だけ、読み込み済みのぶんを並べ直して位置を反映する。
-  // loadNotes での作り直しはしない（並べ替えでページ外に出ると開いているメモから弾き出されるため）
-  if (sortField === 'updatedAt' && !searchQuery) { notes = _sortNotesLocal(notes); render(); }
 }
 window.resetUpdatedAt = resetUpdatedAt;
 
