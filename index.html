@@ -141,7 +141,9 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
    スマホでメモを開いている間は隠れてしまい手ごたえが伝わらない */
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
 /* 出る時はふわっと下りてきて、消える時はさらにゆっくり薄くなる */
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);pointer-events:auto;cursor:pointer}
+/* 触って消した時だけ、待たずにさっと引く */
+.toast.fast{transition:opacity .16s ease,transform .16s ease}
 svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 ::selection{background:#d9cfc0;color:#1a1a1a}
 ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
@@ -824,10 +826,17 @@ var _toastTimer = null;
 function showToast(msg) {
   var el = document.getElementById('toast');
   el.textContent = msg;
+  el.classList.remove('fast');   // 前回タップで消した時の速い設定を戻す
   el.classList.add('on');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ el.classList.remove('on'); }, 2800);
 }
+// 邪魔な時は触れば消せる。放っておくより早めに、でも急に消えないくらいの速さで
+document.getElementById('toast').addEventListener('click', function() {
+  clearTimeout(_toastTimer);
+  this.classList.add('fast');
+  this.classList.remove('on');
+});
 
 var PAGE_SIZE = 30;
 var lastDoc = null;
