@@ -1181,7 +1181,7 @@ async function resetUpdatedAt(id) {
     if (sortField === 'updatedAt' && !searchQuery) { notes = _sortNotesLocal(notes); render(); }
   };
   n.updatedAt = Timestamp.fromDate(d);
-  showToast('更新日時を戻した');
+  showToast('更新日時を戻しました');
   reorder();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { updatedAt: n.updatedAt }, { merge: true });
@@ -1189,7 +1189,7 @@ async function resetUpdatedAt(id) {
     console.error(e);
     n.updatedAt = prev;
     reorder();
-    showToast('保存に失敗した');
+    showToast('保存に失敗しました');
   }
 }
 window.resetUpdatedAt = resetUpdatedAt;
