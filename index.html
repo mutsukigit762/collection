@@ -1181,7 +1181,7 @@ async function resetUpdatedAt(id) {
     if (sortField === 'updatedAt' && !searchQuery) { notes = _sortNotesLocal(notes); render(); }
   };
   n.updatedAt = Timestamp.fromDate(d);
-  showToast('更新日時を戻しました');
+  showToast('更新日時をリセットしました');
   reorder();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { updatedAt: n.updatedAt }, { merge: true });
@@ -1668,7 +1668,7 @@ function detailCardHTML(n) {
     + '<div class="card-top">'
     + '<button class="cat-btn" style="' + esc(catStyle(n.cat)) + '" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
     + '<span style="display:inline-flex;align-items:center;gap:2px">'
-    + '<button class="btn-icon" onclick="resetUpdatedAt(\'' + n.id + '\')" title="更新日時を作成日時に戻す" aria-label="更新日時を戻す">' + IC.restore + '</button>'
+    + '<button class="btn-icon" onclick="resetUpdatedAt(\'' + n.id + '\')" title="更新日時をリセット（作成日時に戻す）" aria-label="更新日時をリセット">' + IC.restore + '</button>'
     + '<button class="fav-btn' + (n.fav ? ' on' : '') + '" data-fav-id="' + n.id + '" onclick="toggleFav(\'' + n.id + '\')" title="' + (n.fav ? 'お気に入りを外す' : 'お気に入りに追加') + '" aria-label="お気に入り">' + IC.heart + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
     + '</span>'
