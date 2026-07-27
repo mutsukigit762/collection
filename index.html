@@ -31,14 +31,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .header h1{font-size:20px;font-weight:600}
 .btn{background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 12px;font-size:13px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:6px;font-family:inherit}
-.btn:hover{background:var(--bg2)}
+@media (hover:hover){.btn:hover{background:var(--bg2)}}
 .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
 .btn-sm{padding:4px 8px;font-size:12px}
 .btn-danger{color:var(--danger);border-color:var(--danger)}
 .btn-icon{padding:4px;border:none;background:none;cursor:pointer;color:var(--text3);display:inline-flex;align-items:center;border-radius:4px}
-.btn-icon:hover{color:var(--danger);background:rgba(220,38,38,0.08)}
+@media (hover:hover){.btn-icon:hover{color:var(--danger);background:rgba(220,38,38,0.08)}}
 .fav-btn{padding:4px;border:none;background:none;cursor:pointer;color:var(--text3);display:inline-flex;align-items:center;border-radius:4px}
-.fav-btn:hover{color:#e0245e;background:rgba(224,36,94,0.08)}
+@media (hover:hover){.fav-btn:hover{color:#e0245e;background:rgba(224,36,94,0.08)}}
 .fav-btn.on{color:#e0245e}
 .fav-btn.on svg{fill:currentColor}
 #fav-filter-toggle{display:inline-flex;align-items:center;justify-content:center}
@@ -56,17 +56,17 @@ select.sort-btn{padding-right:10px}
 .tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
 .tab-clear{display:inline-flex;align-items:center;justify-content:center;color:var(--text2)}
-.tab-clear:hover{color:var(--text)}
+@media (hover:hover){.tab-clear:hover{color:var(--text)}}
 .tab-clear svg{width:12px;height:12px}
 .tab.tab-match{color:var(--warning-text);border-bottom-color:var(--warning-text);font-weight:600;background:var(--warning-bg)}
-.tab:hover{color:var(--text)}
+@media (hover:hover){.tab:hover{color:var(--text)}}
 .tab-add{padding:8px 10px;font-size:13px;cursor:pointer;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;font-family:inherit}
-.tab-add:hover{color:var(--text)}
+@media (hover:hover){.tab-add:hover{color:var(--text)}}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1rem}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
 .cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
-.cat-btn:hover{border-color:var(--border2)}
+@media (hover:hover){.cat-btn:hover{border-color:var(--border2)}}
 .card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text);line-height:1.6;outline:none}
 .card-editor .ProseMirror{outline:none;min-height:40px;word-break:break-word}
 .card-editor .ProseMirror p{margin:0 0 2px}
@@ -84,18 +84,19 @@ select.sort-btn{padding-right:10px}
 .card-editor .ProseMirror table .selectedCell:after{content:"";position:absolute;inset:0;background:rgba(120,120,120,0.15);pointer-events:none}
 .toolbar{display:flex;gap:4px;margin-bottom:4px}
 .toolbar-btn{background:none;border:0.5px solid var(--border);border-radius:4px;color:var(--text2);padding:3px 6px;cursor:pointer;display:flex;align-items:center}
-.toolbar-btn:hover{color:var(--text);border-color:var(--border2)}
+@media (hover:hover){.toolbar-btn:hover{color:var(--text);border-color:var(--border2)}}
 .editor-toolbar{display:none;gap:2px;margin-bottom:6px;flex-wrap:wrap}
 .card:focus-within .editor-toolbar{display:flex}
 .tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
-.tb-btn:hover,.tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+@media (hover:hover){.tb-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}}
 .img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow:hidden}
 .lb-track{position:absolute;top:0;left:0;height:100%;display:flex;will-change:transform}
 .lb-slide{display:flex;align-items:center;justify-content:center;width:100vw;height:100%;box-sizing:border-box;padding:0 8px}
 .lb-slide img{max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
 .img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .img-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
-.img-modal-arrow:hover{background:rgba(255,255,255,0.3)}
+@media (hover:hover){.img-modal-arrow:hover{background:rgba(255,255,255,0.3)}}
 .img-modal-arrow.prev{left:12px}
 .img-modal-arrow.next{right:12px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
@@ -105,7 +106,7 @@ select.sort-btn{padding-right:10px}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
 /* 押せる見た目（指カーソル・ホバーで色が変わる）は DATE_EDIT_ENABLED が true のときだけ付く */
 .datetime-part.editable{cursor:pointer}
-.datetime-part.editable:hover{color:var(--text2)}
+@media (hover:hover){.datetime-part.editable:hover{color:var(--text2)}}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .byte-count{font-size:11px;color:var(--text3)}
@@ -131,7 +132,7 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .modal-title{font-size:15px;font-weight:500}
 .cat-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius);cursor:pointer;font-size:14px}
-.cat-option:hover{background:var(--bg2)}
+@media (hover:hover){.cat-option:hover{background:var(--bg2)}}
 .cat-option.selected{font-weight:500;background:var(--bg2)}
 .cat-modal-add{display:flex;gap:8px;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)}
 .cat-modal-add input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none}
@@ -211,14 +212,14 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .pv-delete-btn{position:absolute;top:0;right:0;bottom:0;width:76px;background:none;color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:0}
 .pv-delete-btn svg{width:22px;height:22px;opacity:0;transform:scale(0.3)}
 .pv-item{display:block;position:relative;z-index:1;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
-.pv-item:hover{border-color:var(--border2)}
+@media (hover:hover){.pv-item:hover{border-color:var(--border2)}}
 /* PC：一覧カードにゴミ箱を常時表示（スマホはスワイプで出すので隠す） */
 .pv-trash-pc{display:none}
 .pv-selected{border-color:var(--text);background:var(--bg2)}
 .pv-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .pv-meta-right{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
-.pv-cat:hover{border-color:var(--border2);color:var(--text)}
+@media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
 .pv-selected .pv-cat{background:var(--bg3)}
 .pv-date{font-size:10px;color:var(--text3);white-space:nowrap}
 .pv-row{display:flex;gap:8px;align-items:flex-start}
