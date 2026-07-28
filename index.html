@@ -323,6 +323,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-pane .card-date{font-size:13px}   /* 日時 */
   .detail-pane .byte-count{font-size:13px}
   .detail-pane .tb-btn{font-size:14px}      /* 太字などの装飾ボタン */
+  /* リセット・♥・ゴミ箱の絵はSVGに大きさが直接書いてあり、文字を大きくしても
+     付いてこないので、ここで一緒に上げる。押せる範囲も広げて指で押しやすくする */
+  .detail-pane .card-top .btn-icon svg,
+  .detail-pane .card-top .fav-btn svg{width:19px;height:19px}
+  .detail-pane .card-top .btn-icon,
+  .detail-pane .card-top .fav-btn{padding:6px}
 }
 
 /* PC（左サイドバー＋右フルハイト詳細）レイアウト */
