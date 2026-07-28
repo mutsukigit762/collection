@@ -281,6 +281,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     z-index:60;
     background:var(--bg);   /* カードの枠をなくすかわりに、画面ごと白にする */
     overflow-y:auto;
+    /* 端まで来た時に、後ろのページまで一緒に動かないようにする。
+       指の動きを横取りせずに済ませるための指定 */
+    overscroll-behavior-y:contain;
     /* 1行が長すぎると目が戻りにくいので、左右の余白を広げて20字前後で折り返させる。
        下を大きく空けているのは、最後の行を画面の上の方まで持ち上げて
        読めるようにするため。本文が短いうちは画面に収まるので、
@@ -2373,7 +2376,10 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
     }
     var dy = y - st.anchor;
     if ((atTop && dy > 0) || (atBottom && dy < 0)) {
-      e.preventDefault();      // 端を越える動きは自前で受け持つ
+      // ここで指の動きを横取り（preventDefault）してはいけない。
+      // iOSは横取りの宣言があるとスクロールの判断をJSの返事待ちにするため、
+      // 次に逆方向へ動かした時にスクロールが数秒効かなくなる。
+      // 端では元々ブラウザ側が何もしないので、止めるべきものも無い。
       var d = dy * BOUNCE_RATE;
       st.delta = Math.max(-BOUNCE_MAX, Math.min(BOUNCE_MAX, d));
       draw(st.delta);
@@ -2382,7 +2388,7 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
     } else {
       st.anchor = y;
     }
-  }, { passive: false });
+  }, { passive: true });   // 横取りしないと約束することで、iOSがスクロールを待たなくなる
 
   pane.addEventListener('touchend', release, { passive: true });
   pane.addEventListener('touchcancel', release, { passive: true });
