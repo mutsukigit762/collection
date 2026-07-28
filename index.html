@@ -2309,9 +2309,8 @@ function _applyTheme(theme, remember) {
   render();
 }
 function toggleTheme() {
-  var next = _isDarkMode() ? 'light' : 'dark';
-  _applyTheme(next, true);
-  showToast(next === 'dark' ? 'ダークモードにしました' : 'ライトモードにしました');
+  // 画面全体の色が変わるので、それ自体が合図になる。トーストは出さない
+  _applyTheme(_isDarkMode() ? 'light' : 'dark', true);
 }
 (function() {
   var title = document.getElementById('app-title');
