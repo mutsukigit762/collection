@@ -1462,12 +1462,13 @@ function _anyModalOpen() {
 function _jkCurrentId() {
   return selectedCardId;
 }
-function _focusSelectedEditor() {
+// scroll に false を渡すと、カーソルを画面内に入れるための移動をしない
+function _focusSelectedEditor(scroll) {
   var id = _jkCurrentId();
   if (!id) return;
   var ed = editors[id];
   if (!ed) return;
-  ed.commands.focus('end');
+  ed.commands.focus('end', { scrollIntoView: scroll !== false });
   // 保険：document.hasFocus() が false の環境でも確実にフォーカスを入れる。
   // ただし素のフォーカスはブラウザが「その要素を画面内に入れよう」として
   // 本文の先頭まで巻き戻してしまうので、既に入っていれば触らず、
@@ -2313,7 +2314,16 @@ initFilterSelects();
 document.getElementById('detail-pane').addEventListener('click', function(e) {
   if (e.target !== this && !e.target.classList.contains('card')) return;
   if (!editors[selectedCardId]) return;
-  _focusSelectedEditor();   // 押した流れの中で呼ぶのでキーボードも出る
+  var pane = this;
+  var keep = pane.scrollTop;              // 今見ている位置を覚えておく
+  _focusSelectedEditor(false);            // 押した流れの中で呼ぶのでキーボードも出る
+  // iOSのSafariはキーボードを出す時に、フォーカスした部品を見せようとして
+  // 画面を勝手に動かす。読んでいた場所から飛ばされるので、少しの間押さえ込む
+  var hold = function() { if (pane.scrollTop !== keep) pane.scrollTop = keep; };
+  hold();
+  requestAnimationFrame(hold);
+  var t = 0, iv = setInterval(function() { hold(); if (++t > 20) clearInterval(iv); }, 25);
+  setTimeout(function() { clearInterval(iv); }, 600);
 });
 
 // ==== 明るい/暗いの切り替え ====
