@@ -251,8 +251,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   }
 }
 /* カード一覧のサムネイル表示（スマホ・PC共通） */
-.pv-row-wrap{position:relative;overflow:hidden;border-radius:var(--radius-lg)}
-.pv-delete-btn{position:absolute;top:0;right:0;bottom:0;width:76px;background:none;color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:0}
+/* 左スワイプでカードが逃げていく先。カードと同じ幅で切り取ると左端が動かないように
+   見えるので、画面の端まで広げて、そこで切り取る。
+   丸みは付けない（カード自身が持っているし、丸く切り取ると縁に細い線が出る） */
+.pv-row-wrap{position:relative;overflow:hidden;margin:0 -1rem;padding:0 1rem}
+.pv-delete-btn{position:absolute;top:0;right:1rem;bottom:0;width:76px;background:none;color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:0}
 .pv-delete-btn svg{width:22px;height:22px;opacity:0;transform:scale(0.3)}
 .pv-item{display:block;position:relative;z-index:1;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
 @media (hover:hover){.pv-item:hover{border-color:var(--border2)}}
