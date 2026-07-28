@@ -5,8 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>collection</title>
 <link rel="apple-touch-icon" href="apple-touch-icon-collection.png">
-<meta name="theme-color" content="#f0ede8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f0ede8">
+<script>
+// 明るい/暗いを、画面が出る前に決めてしまう。
+// あとから決めると、一瞬ライトが見えてから暗くなる「チカッ」が起きるため。
+(function(){
+  var t = null;
+  try { t = localStorage.getItem('theme'); } catch(e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+  // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#000000' : '#f0ede8');
+})();
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -18,17 +32,17 @@
   --danger:#dc2626;
 }
 /* ダークモード。色はほぼ全部この変数を通しているので、ここを差し替えるだけで
-   アプリ全体が切り替わる。変数を使っていない数か所は下の方でまとめて上書きしている */
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#1c1c1e;      /* カードや詳細画面など、地より一段浮いた面 */
-    --bg2:#2c2c2e;     /* カテゴリの札などの薄い塗り */
-    --bg3:#000;        /* 画面の地 */
-    --text:#f5f5f5;--text2:#a1a1a6;--text3:#8e8e93;
-    --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
-    --warning-bg:#4d3f07;--warning-text:#fde68a;
-    --danger:#ff6b6b;
-  }
+   アプリ全体が切り替わる。変数を使っていない数か所は下の方でまとめて上書きしている。
+   OSの設定を直接見ずに data-theme で切り替えているのは、見出しのタップで
+   手動でも変えられるようにするため（初期値はhead内でOSの設定から決めている） */
+:root[data-theme="dark"]{
+  --bg:#1c1c1e;      /* カードや詳細画面など、地より一段浮いた面 */
+  --bg2:#2c2c2e;     /* カテゴリの札などの薄い塗り */
+  --bg3:#000;        /* 画面の地 */
+  --text:#f5f5f5;--text2:#a1a1a6;--text3:#8e8e93;
+  --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
+  --warning-bg:#4d3f07;--warning-text:#fde68a;
+  --danger:#ff6b6b;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
 /* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
@@ -44,7 +58,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:1rem 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.header h1{font-size:20px;font-weight:600}
+/* 見出しは明るい/暗いの切り替えボタンも兼ねている。
+   タップで文字が選択されたり、iOSの灰色の点滅が出たりしないようにしておく */
+.header h1{font-size:20px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 .btn{background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 12px;font-size:13px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:6px;font-family:inherit}
 @media (hover:hover){.btn:hover{background:var(--bg2)}}
 .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
@@ -167,13 +183,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .card-editor .ProseMirror ::selection{background:#d9cfc0;color:#1a1a1a}
 .card-editor .ProseMirror ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
 /* ダークモードで、変数を通していない色だけをまとめて差し替える */
-@media (prefers-color-scheme: dark){
-  ::selection,.card-editor .ProseMirror ::selection{background:#4a443c;color:#fff}
-  ::-moz-selection,.card-editor .ProseMirror ::-moz-selection{background:#4a443c;color:#fff}
-  .card-editor .ProseMirror a{color:#6ea8fe}          /* 元の青は暗すぎて読めない */
-  .date-unrecovered{color:#ff6b81 !important}         /* 作成時刻が未回収の赤 */
-  .overlay{background:rgba(0,0,0,0.6)}                /* 黒地なので薄いと分からない */
-}
+[data-theme="dark"] ::selection{background:#4a443c;color:#fff}
+[data-theme="dark"] ::-moz-selection{background:#4a443c;color:#fff}
+[data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
+[data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
+[data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
@@ -335,7 +349,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <div class="left-col" id="left-col">
 <div class="sticky-header">
   <div class="header">
-    <h1>collection</h1>
+    <h1 id="app-title" role="button" tabindex="0" title="押すと明るい／暗いを切り替え">collection</h1>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm" id="trash-btn" onclick="toggleTrash()"></button>
       <button class="btn btn-sm" id="cat-mgr-btn" onclick="toggleCatPanel()"></button>
@@ -484,7 +498,7 @@ function _hashStr(s) {
   return Math.abs(h);
 }
 function _isDarkMode() {
-  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 function catColor(name) {
   if (!name || name === NO_CAT) return null;
@@ -2282,14 +2296,41 @@ function initFilterSelects() {
   }
 }
 initFilterSelects();
-// 端末の明るい/暗いの設定が切り替わった時、カテゴリの札の色も作り直す
-// （色の大半はCSS変数なので即座に切り替わるが、札の色だけJSで作っているため）
-if (window.matchMedia) {
-  var _darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  var _onThemeChange = function() { render(); };
-  if (_darkQuery.addEventListener) _darkQuery.addEventListener('change', _onThemeChange);
-  else if (_darkQuery.addListener) _darkQuery.addListener(_onThemeChange);
+
+// ==== 明るい/暗いの切り替え ====
+// 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
+function _applyTheme(theme, remember) {
+  document.documentElement.setAttribute('data-theme', theme);
+  // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#000000' : '#f0ede8');
+  if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
+  // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
+  render();
 }
+function toggleTheme() {
+  var next = _isDarkMode() ? 'light' : 'dark';
+  _applyTheme(next, true);
+  showToast(next === 'dark' ? 'ダークモードにしました' : 'ライトモードにしました');
+}
+(function() {
+  var title = document.getElementById('app-title');
+  title.addEventListener('click', toggleTheme);
+  title.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+  });
+  // 自分で選ぶまでは、OSの設定に付いていく
+  if (!window.matchMedia) return;
+  var q = window.matchMedia('(prefers-color-scheme: dark)');
+  var follow = function() {
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch(e) {}
+    if (saved === 'light' || saved === 'dark') return;   // 手動で決めた後は追従しない
+    _applyTheme(q.matches ? 'dark' : 'light', false);
+  };
+  if (q.addEventListener) q.addEventListener('change', follow);
+  else if (q.addListener) q.addListener(follow);
+})();
 // スイッチが false の間だけ「C」ボタンを隠す（HTMLからは消していないので戻せる）
 if (!DATE_RESET_ENABLED) document.getElementById('filter-reset').style.display = 'none';
 window.onDateFilterChange = onDateFilterChange;
