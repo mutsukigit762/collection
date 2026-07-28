@@ -2303,6 +2303,15 @@ function initFilterSelects() {
 }
 initFilterSelects();
 
+// 本文の下に広く空けた余白を押したら、文章の末尾から書き始められるようにする。
+// 押された場所が「余白そのもの」の時だけ反応させる（間にボタンや本文を挟んでいたら何もしない）ので、
+// ♥やゴミ箱、カテゴリ、日時、本文中のリンクの邪魔をしない。
+document.getElementById('detail-pane').addEventListener('click', function(e) {
+  if (e.target !== this && !e.target.classList.contains('card')) return;
+  if (!editors[selectedCardId]) return;
+  _focusSelectedEditor();   // 押した流れの中で呼ぶのでキーボードも出る
+});
+
 // ==== 明るい/暗いの切り替え ====
 // 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
 function _applyTheme(theme, remember) {
