@@ -186,12 +186,9 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
    一覧は見出しが不透明で上を覆っているので、メモを開いている時だけ出す */
 .status-veil{display:none;position:fixed;top:0;left:0;right:0;
   height:env(safe-area-inset-top, 0px);pointer-events:none;z-index:65}
-/* 塗りつぶさず、下をぼかして透かす（すりガラス）。
-   mask で下へ向かってぼかし自体を消していくので、境目が出ない */
+/* 薄い色を上から下へ薄れさせて被せるだけ。それ自体が下端で透明になるので、
+   境目を消すためのマスクも要らない */
 body.mobile-detail-open .status-veil{display:block;
-  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  -webkit-mask-image:linear-gradient(to bottom,#000 45%,transparent 100%);
-  mask-image:linear-gradient(to bottom,#000 45%,transparent 100%);
   background:linear-gradient(to bottom,rgba(255,255,255,.30),rgba(255,255,255,0))}
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,0,0,.30),rgba(0,0,0,0))}
