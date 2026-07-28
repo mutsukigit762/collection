@@ -2335,64 +2335,6 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
   setTimeout(function() { clearInterval(iv); }, 600);
 });
 
-// 詳細画面の端で、指に引っ張られて伸びる手応えを出す。
-// 中身は「枠の中でスクロールする箱」なので、iOS本来の伸び縮みが付かず硬く止まってしまう。
-(function() {
-  var pane = document.getElementById('detail-pane');
-  var BOUNCE_MAX = 220;          // これ以上は伸びない
-  var BOUNCE_RATE = 0.6;         // 指の動きに対して中身が付いてくる割合。上げるほど軽い
-  var st = { anchor: null, delta: 0, on: false };
-
-  function card() { return pane.querySelector('.card'); }
-  function draw(d) {
-    var c = card(); if (!c) return;
-    c.style.transition = 'none';
-    c.style.transform = d ? 'translateY(' + d + 'px)' : '';
-  }
-  function release() {
-    var c = card();
-    st.anchor = null; st.delta = 0;
-    if (!c) return;
-    // ばねのように、少し行き過ぎてから戻る
-    c.style.transition = 'transform .4s cubic-bezier(.22,1.2,.36,1)';
-    c.style.transform = '';
-  }
-
-  pane.addEventListener('touchstart', function(e) {
-    st.on = !_isDesktop() && e.touches.length === 1;
-    st.anchor = null; st.delta = 0;
-  }, { passive: true });
-
-  pane.addEventListener('touchmove', function(e) {
-    if (!st.on) return;
-    var y = e.touches[0].clientY;
-    var atTop = pane.scrollTop <= 0;
-    var atBottom = pane.scrollTop >= pane.scrollHeight - pane.clientHeight - 1;
-    if (st.anchor === null) {
-      // 端に着いた瞬間を基準にする（そこまでのスクロール量は持ち込まない）
-      if (!atTop && !atBottom) return;
-      st.anchor = y;
-      return;
-    }
-    var dy = y - st.anchor;
-    if ((atTop && dy > 0) || (atBottom && dy < 0)) {
-      // ここで指の動きを横取り（preventDefault）してはいけない。
-      // iOSは横取りの宣言があるとスクロールの判断をJSの返事待ちにするため、
-      // 次に逆方向へ動かした時にスクロールが数秒効かなくなる。
-      // 端では元々ブラウザ側が何もしないので、止めるべきものも無い。
-      var d = dy * BOUNCE_RATE;
-      st.delta = Math.max(-BOUNCE_MAX, Math.min(BOUNCE_MAX, d));
-      draw(st.delta);
-    } else if (st.delta !== 0) {
-      st.anchor = y; st.delta = 0; draw(0);   // 端から離れたら普通のスクロールに戻す
-    } else {
-      st.anchor = y;
-    }
-  }, { passive: true });   // 横取りしないと約束することで、iOSがスクロールを待たなくなる
-
-  pane.addEventListener('touchend', release, { passive: true });
-  pane.addEventListener('touchcancel', release, { passive: true });
-})();
 
 // ==== 明るい/暗いの切り替え ====
 // 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
