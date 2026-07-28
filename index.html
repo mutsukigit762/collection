@@ -66,7 +66,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 /* 引っ張っている間、ページの中身も指について下がる（指を離した時だけ滑らかに戻す） */
 .left-col.ease{transition:transform .25s ease}
 /* 画面の端まで使う設定にしたので、見出しがステータスバーの下に潜らないよう避ける */
-.sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:calc(1rem + env(safe-area-inset-top, 0px)) 1rem 0}
+.sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:calc(4px + env(safe-area-inset-top, 0px)) 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 /* 見出しは明るい/暗いの切り替えボタンも兼ねている。
