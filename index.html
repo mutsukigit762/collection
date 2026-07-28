@@ -281,10 +281,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     background:var(--bg);   /* カードの枠をなくすかわりに、画面ごと白にする */
     overflow-y:auto;
     /* 1行が長すぎると目が戻りにくいので、左右の余白を広げて20字前後で折り返させる。
-       下を画面の半分ぶん空けているのは、最後の行を画面の真ん中あたりまで
-       持ち上げて読めるようにするため（純正メモと同じ挙動）。
-       本文が短いうちは画面に収まるので、余計なスクロールは生まれない */
-    padding:calc(12px + env(safe-area-inset-top)) 22px 50vh;
+       下を大きく空けているのは、最後の行を画面の上の方まで持ち上げて
+       読めるようにするため。本文が短いうちは画面に収まるので、
+       余計なスクロールは生まれない */
+    padding:calc(12px + env(safe-area-inset-top)) 22px 70vh;
     transform:translateX(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
