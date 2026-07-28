@@ -243,7 +243,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     z-index:60;
     background:var(--bg);   /* カードの枠をなくすかわりに、画面ごと白にする */
     overflow-y:auto;
-    padding:calc(12px + env(safe-area-inset-top)) 1rem 1rem;
+    /* 1行が長すぎると目が戻りにくいので、左右の余白を広げて20字前後で折り返させる */
+    padding:calc(12px + env(safe-area-inset-top)) 22px 1rem;
     transform:translateX(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
@@ -267,8 +268,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:10px}
   /* 本文はスマホだけ大きくする（PCは14pxのまま）。
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
-  .card-editor{font-size:17px}
+  .card-editor{font-size:17px;line-height:1.75}
   .card-editor .ProseMirror h1{font-size:22px}
+  /* 段落の間が2pxしかなく、行送りとほぼ同じで段落の切れ目が見えなかった */
+  .detail-pane .card-editor .ProseMirror p{margin-bottom:0.6em}
+  .detail-pane .card-editor .ProseMirror p:last-child{margin-bottom:0}
   /* 本文だけ大きいと周りが痩せて見えるので、詳細画面の中の文字も一緒に上げる。
      一覧側に及ばないよう .detail-pane の中だけに限定している */
   .detail-pane .cat-btn{font-size:13px}     /* カテゴリの札 */
