@@ -310,7 +310,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:10px}
   /* 本文はスマホだけ大きくする（PCは14pxのまま）。
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
-  .card-editor{font-size:17px;line-height:1.75}
+  /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
+  .card-editor{font-size:17px;line-height:28px}
   .card-editor .ProseMirror h1{font-size:22px}
   /* 段落の間が2pxしかなく、行送りとほぼ同じで段落の切れ目が見えなかった */
   .detail-pane .card-editor .ProseMirror p{margin-bottom:0.6em}
