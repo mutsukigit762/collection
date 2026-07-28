@@ -299,9 +299,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="dark"] .pv-item .pv-date{color:rgba(255,255,255,.85)}
 [data-theme="dark"] .pv-item .date-unrecovered{color:#ffe27a !important}
 [data-theme="dark"] .pv-selected{background:#3399ff;border-color:#fff}
-/* 検索欄も同じ青にして、カードと同じ「押せる面」に見せる */
-[data-theme="dark"] .search-wrap input{background:#007FFF;border-color:rgba(255,255,255,.3);color:#fff}
-[data-theme="dark"] .search-wrap input::placeholder{color:rgba(255,255,255,.75)}
+/* 検索欄は黒。カードの青と役割が違うので、地より一段沈ませる */
+[data-theme="dark"] .search-wrap input{background:#000;border-color:var(--border2);color:var(--text)}
+[data-theme="dark"] .search-wrap input::placeholder{color:var(--text3)}
 .pv-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 @media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
