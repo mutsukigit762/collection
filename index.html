@@ -24,7 +24,7 @@
   document.documentElement.setAttribute('data-theme', t);
   // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dark' ? '#1c1c1e' : '#f0ede8');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : '#f0ede8');
 })();
 </script>
 <style>
@@ -52,7 +52,8 @@ html{overflow-x:hidden}
   --bg2:#3a3a3c;     /* カテゴリの札などの薄い塗り */
   --bg3:#1c1c1e;     /* 画面の地。暗めのグレー */
   /* 白に近づけるほど暗い地で目に刺さる。純正メモの実測値(#dcdcdc)に合わせている */
-  --text:#dcdcdc;--text2:#a1a1a6;--text3:#8e8e93;
+  /* 地が青くなったので、細かい文字も灰色だと濁る。白寄りの青みグレーにしている */
+  --text:#dcdcdc;--text2:#d7e9f8;--text3:#b3cde2;
   --text-body:#dcdcdc;   /* 暗い時は本文も他と同じ（既に純正に合わせてある） */
   --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
   --warning-bg:#4d3f07;--warning-text:#fde68a;
@@ -197,7 +198,7 @@ body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(255,255,255,.90),rgba(255,255,255,0))}
 /* 暗い時は一覧が海の青、詳細が黒。地の色に合わせて被せる色も変える */
 [data-theme="dark"] .status-veil{
-  background:linear-gradient(to bottom,rgba(28,28,30,.90),rgba(28,28,30,0))}
+  background:linear-gradient(to bottom,rgba(0,127,255,.90),rgba(0,127,255,0))}
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,0))}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
@@ -298,6 +299,19 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="dark"] .pv-item .pv-muted{color:rgba(255,255,255,.72)}
 [data-theme="dark"] .pv-item .pv-date{color:rgba(255,255,255,.85)}
 [data-theme="dark"] .pv-item .date-unrecovered{color:#ffe27a !important}
+/* 画面の地は、水面の青から深いところの闇へ落ちていくグラデーション。
+   画面に貼りついた1枚として敷き、見出しには同じグラデーションの上端ぶんだけを
+   切り出して敷くので、見出しと地の境目が出ない */
+[data-theme="dark"] body::before{content:'';position:fixed;inset:0;z-index:-1;
+  background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%)}
+[data-theme="dark"] .sticky-header{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
+/* ボタン類もカードと同じ青。地に溶けないよう白い線と白い文字で立たせる */
+[data-theme="dark"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="dark"] .btn-primary{background:#007FFF;border-color:#fff;color:#fff}
+[data-theme="dark"] .btn-danger{background:#007FFF;border-color:var(--danger);color:var(--danger)}
+[data-theme="dark"] .sort-btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="dark"] .sort-btn.active{background:#fff;border-color:#fff;color:#007FFF}
+[data-theme="dark"] #fav-filter-toggle.on{color:#ff5b8a;border-color:#ff5b8a}
 /* 「カテゴリなし」の札は色が付かないので、青の上で沈まないよう地を暗く落として白文字にする
    （カテゴリが付いている札は inline の色指定が上書きするので影響しない） */
 [data-theme="dark"] .pv-item .pv-cat{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.45);color:#fff}
@@ -2426,7 +2440,7 @@ function _applyTheme(theme, remember) {
   document.documentElement.setAttribute('data-theme', theme);
   // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#1c1c1e' : '#f0ede8');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : '#f0ede8');
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
