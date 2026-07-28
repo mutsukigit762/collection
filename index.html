@@ -286,6 +286,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transition:transform 0.22s ease;
     pointer-events:none;
   }
+  /* 暗い時は詳細画面だけ真っ黒に。有機ELだと画素が完全に消えて締まって見える */
+  [data-theme="dark"] .detail-pane{background:#000}
   body.mobile-detail-open .detail-pane{
     transform:translateX(0);
     pointer-events:auto;
