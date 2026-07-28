@@ -1052,35 +1052,39 @@ function nowJstStamp() {
   return new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 19);
 }
 
-async function addNote() {
+// iPhone は「指で触った直後の一続きの処理」でしか keyboard を出してくれない。
+// 保存の返事を待ってからカーソルを入れるとその資格が切れてしまうので、
+// IDだけ先に採番して画面を作り、フォーカスまで済ませてから裏で保存する。
+function addNote() {
   var stamp = nowJstStamp();
   var today = stamp.slice(0, 10);
   var cat = currentCat === ALL_TAB ? NO_CAT : currentCat;
-  try {
-    var docRef = await addDoc(collection(db, NOTES_COLL), {
-      cat: cat,
-      body: '',
-      date: today,
-      created_at: stamp,
-      updatedAt: serverTimestamp(),
-      deleted: false
-    });
-    currentCat = cat;
-    // 新規メモはお気に入りではないので、♥フィルタ中だと絞り込みで消えてしまう
-    if (favOnly) {
-      favOnly = false;
-      document.getElementById('fav-filter-toggle').classList.remove('on');
-    }
-    await loadNotes(true);
-    if (!_isDesktop()) selectCard(docRef.id);
-    var tries = 0;
-    var focusNew = function() {
-      var ed = editors[docRef.id];
-      if (ed) { ed.commands.focus('end'); return; }
-      if (tries++ < 10) setTimeout(focusNew, 100);
-    };
-    setTimeout(focusNew, 200);
-  } catch(e) { console.error(e); }
+  var ref = doc(collection(db, NOTES_COLL));   // 通信せずにIDだけ決まる
+  currentCat = cat;
+  // 新規メモはお気に入りではないので、♥フィルタ中だと絞り込みで消えてしまう
+  if (favOnly) {
+    favOnly = false;
+    document.getElementById('fav-filter-toggle').classList.remove('on');
+  }
+  notes.unshift({
+    id: ref.id, cat: cat, body: '', date: today, created_at: stamp,
+    deleted: false, images: [], fav: false, updatedAt: Timestamp.fromDate(new Date())
+  });
+  render();
+  selectCard(ref.id);
+  _focusSelectedEditor();      // ここまでが指を離した流れの続きなのでキーボードが出る
+  // 保存はあとから追いかける
+  setDoc(ref, {
+    cat: cat,
+    body: '',
+    date: today,
+    created_at: stamp,
+    updatedAt: serverTimestamp(),
+    deleted: false
+  }).catch(function(e) {
+    console.error(e);
+    showToast('保存に失敗しました');
+  });
 }
 
 function scheduleBodySave(id, val) {
