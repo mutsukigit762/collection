@@ -313,9 +313,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
   .card-editor{font-size:17px;line-height:28px}
   .card-editor .ProseMirror h1{font-size:22px}
-  /* 段落の間が2pxしかなく、行送りとほぼ同じで段落の切れ目が見えなかった */
-  .detail-pane .card-editor .ProseMirror p{margin-bottom:0.6em}
-  .detail-pane .card-editor .ProseMirror p:last-child{margin-bottom:0}
+  /* 純正メモを実測したところ段落の間に余分な空きは無く、行末の空白だけで
+     切れ目を見せていた。それに合わせて段落も行送りと同じ間隔で並べる */
+  .detail-pane .card-editor .ProseMirror p{margin-bottom:0}
   /* 本文だけ大きいと周りが痩せて見えるので、詳細画面の中の文字も一緒に上げる。
      一覧側に及ばないよう .detail-pane の中だけに限定している */
   .detail-pane .cat-btn{font-size:13px}     /* カテゴリの札 */
