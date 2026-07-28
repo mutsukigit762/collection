@@ -312,9 +312,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="dark"] .sort-btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 [data-theme="dark"] .sort-btn.active{background:#fff;border-color:#fff;color:#007FFF}
 [data-theme="dark"] #fav-filter-toggle.on{color:#ff5b8a;border-color:#ff5b8a}
-/* 「カテゴリなし」の札は色が付かないので、青の上で沈まないよう地を暗く落として白文字にする
-   （カテゴリが付いている札は inline の色指定が上書きするので影響しない） */
-[data-theme="dark"] .pv-item .pv-cat{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.45);color:#fff}
 [data-theme="dark"] .pv-selected{background:#3399ff;border-color:#fff}
 /* 検索欄は黒。カードの青と役割が違うので、地より一段沈ませる */
 [data-theme="dark"] .search-wrap input{background:#000;border-color:var(--border2);color:var(--text)}
@@ -616,12 +613,13 @@ function catStyle(name) {
 }
 // 一覧の札だけは別扱い。暗い時は青い地に映えるよう、はっきりした色を塗って文字を白にする
 function catChipStyle(name) {
-  var c = catColor(name);
-  if (!c) return '';
   if (!_isDarkMode()) return catStyle(name);
-  var hue = _hashStr(name) % 360;
-  return 'background:hsl(' + hue + ',62%,48%);border-color:hsl(' + hue + ',62%,62%);color:#fff'
-    + ';font-weight:600';
+  // 「カテゴリなし」も同じ作り方で塗る。色みが無いぶん、彩度ゼロのグレーになるだけ
+  var noCat = !name || name === NO_CAT;
+  var hue = noCat ? 0 : _hashStr(name) % 360;
+  var sat = noCat ? 0 : 62;
+  return 'background:hsl(' + hue + ',' + sat + '%,48%);border-color:hsl(' + hue + ',' + sat + '%,62%);'
+    + 'color:#fff;font-weight:600';
 }
 
 function loadTrash() {
