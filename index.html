@@ -269,6 +269,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
   .card-editor{font-size:17px}
   .card-editor .ProseMirror h1{font-size:22px}
+  /* 本文だけ大きいと周りが痩せて見えるので、詳細画面の中の文字も一緒に上げる。
+     一覧側に及ばないよう .detail-pane の中だけに限定している */
+  .detail-pane .cat-btn{font-size:13px}     /* カテゴリの札 */
+  .detail-pane .card-date{font-size:13px}   /* 日時 */
+  .detail-pane .byte-count{font-size:13px}
+  .detail-pane .tb-btn{font-size:14px}      /* 太字などの装飾ボタン */
 }
 
 /* PC（左サイドバー＋右フルハイト詳細）レイアウト */
