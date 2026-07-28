@@ -305,6 +305,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="dark"] body::before{content:'';position:fixed;inset:0;z-index:-1;
   background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%)}
 [data-theme="dark"] .sticky-header{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
+/* 引っ張って戻る時は、ヘッダーの模様のズレ直しも同じ速さで戻す */
+.sticky-header.bg-ease{transition:background-position .25s ease}
 /* ボタン類もカードと同じ青。地に溶けないよう白い線と白い文字で立たせる */
 [data-theme="dark"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 /* 追加ボタンだけ黒。検索欄と同じで、青の世界からくり抜かれたように見せる */
@@ -2097,11 +2099,23 @@ var _ptr = { startX: 0, startY: 0, active: false, pulling: false, dist: 0, busy:
 // 引っ張りに合わせて動かす、ページの中身そのもの
 var _ptrPage = document.getElementById('left-col');
 
+// ヘッダーの地は、画面に貼りついた地と同じ絵柄を上端ぶんだけ切り出したもの。
+// ヘッダーが動くと絵柄も一緒に動いてしまって継ぎ目が出るので、
+// 動いたぶんだけ模様を逆に送り返して、後ろの地とつなぎ直す
+var _hdrEl = document.querySelector('.sticky-header');
+var _hdrCollapse = 0;   // 下スクロールで隠れている量
+var _hdrPull = 0;       // 引っ張りで下がっている量
+function _syncHeaderBg() {
+  if (_hdrEl) _hdrEl.style.backgroundPositionY = (_hdrCollapse - _hdrPull) + 'px';
+}
+
 function _ptrDraw(dist) {
   _ptrEl.classList.remove('ease');
   _ptrPage.classList.remove('ease');
+  if (_hdrEl) _hdrEl.classList.remove('bg-ease');
   // ページの中身を丸ごと下げて、空いた隙間にスピナーを置く
   _ptrPage.style.transform = 'translateY(' + dist + 'px)';
+  _hdrPull = dist; _syncHeaderBg();
   _ptrEl.style.opacity = Math.min(1, dist / PTR_TRIGGER);
   _ptrEl.style.transform = 'translateY(' + (dist / 2 - 8) + 'px)';
   // 引いた量に合わせてスピナーも1コマずつ回す（離す前から反応している感じを出す）
@@ -2115,6 +2129,8 @@ function _ptrReset() {
   _ptrEl.firstElementChild.style.transform = '';
   _ptrPage.classList.add('ease');
   _ptrPage.style.transform = '';
+  if (_hdrEl) _hdrEl.classList.add('bg-ease');
+  _hdrPull = 0; _syncHeaderBg();
 }
 function _ptrCanStart() {
   return !_isDesktop()
@@ -2166,6 +2182,8 @@ document.addEventListener('touchend', function() {
   _ptrEl.classList.add('spin');
   _ptrPage.classList.add('ease');
   _ptrPage.style.transform = 'translateY(' + PTR_TRIGGER + 'px)';
+  if (_hdrEl) _hdrEl.classList.add('bg-ease');
+  _hdrPull = PTR_TRIGGER; _syncHeaderBg();
   location.reload();
 }, { passive: true });
 
@@ -2434,6 +2452,7 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
     if (y <= 0) off = 0;            // 一番上まで戻ったら必ず出す
     else off = Math.min(Math.max(off + d, 0), H);
     header.style.transform = off ? 'translateY(' + (-off) + 'px)' : '';
+    _hdrCollapse = off; _syncHeaderBg();
   }, { passive: true });
 })();
 
