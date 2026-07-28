@@ -35,6 +35,9 @@ html{overflow-x:hidden}
 :root{
   --bg:#fff;--bg2:#f5f5f4;--bg3:#f0ede8;
   --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  /* メモ本文だけの色。真っ黒だと目が疲れるので、純正メモの実測値(#454545)に合わせる。
+     ボタンや見出しの黒は --text のまま */
+  --text-body:#454545;
   --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.2);
   --radius:8px;--radius-lg:12px;
   --warning-bg:#fef9c3;--warning-text:#854d0e;
@@ -50,6 +53,7 @@ html{overflow-x:hidden}
   --bg3:#000;        /* 画面の地 */
   /* 白に近づけるほど黒地で目に刺さる。純正メモの実測値(#dcdcdc)に合わせている */
   --text:#dcdcdc;--text2:#a1a1a6;--text3:#8e8e93;
+  --text-body:#dcdcdc;   /* 暗い時は本文も他と同じ（既に純正に合わせてある） */
   --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
   --warning-bg:#4d3f07;--warning-text:#fde68a;
   --danger:#ff6b6b;
@@ -109,7 +113,7 @@ select.sort-btn{padding-right:10px}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
 .cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 @media (hover:hover){.cat-btn:hover{border-color:var(--border2)}}
-.card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text);line-height:1.6;outline:none}
+.card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text-body);line-height:1.6;outline:none}
 .card-editor .ProseMirror{outline:none;min-height:40px;word-break:break-word}
 .card-editor .ProseMirror p{margin:0 0 2px}
 .card-editor .ProseMirror p:last-child{margin-bottom:0}
