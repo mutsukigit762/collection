@@ -24,7 +24,7 @@
   document.documentElement.setAttribute('data-theme', t);
   // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dark' ? '#071624' : '#f0ede8');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#103b63' : '#f0ede8');
 })();
 </script>
 <style>
@@ -48,13 +48,13 @@ html{overflow-x:hidden}
    OSの設定を直接見ずに data-theme で切り替えているのは、見出しのタップで
    手動でも変えられるようにするため（初期値はhead内でOSの設定から決めている） */
 :root[data-theme="dark"]{
-  --bg:#0e2135;      /* カードや検索欄など、地より一段浮いた面（詳細画面は別に黒を指定） */
-  --bg2:#0f2438;     /* カテゴリの札などの薄い塗り */
-  --bg3:#071624;     /* 画面の地。海の中みたいな深い青 */
-  /* 白に近づけるほど黒地で目に刺さる。純正メモの実測値(#dcdcdc)に合わせている */
-  --text:#dcdcdc;--text2:#a1a1a6;--text3:#8e8e93;
+  --bg:#1a5083;      /* カードや検索欄など、地より一段浮いた面（詳細画面は別に黒を指定） */
+  --bg2:#20609c;     /* カテゴリの札などの薄い塗り */
+  --bg3:#103b63;     /* 画面の地。明るい海の中みたいな青 */
+  /* 白に近づけるほど暗い地で目に刺さる。純正メモの実測値(#dcdcdc)に合わせている */
+  --text:#dcdcdc;--text2:#bcd8ee;--text3:#9dbcd6;
   --text-body:#dcdcdc;   /* 暗い時は本文も他と同じ（既に純正に合わせてある） */
-  --border:rgba(130,190,240,0.20);--border2:rgba(130,190,240,0.36);
+  --border:rgba(175,220,255,0.32);--border2:rgba(175,220,255,0.5);
   --warning-bg:#4d3f07;--warning-text:#fde68a;
   --danger:#ff6b6b;
 }
@@ -197,7 +197,7 @@ body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(255,255,255,.90),rgba(255,255,255,0))}
 /* 暗い時は一覧が海の青、詳細が黒。地の色に合わせて被せる色も変える */
 [data-theme="dark"] .status-veil{
-  background:linear-gradient(to bottom,rgba(7,22,36,.90),rgba(7,22,36,0))}
+  background:linear-gradient(to bottom,rgba(16,59,99,.90),rgba(16,59,99,0))}
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,0))}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
@@ -291,9 +291,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* PC：一覧カードにゴミ箱を常時表示（スマホはスワイプで出すので隠す） */
 .pv-trash-pc{display:none}
 .pv-selected{border-color:var(--text);background:var(--bg2)}
-/* 暗い時の一覧カードは、地よりほんの少しだけ明るい青。水の中で重ねた板みたいに */
-[data-theme="dark"] .pv-item{background:#0e2135;border-color:rgba(130,190,240,.26)}
-[data-theme="dark"] .pv-selected{background:#143049;border-color:rgba(150,215,255,.75)}
+/* 暗い時の一覧カードは、地より一段明るい青。水の中で重ねた板みたいに */
+[data-theme="dark"] .pv-item{background:#1a5083;border-color:rgba(175,220,255,.38)}
+[data-theme="dark"] .pv-selected{background:#22629f;border-color:rgba(200,235,255,.85)}
 .pv-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 @media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
@@ -587,13 +587,14 @@ function catStyle(name) {
   var c = catColor(name);
   return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
 }
-// 一覧の札だけは別扱い。暗い時のカードが「黒地＋白い線」なので、札も塗らずに線と文字だけにする
+// 一覧の札だけは別扱い。暗い時は青い地に映えるよう、はっきりした色を塗って文字を白にする
 function catChipStyle(name) {
   var c = catColor(name);
   if (!c) return '';
   if (!_isDarkMode()) return catStyle(name);
   var hue = _hashStr(name) % 360;
-  return 'background:none;border-color:hsl(' + hue + ',35%,48%);color:hsl(' + hue + ',60%,72%)';
+  return 'background:hsl(' + hue + ',62%,48%);border-color:hsl(' + hue + ',62%,62%);color:#fff'
+    + ';font-weight:600';
 }
 
 function loadTrash() {
@@ -2424,7 +2425,7 @@ function _applyTheme(theme, remember) {
   document.documentElement.setAttribute('data-theme', theme);
   // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#071624' : '#f0ede8');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#103b63' : '#f0ede8');
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
