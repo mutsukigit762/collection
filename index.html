@@ -178,7 +178,7 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
    本文がその下をくぐる時に、透けたまま少しずつ消えていく。
    一覧は見出しが不透明で上を覆っているので、メモを開いている時だけ出す */
 .status-veil{display:none;position:fixed;top:0;left:0;right:0;
-  height:calc(env(safe-area-inset-top, 0px) + 54px);pointer-events:none;z-index:65}
+  height:env(safe-area-inset-top, 0px);pointer-events:none;z-index:65}
 body.mobile-detail-open .status-veil{display:block;
   background:linear-gradient(to bottom,rgba(255,255,255,.92) 0%,rgba(255,255,255,.55) 55%,rgba(255,255,255,0) 100%)}
 [data-theme="dark"] body.mobile-detail-open .status-veil{
