@@ -184,12 +184,15 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 /* 時計や電池が並ぶ帯のぶんだけ、下へ向かって薄くなる膜をかける。
    本文がその下をくぐる時に、透けたまま少しずつ消えていく。
    一覧は見出しが不透明で上を覆っているので、メモを開いている時だけ出す */
-.status-veil{display:none;position:fixed;top:0;left:0;right:0;
-  height:env(safe-area-inset-top, 0px);pointer-events:none;z-index:65}
+.status-veil{position:fixed;top:0;left:0;right:0;
+  height:env(safe-area-inset-top, 0px);pointer-events:none;z-index:65;
+  background:linear-gradient(to bottom,rgba(240,237,232,.90),rgba(240,237,232,0))}
 /* 薄い色を上から下へ薄れさせて被せるだけ。それ自体が下端で透明になるので、
    境目を消すためのマスクも要らない */
-body.mobile-detail-open .status-veil{display:block;
+body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(255,255,255,.90),rgba(255,255,255,0))}
+/* 暗い時は一覧も詳細も地が黒。詳細用の指定の方が強いので、そちらにも明示的に書く */
+[data-theme="dark"] .status-veil,
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,0))}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
