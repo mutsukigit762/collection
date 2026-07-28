@@ -2336,7 +2336,8 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
 // 中身は「枠の中でスクロールする箱」なので、iOS本来の伸び縮みが付かず硬く止まってしまう。
 (function() {
   var pane = document.getElementById('detail-pane');
-  var BOUNCE_MAX = 120;          // これ以上は伸びない
+  var BOUNCE_MAX = 220;          // これ以上は伸びない
+  var BOUNCE_RATE = 0.6;         // 指の動きに対して中身が付いてくる割合。上げるほど軽い
   var st = { anchor: null, delta: 0, on: false };
 
   function card() { return pane.querySelector('.card'); }
@@ -2373,8 +2374,7 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
     var dy = y - st.anchor;
     if ((atTop && dy > 0) || (atBottom && dy < 0)) {
       e.preventDefault();      // 端を越える動きは自前で受け持つ
-      // 引くほど重くする
-      var d = dy * 0.4;
+      var d = dy * BOUNCE_RATE;
       st.delta = Math.max(-BOUNCE_MAX, Math.min(BOUNCE_MAX, d));
       draw(st.delta);
     } else if (st.delta !== 0) {
