@@ -587,6 +587,14 @@ function catStyle(name) {
   var c = catColor(name);
   return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
 }
+// 一覧の札だけは別扱い。暗い時のカードが「黒地＋白い線」なので、札も塗らずに線と文字だけにする
+function catChipStyle(name) {
+  var c = catColor(name);
+  if (!c) return '';
+  if (!_isDarkMode()) return catStyle(name);
+  var hue = _hashStr(name) % 360;
+  return 'background:none;border-color:hsl(' + hue + ',35%,48%);color:hsl(' + hue + ',60%,72%)';
+}
 
 function loadTrash() {
   try { return JSON.parse(localStorage.getItem(TRASH_KEY)) || []; } catch(e) { return []; }
@@ -1446,8 +1454,15 @@ window._selectCat = function(noteId, cat) {
   closeOverlay();
   var btn = document.querySelector('#card-' + noteId + ' .cat-btn');
   if (btn) { btn.textContent = cat; btn.style.cssText = catStyle(cat); }
-  var pv = document.querySelector('#cards .pv-item[data-id="' + noteId + '"] .pv-cat');
-  if (pv) { pv.textContent = cat; pv.style.cssText = catStyle(cat); }
+  // 一覧側は札ごと差し替える。カテゴリなしにした時は札そのものを消す必要があるため
+  var item = document.querySelector('#cards .pv-item[data-id="' + noteId + '"]');
+  var meta = item && item.querySelector('.pv-meta');
+  if (meta && n) {
+    var oldChip = meta.querySelector('.pv-cat');
+    if (oldChip) oldChip.remove();
+    var chip = catChipHTML(n);
+    if (chip) meta.insertAdjacentHTML('afterbegin', chip);
+  }
 };
 window._catModalFilter = function(val) {
   var q = val.toLowerCase();
@@ -1819,6 +1834,14 @@ function catFilterNote(n) {
   return n.cat === currentCat;
 }
 
+// 一覧の札は、カテゴリが付いているものだけ出す。
+// 「カテゴリなし」を全カードに繰り返しても何も伝わらず、色付きの札が目印として働かなくなるため。
+function catChipHTML(n) {
+  if (!n.cat || n.cat === NO_CAT) return '';
+  return '<span class="pv-cat" style="' + esc(catChipStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\''
+    + esc(n.cat) + '\')">' + esc(n.cat) + '</span>';
+}
+
 function cardPreviewHTML(n) {
   var plain = htmlToPlainText(n.body || '').trim();
   var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
@@ -1829,7 +1852,7 @@ function cardPreviewHTML(n) {
   return '<div class="pv-row-wrap">'
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
-    + '<div class="pv-meta"><span class="pv-cat" style="' + esc(catStyle(n.cat)) + '" onclick="event.stopPropagation();switchCat(\'' + esc(n.cat || NO_CAT) + '\')">' + esc(n.cat || NO_CAT) + '</span>'
+    + '<div class="pv-meta">' + catChipHTML(n)
     + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
