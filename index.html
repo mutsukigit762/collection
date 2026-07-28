@@ -23,6 +23,9 @@
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+/* 左スワイプでカードが画面の外へ逃げるので、はみ出したぶんはここで切る。
+   各行で切ると、その切り取り線が細い線として見えてしまうため */
+html{overflow-x:hidden}
 :root{
   --bg:#fff;--bg2:#f5f5f4;--bg3:#f0ede8;
   --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
@@ -251,10 +254,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   }
 }
 /* カード一覧のサムネイル表示（スマホ・PC共通） */
-/* 左スワイプでカードが逃げていく先。カードと同じ幅で切り取ると左端が動かないように
-   見えるので、画面の端まで広げて、そこで切り取る。
-   丸みは付けない（カード自身が持っているし、丸く切り取ると縁に細い線が出る） */
-.pv-row-wrap{position:relative;overflow:hidden;margin:0 -1rem;padding:0 1rem}
+/* 左スワイプでカードが逃げていく先。ここで切り取ると、その切り取り線が
+   行の下端に細い線として出てしまうので、切り取りは持たせない。
+   画面からはみ出したぶんは html 側で切っている */
+.pv-row-wrap{position:relative;margin:0 -1rem;padding:0 1rem}
 .pv-delete-btn{position:absolute;top:0;right:1rem;bottom:0;width:76px;background:none;color:var(--text2);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:0}
 .pv-delete-btn svg{width:22px;height:22px;opacity:0;transform:scale(0.3)}
 .pv-item{display:block;position:relative;z-index:1;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:10px 12px;cursor:pointer;transition:border-color .1s}
