@@ -293,9 +293,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* 暗い時の一覧カードは、地と同じ真っ黒＋白い枠だけで見せる */
 [data-theme="dark"] .pv-item{background:#000;border-color:rgba(255,255,255,.55)}
 [data-theme="dark"] .pv-selected{background:#000;border-color:#fff}
-.pv-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
-/* 札が無いカードでも時計は右端のまま揃える */
-.pv-meta-right{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
+.pv-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 @media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
 .pv-selected .pv-cat{background:var(--bg3)}
@@ -384,7 +382,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-pane{display:block;flex:1 1 50%;min-width:0;height:100vh;overflow-y:auto;padding:16px}
   .detail-pane .card{min-height:calc(100vh - 32px);padding:1.5rem 1.75rem}
   .detail-pane .card-editor .ProseMirror img{max-width:240px;max-height:240px}
-  .pv-trash-pc{display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;background:none;border:none;border-radius:6px;color:var(--text3);cursor:pointer;transition:color .12s,background .12s}
+  .pv-trash-pc{display:flex;align-items:center;justify-content:center;margin-left:auto;width:22px;height:22px;padding:0;background:none;border:none;border-radius:6px;color:var(--text3);cursor:pointer;transition:color .12s,background .12s}
   .pv-trash-pc:hover{color:var(--text);background:var(--bg2)}
   .pv-trash-pc svg{width:14px;height:14px}
 }
@@ -1462,7 +1460,9 @@ window._selectCat = function(noteId, cat) {
     var oldChip = meta.querySelector('.pv-cat');
     if (oldChip) oldChip.remove();
     var chip = catChipHTML(n);
-    if (chip) meta.insertAdjacentHTML('afterbegin', chip);
+    var dateEl = meta.querySelector('.pv-date');
+    if (chip && dateEl) dateEl.insertAdjacentHTML('afterend', chip);
+    else if (chip) meta.insertAdjacentHTML('afterbegin', chip);
   }
 };
 window._catModalFilter = function(val) {
@@ -1853,9 +1853,10 @@ function cardPreviewHTML(n) {
   return '<div class="pv-row-wrap">'
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
-    + '<div class="pv-meta">' + catChipHTML(n)
-    + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>'
-    + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
+    + '<div class="pv-meta">'
+    + '<span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>'
+    + catChipHTML(n)
+    + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
     + '</div>'
     + '</div>';
