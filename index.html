@@ -1468,9 +1468,12 @@ function _focusSelectedEditor() {
   var ed = editors[id];
   if (!ed) return;
   ed.commands.focus('end');
-  // 保険：document.hasFocus() が false の環境でも確実にフォーカスを入れる
+  // 保険：document.hasFocus() が false の環境でも確実にフォーカスを入れる。
+  // ただし素のフォーカスはブラウザが「その要素を画面内に入れよう」として
+  // 本文の先頭まで巻き戻してしまうので、既に入っていれば触らず、
+  // 入れる時もスクロールさせない
   var pm = document.querySelector('#editor-' + id + ' .ProseMirror');
-  if (pm) pm.focus();
+  if (pm && document.activeElement !== pm) pm.focus({ preventScroll: true });
 }
 function _openSelect(id) {
   var el = document.getElementById(id);
