@@ -614,13 +614,15 @@ function catStyle(name) {
 // 一覧の札だけは別扱い。暗い時は青い地に映えるよう、はっきりした色を塗って文字を白にする
 function catChipStyle(name) {
   if (!_isDarkMode()) return catStyle(name);
-  // 青いカードの上では、中くらいの濃さの塗りは全部くすんで見える。
-  // 札は白く抜いて、カテゴリの色は文字に持たせる（色みが無いものは文字がグレーになるだけ）
-  var noCat = !name || name === NO_CAT;
-  var hue = noCat ? 0 : _hashStr(name) % 360;
-  var sat = noCat ? 0 : 65;
-  return 'background:#fff;border-color:rgba(255,255,255,.9);'
-    + 'color:hsl(' + hue + ',' + sat + '%,' + (noCat ? 35 : 38) + '%);font-weight:600';
+  // 青いカードの上では、中くらいの濃さのベタ塗りは全部くすむ。
+  // 半透明のすりガラスにして、カテゴリの色でガラス自体を染める。
+  // 「カテゴリなし」は色を持たないので、染めずに白いガラスのまま（下の青が透ける）
+  if (!name || name === NO_CAT) {
+    return 'background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.7);color:#fff;font-weight:600';
+  }
+  var hue = _hashStr(name) % 360;
+  return 'background:hsla(' + hue + ',95%,62%,.45);border-color:hsla(' + hue + ',95%,75%,.9);'
+    + 'color:#fff;font-weight:600';
 }
 
 function loadTrash() {
