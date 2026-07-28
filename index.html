@@ -2361,6 +2361,27 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
 });
 
 
+// 一覧を下スクロール（指を上へ）するとヘッダーが隠れ、上スクロールで戻る。
+// 一気に消さず、スクロールした量ぶんだけ動かすので指の動きに追従する。
+(function() {
+  var header = document.querySelector('.sticky-header');
+  var H = header.offsetHeight;      // 隠れる量の上限＝ヘッダーの高さ
+  var off = 0;                      // 今どれだけ隠れているか
+  var lastY = window.scrollY;
+  // タブが増えて折り返すなどで高さが変わっても追従する
+  if (window.ResizeObserver) new ResizeObserver(function() { H = header.offsetHeight; }).observe(header);
+
+  window.addEventListener('scroll', function() {
+    if (_isDesktop() || document.body.classList.contains('mobile-detail-open')) return;
+    var y = window.scrollY;
+    var d = y - lastY;
+    lastY = y;
+    if (y <= 0) off = 0;            // 一番上まで戻ったら必ず出す
+    else off = Math.min(Math.max(off + d, 0), H);
+    header.style.transform = off ? 'translateY(' + (-off) + 'px)' : '';
+  }, { passive: true });
+})();
+
 // ==== 明るい/暗いの切り替え ====
 // 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
 function _applyTheme(theme, remember) {
