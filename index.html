@@ -414,6 +414,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .pv-trash-pc{display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;background:none;border:none;border-radius:6px;color:var(--text3);cursor:pointer;transition:color .12s,background .12s}
   .pv-trash-pc:hover{color:var(--text);background:var(--bg2)}
   .pv-trash-pc svg{width:14px;height:14px}
+  /* 詳細画面（PC）：.detail-pane はフレックスの通常配置で、body::before（負のz-index）より
+     手前で不透明に塗られてしまうため、透かすのではなく地の色として直接同じ海のグラデーションを敷く */
+  [data-theme="dark"] .detail-pane{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%);--text-body:#fff}
+  [data-theme="dark"] .detail-pane .card{background:none;border:none}
 }
 </style>
 </head>
