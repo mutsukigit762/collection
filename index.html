@@ -18,13 +18,14 @@
 (function(){
   var t = null;
   try { t = localStorage.getItem('theme'); } catch(e) {}
-  if (t !== 'light' && t !== 'dark') {
+  if (t !== 'light' && t !== 'dark' && t !== 'dim') {
+    // OSの設定は明るい／暗いの2択しか無いので、暗い側は海の中モードを初期値にする
     t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
   // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : '#f0ede8');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : (t === 'dim' ? '#1c1c1e' : '#f0ede8'));
 })();
 </script>
 <style>
@@ -47,17 +48,22 @@ html{overflow-x:hidden}
    アプリ全体が切り替わる。変数を使っていない数か所は下の方でまとめて上書きしている。
    OSの設定を直接見ずに data-theme で切り替えているのは、見出しのタップで
    手動でも変えられるようにするため（初期値はhead内でOSの設定から決めている） */
-:root[data-theme="dark"]{
+/* dark＝海の中モード、dim＝ふつうの暗いグレー一色モード。地の色などの土台は共通にして、
+   海だけの装飾（青いカード・グラデーションなど）は下の方で dark だけに絞って重ねている */
+:root[data-theme="dark"], :root[data-theme="dim"]{
   --bg:#2c2c2e;      /* パネルやモーダルなど、地より一段浮いた面（一覧カードは青を別指定） */
   --bg2:#3a3a3c;     /* カテゴリの札などの薄い塗り */
   --bg3:#1c1c1e;     /* 画面の地。暗めのグレー */
   /* 白に近づけるほど暗い地で目に刺さる。純正メモの実測値(#dcdcdc)に合わせている */
-  /* 地が青くなったので、細かい文字も灰色だと濁る。白寄りの青みグレーにしている */
-  --text:#dcdcdc;--text2:#d7e9f8;--text3:#b3cde2;
+  --text:#dcdcdc;--text2:#a8a8a8;--text3:#7a7a7a;
   --text-body:#dcdcdc;   /* 暗い時は本文も他と同じ（既に純正に合わせてある） */
   --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
   --warning-bg:#4d3f07;--warning-text:#fde68a;
   --danger:#ff6b6b;
+}
+/* 海の中モードだけ、地が青くなるぶん細かい文字も灰色だと濁るので、白寄りの青みグレーにする */
+:root[data-theme="dark"]{
+  --text2:#d7e9f8;--text3:#b3cde2;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
 /* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
@@ -201,6 +207,11 @@ body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,127,255,.90),rgba(0,127,255,0))}
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,127,255,.90),rgba(0,127,255,0))}
+/* ふつうの暗いモードは、海と違って地も詳細画面もグレー一色なので、それぞれの地の色に合わせる */
+[data-theme="dim"] .status-veil{
+  background:linear-gradient(to bottom,rgba(28,28,30,.90),rgba(28,28,30,0))}
+[data-theme="dim"] body.mobile-detail-open .status-veil{
+  background:linear-gradient(to bottom,rgba(44,44,46,.90),rgba(44,44,46,0))}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
 /* 出る時はふわっと下りてきて、消える時はさらにゆっくり薄くなる */
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);pointer-events:auto;touch-action:none}
@@ -213,12 +224,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
 .card-editor .ProseMirror ::selection{background:#d9cfc0;color:#1a1a1a}
 .card-editor .ProseMirror ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
-/* ダークモードで、変数を通していない色だけをまとめて差し替える */
-[data-theme="dark"] ::selection{background:#4a443c;color:#fff}
-[data-theme="dark"] ::-moz-selection{background:#4a443c;color:#fff}
-[data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
-[data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
-[data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
+/* 暗い地（dark・dimどちらも）で、変数を通していない色だけをまとめて差し替える */
+[data-theme="dark"] ::selection, [data-theme="dim"] ::selection{background:#4a443c;color:#fff}
+[data-theme="dark"] ::-moz-selection, [data-theme="dim"] ::-moz-selection{background:#4a443c;color:#fff}
+[data-theme="dark"] .card-editor .ProseMirror a, [data-theme="dim"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
+[data-theme="dark"] .date-unrecovered, [data-theme="dim"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
+[data-theme="dark"] .overlay, [data-theme="dim"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
@@ -432,7 +443,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <div class="left-col" id="left-col">
 <div class="sticky-header">
   <div class="header">
-    <h1 id="app-title" role="button" tabindex="0" title="押すと明るい／暗いを切り替え">collection</h1>
+    <h1 id="app-title" role="button" tabindex="0" title="押すとテーマを切り替え（明るい→暗い(海)→暗い(ふつう)）">collection</h1>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm" id="trash-btn" onclick="toggleTrash()"></button>
       <button class="btn btn-sm" id="cat-mgr-btn" onclick="toggleCatPanel()"></button>
@@ -580,14 +591,20 @@ function _hashStr(s) {
   for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
   return Math.abs(h);
 }
-function _isDarkMode() {
+// dark＝海の中、dim＝ふつうの暗いグレー。どちらも地が暗いので、文字色などの判定はまとめて扱う
+function _isDarkSurface() {
+  var t = document.documentElement.getAttribute('data-theme');
+  return t === 'dark' || t === 'dim';
+}
+// 一覧カードを海の青で塗るのは dark だけ。dim はグレーのカードのまま
+function _isOceanTheme() {
   return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 function catColor(name) {
   if (!name || name === NO_CAT) return null;
   var hue = _hashStr(name) % 360;
   // 明るい地にはパステル、暗い地には濃い塗り＋明るい文字にしないと目に刺さる
-  if (_isDarkMode()) {
+  if (_isDarkSurface()) {
     return { bg: 'hsl(' + hue + ',30%,22%)', border: 'hsl(' + hue + ',25%,36%)', text: 'hsl(' + hue + ',70%,78%)' };
   }
   return { bg: 'hsl(' + hue + ',65%,92%)', border: 'hsl(' + hue + ',50%,78%)', text: 'hsl(' + hue + ',55%,32%)' };
@@ -619,9 +636,9 @@ function catStyle(name) {
   var c = catColor(name);
   return c ? ('background:' + c.bg + ';border-color:' + c.border + ';color:' + c.text) : '';
 }
-// 一覧の札だけは別扱い。暗い時は青い地に映えるよう、はっきりした色を塗って文字を白にする
+// 一覧の札だけは別扱い。海の中モードだけ、青い地に映えるようはっきりした色を塗って文字を白にする
 function catChipStyle(name) {
-  if (!_isDarkMode()) return catStyle(name);
+  if (!_isOceanTheme()) return catStyle(name);
   // 青いカードの上では、中くらいの濃さのベタ塗りは全部くすむ。
   // 半透明のすりガラスにして、カテゴリの色でガラス自体を染める。
   // 「カテゴリなし」は色を持たないので、染めずに白いガラスのまま（下の青が透ける）
@@ -2460,20 +2477,23 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
   }, { passive: true });
 })();
 
-// ==== 明るい/暗いの切り替え ====
+// ==== 明るい/暗い(海の中)/暗い(ふつう) の切り替え ====
 // 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
 function _applyTheme(theme, remember) {
   document.documentElement.setAttribute('data-theme', theme);
   // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : '#f0ede8');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : (theme === 'dim' ? '#1c1c1e' : '#f0ede8'));
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
 }
+// 見出しをタップするたびに light → dark(海の中) → dim(ふつうの暗さ) → light と巡回する
 function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'light' ? 'dark' : (cur === 'dark' ? 'dim' : 'light');
   // 画面全体の色が変わるので、それ自体が合図になる。トーストは出さない
-  _applyTheme(_isDarkMode() ? 'light' : 'dark', true);
+  _applyTheme(next, true);
 }
 (function() {
   var title = document.getElementById('app-title');
@@ -2487,7 +2507,7 @@ function toggleTheme() {
   var follow = function() {
     var saved = null;
     try { saved = localStorage.getItem('theme'); } catch(e) {}
-    if (saved === 'light' || saved === 'dark') return;   // 手動で決めた後は追従しない
+    if (saved === 'light' || saved === 'dark' || saved === 'dim') return;   // 手動で決めた後は追従しない
     _applyTheme(q.matches ? 'dark' : 'light', false);
   };
   if (q.addEventListener) q.addEventListener('change', follow);
