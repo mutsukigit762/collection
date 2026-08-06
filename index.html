@@ -233,6 +233,27 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
+.fab{display:none}
+/* 右下に浮かせる新規作成ボタン（スマホのみ） */
+@media(max-width:640px) and (pointer:coarse){
+  .fab{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:fixed;
+    right:20px;
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    z-index:51;
+    width:52px;height:52px;
+    border-radius:50%;
+    background:var(--text);
+    color:var(--bg);
+    border:none;
+    box-shadow:0 2px 10px rgba(0,0,0,0.3);
+    cursor:pointer;
+  }
+  .fab svg{width:24px;height:24px}
+}
 @media(max-width:640px) and (pointer:coarse){
   .bottom-bar{
     display:none;
@@ -262,7 +283,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     cursor:pointer;
     padding:4px 0;
   }
-  .bb-buttons button.primary{color:var(--text)}
   .bb-search-row{
     display:none;
     gap:8px;
@@ -322,6 +342,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="dark"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 /* 追加ボタンだけ黒。検索欄と同じで、青の世界からくり抜かれたように見せる */
 [data-theme="dark"] .btn-primary{background:#000;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="dark"] .fab{background:#000;border:0.5px solid rgba(255,255,255,.6);color:#fff}
 [data-theme="dark"] .btn-danger{background:#007FFF;border-color:var(--danger);color:var(--danger)}
 [data-theme="dark"] .sort-btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 [data-theme="dark"] .sort-btn.active{background:#fff;border-color:#fff;color:#007FFF}
@@ -347,6 +368,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 @media(max-width:899px){
   body.mobile-detail-open .left-col{display:none}
   body.mobile-detail-open .bottom-bar{display:none}
+  body.mobile-detail-open .fab{display:none}
   .detail-pane{
     display:block;
     position:fixed;inset:0;
@@ -475,12 +497,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </div>
 <div class="detail-pane" id="detail-pane"></div>
 </div>
+<button class="fab" id="fab-add" onclick="addNote()" aria-label="新規作成"></button>
 <div class="bottom-bar" id="bottom-bar">
   <div class="bb-buttons" id="bb-buttons">
     <button id="bb-trash" onclick="toggleTrash()"></button>
     <button id="bb-cat" onclick="toggleCatPanel()"></button>
     <button id="bb-search" onclick="openBottomSearch()"></button>
-    <button class="primary" id="bb-add" onclick="addNote()"></button>
   </div>
   <div class="bb-search-row" id="bb-search-row">
     <input type="text" id="bottom-search-input" placeholder="内容・カテゴリーで検索…" oninput="onSearch(this.value)">
@@ -578,7 +600,7 @@ document.querySelector('.search-clear').innerHTML = IC.x;
 document.getElementById('bb-search').innerHTML = IC.search + '<span>検索</span>';
 document.getElementById('bb-trash').innerHTML = IC.trash + '<span>ゴミ箱</span>';
 document.getElementById('bb-cat').innerHTML = IC.folder + '<span>カテゴリー</span>';
-document.getElementById('bb-add').innerHTML = IC.plus + '<span>追加</span>';
+document.getElementById('fab-add').innerHTML = IC.plus;
 document.getElementById('bb-search-close').innerHTML = IC.x;
 document.getElementById('fav-filter-toggle').innerHTML = IC.heart;
 
