@@ -1625,7 +1625,6 @@ document.addEventListener('keydown', function(e) {
   }
   if (!e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'j' || e.key === 'k') && !_jkIsTyping()) {
     e.preventDefault();
-    if (e.repeat) return;   // キーリピートで一気に何個も飛ばないようにする
     _jkMove(e.key === 'j' ? 1 : -1);
     return;
   }
