@@ -1589,7 +1589,7 @@ function _jkMove(dir) {
     if (ni >= items.length) ni = items.length - 1;
   }
   focusCard(ids[ni]);
-  if (items[ni]) items[ni].scrollIntoView({ block: 'nearest' });
+  if (items[ni]) items[ni].scrollIntoView({ block: 'start' });
 }
 function _anyModalOpen() {
   return trashOpen || catPanelOpen || document.getElementById('overlay').classList.contains('open');
