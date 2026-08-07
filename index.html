@@ -25,7 +25,7 @@
   document.documentElement.setAttribute('data-theme', t);
   // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : (t === 'dim' ? '#1c1c1e' : '#f0ede8'));
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : (t === 'dim' ? '#000' : '#f0ede8'));
 })();
 </script>
 <style>
@@ -64,6 +64,11 @@ html{overflow-x:hidden}
 /* 海の中モードだけ、地が青くなるぶん細かい文字も灰色だと濁るので、白寄りの青みグレーにする */
 :root[data-theme="dark"]{
   --text2:#d7e9f8;--text3:#b3cde2;
+}
+/* ふつうの暗いモードは、グレーではなく真っ黒にする */
+:root[data-theme="dim"]{
+  --bg:#000;--bg2:#1a1a1a;--bg3:#000;
+  --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
 /* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
@@ -2507,7 +2512,7 @@ function _applyTheme(theme, remember) {
   document.documentElement.setAttribute('data-theme', theme);
   // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : (theme === 'dim' ? '#1c1c1e' : '#f0ede8'));
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : (theme === 'dim' ? '#000' : '#f0ede8'));
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
