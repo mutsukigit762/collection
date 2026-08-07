@@ -443,7 +443,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .left-col{flex:1 1 50%;min-width:0;height:100vh;overflow-y:auto;border-right:0.5px solid var(--border);scrollbar-width:none}
   .left-col::-webkit-scrollbar{display:none}
   .left-col .sticky-header{max-width:none;margin:0;padding-top:20px}
-  .left-col .app{max-width:none;margin:0}
+  /* 一番下のカードが画面の底に貼りつかないよう、下に余白を持たせる
+     （j/kで送った時も最後の1枚が窮屈にならない） */
+  .left-col .app{max-width:none;margin:0;padding-bottom:96px}
   .sort-bar{flex-wrap:wrap}
   #cards{display:flex;flex-direction:column;gap:8px}
   .pv-text{min-height:calc(1.45em * 3)}
