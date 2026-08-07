@@ -66,6 +66,10 @@ html{overflow-x:hidden}
   --text2:#d7e9f8;--text3:#b3cde2;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;overflow-anchor:none}
+*{scrollbar-width:thin;scrollbar-color:rgba(128,128,128,0.25) transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(128,128,128,0.25);border-radius:4px}
 /* 下に引っ張って更新。ホーム画面から開いた状態（PWA）だとSafariの引っ張り更新が
    効かないので、同じ操作感を自前で用意している。#ptr はその時に出るスピナー */
 .ptr{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;pointer-events:none;z-index:60;opacity:0;transform:translateY(-30px)}
