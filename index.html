@@ -1589,7 +1589,28 @@ function _jkMove(dir) {
     if (ni >= items.length) ni = items.length - 1;
   }
   focusCard(ids[ni]);
-  if (items[ni]) items[ni].scrollIntoView({ block: 'start' });
+  if (items[ni]) _jkScrollFollow(items[ni]);
+}
+// 選んだカードを画面が追いかける。上下どちらにはみ出しても、
+// はみ出したぶんだけ動かして端に貼りつける（真ん中に飛ばしたり、
+// 見えている時に動かしたりはしない）。上端は見出しの帯に隠れる分だけ余計に避ける
+function _jkScrollFollow(el) {
+  var header = document.querySelector('.sticky-header');
+  var headH = header ? header.getBoundingClientRect().height : 0;
+  var pad = 8;
+  var r = el.getBoundingClientRect();
+  if (_isDesktop()) {
+    var col = document.getElementById('left-col');
+    if (!col) return;
+    var cr = col.getBoundingClientRect();
+    var top = cr.top + headH + pad, bottom = cr.bottom - pad;
+    if (r.top < top) col.scrollTop -= (top - r.top);
+    else if (r.bottom > bottom) col.scrollTop += (r.bottom - bottom);
+  } else {
+    var top2 = headH + pad, bottom2 = window.innerHeight - pad;
+    if (r.top < top2) window.scrollBy(0, r.top - top2);
+    else if (r.bottom > bottom2) window.scrollBy(0, r.bottom - bottom2);
+  }
 }
 function _anyModalOpen() {
   return trashOpen || catPanelOpen || document.getElementById('overlay').classList.contains('open');
