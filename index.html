@@ -1215,10 +1215,17 @@ function _sortNotesLocal(list) {
   });
 }
 
+// 読み込みの終わりを待てるようにしておく。
+// これまでは、すでに読み込み中だと何もせず素通りしていたので、
+// 「次の30件が届いてから続きをやりたい」側（詳細画面のスワイプ）が待てなかった
+var _loadingDone = null;
+
 async function loadNotes(reset) {
-  if (loading) return;
+  if (loading) return _loadingDone;   // 走っている最中なら、それが終わるのを待たせる
   if (!reset && !hasMore) return;
   loading = true;
+  var _markDone;
+  _loadingDone = new Promise(function(resolve){ _markDone = resolve; });
   setSyncStatus('読み込み中…');
   try {
     if (reset) { lastDoc = null; hasMore = true; notes = []; destroyAllEditors(); }
@@ -1248,8 +1255,13 @@ async function loadNotes(reset) {
   } catch(e) {
     setSyncStatus('接続エラー');
     console.error(e);
+  } finally {
+    // ここが飛ぶと、届くのを待っている側（詳細画面のスワイプ）が
+    // 永久に待ちぼうけになるので、何があっても必ず通す
+    loading = false;
+    _loadingDone = null;
+    _markDone();
   }
-  loading = false;
 }
 
 var _searchSeq = 0;
@@ -1655,6 +1667,23 @@ function _jkMove(dir) {
   }
   focusCard(ids[ni]);
   if (items[ni]) _jkScrollFollow(items[ni]);
+  _jkPreloadAhead(ni, items.length);
+}
+
+// 一覧は30件ずつしか読み込んでいない。続きを取りに行くきっかけは
+// 「一覧を下までスクロールしたら」だけなので、詳細画面を開いたまま
+// 隣へ隣へと移っていくと、一覧が動かないぶん続きが来ないまま
+// 30件目で行き止まりになる。そうならないよう、末尾が近づいたところで
+// こちらからも続きを頼んでおく。
+// 検索中と♥だけ表示の時は、はじめから全部読み込んであるので何もしない
+var JK_PRELOAD_MARGIN = 8;   // 残りこれだけになったら、次の30件を頼む
+function _jkCanLoadMore() {
+  return !searchQuery && !favOnly && hasMore;
+}
+function _jkPreloadAhead(index, total) {
+  if (!_jkCanLoadMore()) return;
+  if (total - 1 - index > JK_PRELOAD_MARGIN) return;   // 末尾まではまだ遠い
+  loadNotes(false);
 }
 // 隣のメモがあるかどうかだけを先に調べる（端まで来ていて動く先がなければ null）。
 // スワイプでは、動く先が無いのに絵だけ流れると嘘になるので、動かす前にこれで確かめる
@@ -2164,9 +2193,24 @@ function _dsAtTop() {
 // 今の見た目を写し取った置き物（.ds-ghost）に任せ、本体には次のメモを載せる
 var DS_SLIDE_MS = 220;   // 流れきるまでの長さ。開け閉め（0.22s）と揃えてある
 var _dsSliding = false;
+// 末尾に着いた時、それが本当の終わりとは限らない。一覧がまだ30件しか
+// 読み込んでいないだけのことがあるので、続きを頼んで、届いてから隣へ送る。
+// 待っている間は _dsSliding を立てて、指を何度も受けないようにしておく
+function _dsSlideWhenLoaded(dir) {
+  if (dir < 0 || !_jkCanLoadMore()) return;   // 前へ戻る側と、本当にもう無い時は行き止まり
+  _dsSliding = true;
+  document.body.classList.add('ds-swiping');
+  Promise.resolve(loadNotes(false)).then(function() {
+    _dsSliding = false;
+    if (_jkPeekId(dir)) { _dsSlideTo(dir); return; }
+    document.body.classList.remove('ds-swiping');
+  });
+}
+
 function _dsSlideTo(dir) {
   if (_dsSliding) return;
-  if (!_jkPeekId(dir)) return;   // 端。動く先が無いので、絵も動かさない
+  // 端。ただし「次へ」の側は、続きが未読み込みなだけかもしれないので確かめる
+  if (!_jkPeekId(dir)) { _dsSlideWhenLoaded(dir); return; }
   var pane = document.getElementById('detail-pane');
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!pane || reduce) { _jkMove(dir); return; }  // 動きを減らす設定の時は、流さずに差し替える
