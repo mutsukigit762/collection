@@ -431,7 +431,13 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 詳細画面：カードの枠をなくして地の色に馴染ませ、タイムスタンプを一番上に出す。
      .card は詳細画面でしか使っていないので、一覧側には影響しない */
   .detail-pane .card{background:none;border:none;border-radius:0;padding:0;display:flex;flex-direction:column}
-  .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:10px}
+  /* 詳細では日時の行が一番上に来る。ここの空いている部分が、一覧の「collection」に
+     あたるテーマ切り替えの押しどころ。指で狙いやすいよう上下に余白を持たせ、
+     押した時のiOSの灰色の点滅と文字選択は出さない */
+  .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:4px;padding:6px 0;
+    -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  /* 日時のほうは今まで通り押して編集できる（文字も選べる） */
+  .detail-pane .card-footer .card-date{user-select:auto;-webkit-user-select:auto}
   /* 本文はスマホだけ大きくする（PCは14pxのまま）。
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
   /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
@@ -1996,7 +2002,7 @@ function detailCardHTML(n) {
     + '</span>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
-    + '<div class="card-footer"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>' + byteCountHTML(n.body || '') + '</div>'
+    + '<div class="card-footer" onclick="_detailThemeTap(event)"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
 }
 
@@ -2542,6 +2548,15 @@ function toggleTheme() {
   var next = cur === 'light' ? 'deepsea' : (cur === 'deepsea' ? 'dark' : 'light');
   // 画面全体の色が変わるので、それ自体が合図になる。トーストは出さない
   _applyTheme(next, true);
+}
+// スマホの詳細画面には「collection」の見出しが無いので、代わりに一番上の
+// 日時の行を切り替え役にする。ただし日時とバイト数は元から役目を持っているので、
+// その文字を外した空きの部分を押した時だけ反応させる。
+// （iOSの時計そのものはOSが持っていて、タップはアプリまで届かない）
+function _detailThemeTap(e) {
+  if (_isDesktop()) return;
+  if (e.target.closest('[data-date-id], .byte-count, .date-edit-wrap')) return;
+  toggleTheme();
 }
 (function() {
   var title = document.getElementById('app-title');
