@@ -418,7 +418,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
        読めるようにするため。本文が短いうちは画面に収まるので、
        余計なスクロールは生まれない */
     padding:calc(12px + env(safe-area-inset-top)) 22px 80vh;
-    transform:translateX(100%);
+    /* 下から せり上がって開き、下へ 沈んで閉じる。
+       戻る操作が下へ引くしぐさなので、閉じる向きもそれに合わせている */
+    transform:translateY(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
   }
@@ -426,7 +428,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
   [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
   body.mobile-detail-open .detail-pane{
-    transform:translateX(0);
+    transform:translateY(0);
     pointer-events:auto;
   }
   .detail-mobile-bar{
