@@ -2560,6 +2560,9 @@ function _detailThemeTap(e) {
   if (e.target.closest('button, a, input')) return;
   toggleTheme();
 }
+// このファイルの本体は module なので、中の関数はそのままではHTMLの onclick から
+// 呼べない。ここで外に出しておく（他の関数と同じ）
+window._detailThemeTap = _detailThemeTap;
 (function() {
   var title = document.getElementById('app-title');
   title.addEventListener('click', toggleTheme);
