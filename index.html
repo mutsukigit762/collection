@@ -2101,16 +2101,24 @@ function closeMobileDetail() {
 }
 window.closeMobileDetail = closeMobileDetail;
 
-// 詳細画面：画面左60%からのスワイプで一覧へ戻る（縦方向優位の動き＝スクロールは無視）
+// 詳細画面：もう上へは行けないところ（一番上）まで来た状態から、
+// さらに下へ引くと一覧へ戻る。読んでいる途中で反応させないよう、
+// 引き始めた時点で一番上に居ることを条件にしている
+var DS_PULL = 70;   // これだけ下へ引いたら戻る
 var _dsStartX = null, _dsStartY = null, _dsTracking = false;
 function _dsHasActiveSelection() {
   var sel = window.getSelection ? window.getSelection() : null;
   return !!(sel && !sel.isCollapsed && sel.toString().length > 0);
 }
+function _dsAtTop() {
+  var pane = document.getElementById('detail-pane');
+  return !!pane && pane.scrollTop <= 0;
+}
 document.addEventListener('touchstart', function(e) {
   if (_isDesktop() || !document.body.classList.contains('mobile-detail-open')) return;
-  if (e.touches.length !== 1 || e.touches[0].clientX > window.innerWidth * 0.95) return;
+  if (e.touches.length !== 1) return;
   if (_dsHasActiveSelection()) return; // 文字選択のハンドル操作とバッティングしないよう除外
+  if (!_dsAtTop()) return;             // まだ上へスクロールできる間は、ふつうのスクロール
   _dsStartX = e.touches[0].clientX;
   _dsStartY = e.touches[0].clientY;
   _dsTracking = true;
@@ -2118,10 +2126,11 @@ document.addEventListener('touchstart', function(e) {
 document.addEventListener('touchmove', function(e) {
   if (!_dsTracking) return;
   if (_dsHasActiveSelection()) { _dsTracking = false; return; } // 選択ハンドルのドラッグ中は戻る判定をしない
+  if (!_dsAtTop()) { _dsTracking = false; return; }             // 途中で下へ動き出したらやめる
   var dx = e.touches[0].clientX - _dsStartX;
   var dy = e.touches[0].clientY - _dsStartY;
-  if (Math.abs(dy) > Math.abs(dx)) { _dsTracking = false; return; }
-  if (dx > 70) { _dsTracking = false; closeMobileDetail(); }
+  if (Math.abs(dx) > Math.abs(dy)) { _dsTracking = false; return; }  // 横向きの動きは別の操作
+  if (dy > DS_PULL) { _dsTracking = false; closeMobileDetail(); }
 }, { passive: true });
 document.addEventListener('touchend', function() { _dsTracking = false; }, { passive: true });
 
