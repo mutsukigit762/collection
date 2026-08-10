@@ -443,6 +443,16 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     -webkit-user-select:none;
     user-select:none;
   }
+  /* 横に払っている間だけ、縦のスクロールバーを消す。
+     中身を隣のメモに入れ替えると頭まで戻すので、そこでバーが光ってしまい、
+     流れる画面と一緒に横へ滑っていって目に障る。
+     写し（.ds-ghost）も読んでいた高さに合わせる時に同じことが起きるので、
+     こちらは出ている間ずっと出さない。
+     縦に読んでいる時のバーはそのまま（消すのは横に払っている間だけ） */
+  body.ds-swiping .detail-pane,
+  .ds-ghost{scrollbar-width:none}
+  body.ds-swiping .detail-pane::-webkit-scrollbar,
+  .ds-ghost::-webkit-scrollbar{display:none}
   .detail-mobile-bar{
     display:none;
   }
@@ -2193,6 +2203,7 @@ function _dsSlideTo(dir) {
     pane.style.transition = '';       // 開け閉めの動き（CSS側）に戻す
     pane.style.transform = '';
     _dsSliding = false;
+    document.body.classList.remove('ds-swiping');  // 流れきったので、バーをまた出す
   }, DS_SLIDE_MS + 20);
 }
 
@@ -2219,6 +2230,8 @@ document.addEventListener('touchmove', function(e) {
     if (ax > ay * DS_SLANT) _dsDir = 'x';
     else if (ay > ax * DS_SLANT) _dsDir = 'y';
     else { _dsTracking = false; return; }  // 斜め。横でも縦でもないので、この動きは捨てる
+    // 横と決まったら、この指が離れて流れきるまでスクロールバーを出さない
+    if (_dsDir === 'x') document.body.classList.add('ds-swiping');
   }
   if (_dsDir === 'x') {
     // 横へ払った：一覧に並んでいる順で、隣のメモへ移る。
@@ -2231,7 +2244,17 @@ document.addEventListener('touchmove', function(e) {
   if (!_dsFromTop || !_dsAtTop()) { _dsTracking = false; return; }
   if (dy > DS_PULL) { _dsTracking = false; closeMobileDetail(); }
 }, { passive: true });
-document.addEventListener('touchend', function() { _dsTracking = false; _dsDir = null; }, { passive: true });
+function _dsEnd() {
+  _dsTracking = false;
+  _dsDir = null;
+  // 払ったのに隣が無かった時など、流れが始まっていなければここで元に戻す。
+  // 流れている最中は、終わりの後片付け（_dsSlideTo）に任せる
+  if (!_dsSliding) document.body.classList.remove('ds-swiping');
+}
+document.addEventListener('touchend', _dsEnd, { passive: true });
+// 指がOSの操作に横取りされて touchend が来ない時があるので、こちらでも後片付けする
+// （でないとバーが消えたまま戻らない）
+document.addEventListener('touchcancel', _dsEnd, { passive: true });
 
 // 一覧のカード：左スワイプで削除ボタンを出す
 var PV_DELETE_W = 76;
