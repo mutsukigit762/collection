@@ -434,6 +434,15 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transform:translateY(0);
     pointer-events:auto;
   }
+  /* 隣のメモへ横に流れる時、出ていく側として一瞬だけ置く写し。
+     見た目だけの置き物なので、指も文字選択も通さない。
+     入ってくる本体（z-index:60）より一段下に敷く */
+  .ds-ghost{
+    z-index:59;
+    pointer-events:none;
+    -webkit-user-select:none;
+    user-select:none;
+  }
   .detail-mobile-bar{
     display:none;
   }
@@ -1637,6 +1646,18 @@ function _jkMove(dir) {
   focusCard(ids[ni]);
   if (items[ni]) _jkScrollFollow(items[ni]);
 }
+// 隣のメモがあるかどうかだけを先に調べる（端まで来ていて動く先がなければ null）。
+// スワイプでは、動く先が無いのに絵だけ流れると嘘になるので、動かす前にこれで確かめる
+function _jkPeekId(dir) {
+  var items = Array.from(document.querySelectorAll('#cards .pv-item'));
+  if (!items.length) return null;
+  var ids = items.map(function(it){ return it.getAttribute('data-id'); });
+  var cur = ids.indexOf(selectedCardId);
+  if (cur < 0) return ids[dir > 0 ? 0 : ids.length - 1];
+  var ni = cur + dir;
+  if (ni < 0 || ni >= ids.length) return null;
+  return ids[ni];
+}
 // 選んだカードを画面が追いかける。上下どちらにはみ出しても、
 // はみ出したぶんだけ動かして端に貼りつける（真ん中に飛ばしたり、
 // 見えている時に動かしたりはしない）。
@@ -2112,10 +2133,14 @@ window.closeMobileDetail = closeMobileDetail;
 // 詳細画面の指の動き。縦と横で役目が違う。
 //   下へ引く（一番上まで来ている時だけ）… 一覧へ戻る
 //   横へ払う                        … 前後のメモへ移る
-// どちらの向きへ動いたかは、縦と横のどちらが大きいかで決める
+// 向きは、指が DS_DECIDE だけ動いたところで一度だけ見分けて、あとは固定する。
+// まっすぐ横・まっすぐ縦とみなせない斜めの動きは、どちらの操作でもないので捨てる
 var DS_PULL = 70;    // 下へこれだけ引いたら一覧へ戻る
 var DS_SWIPE = 60;   // 横へこれだけ払ったら隣のメモへ
+var DS_DECIDE = 20;  // これだけ動いたところで、縦か横か斜めかを見分ける
+var DS_SLANT = 2;    // 長い方が短い方のこの倍数に届かなければ「斜め」。2 なら約27度までがまっすぐ
 var _dsStartX = null, _dsStartY = null, _dsTracking = false, _dsFromTop = false;
+var _dsDir = null;   // この指の動きの向き。null=まだ見分けていない, 'x'=横, 'y'=縦
 function _dsHasActiveSelection() {
   var sel = window.getSelection ? window.getSelection() : null;
   return !!(sel && !sel.isCollapsed && sel.toString().length > 0);
@@ -2124,13 +2149,62 @@ function _dsAtTop() {
   var pane = document.getElementById('detail-pane');
   return !!pane && pane.scrollTop <= 0;
 }
+// 隣のメモへ移る時、画面を横に流す。今のページを払った向きへ送り出しながら、
+// 次のページを反対側から入れる。2枚が同時に動いて見えるよう、出ていく側は
+// 今の見た目を写し取った置き物（.ds-ghost）に任せ、本体には次のメモを載せる
+var DS_SLIDE_MS = 220;   // 流れきるまでの長さ。開け閉め（0.22s）と揃えてある
+var _dsSliding = false;
+function _dsSlideTo(dir) {
+  if (_dsSliding) return;
+  if (!_jkPeekId(dir)) return;   // 端。動く先が無いので、絵も動かさない
+  var pane = document.getElementById('detail-pane');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!pane || reduce) { _jkMove(dir); return; }  // 動きを減らす設定の時は、流さずに差し替える
+  _dsSliding = true;
+
+  // 出ていく側：今の見た目をそのまま写す。id と編集可能の印は、
+  // 本体と二重になって取り違えのもとになるので剥がしておく
+  var ghost = document.createElement('div');
+  ghost.className = pane.className + ' ds-ghost';
+  ghost.innerHTML = pane.innerHTML;
+  ghost.querySelectorAll('[id]').forEach(function(n){ n.removeAttribute('id'); });
+  ghost.querySelectorAll('[contenteditable]').forEach(function(n){ n.removeAttribute('contenteditable'); });
+  ghost.style.transition = 'none';
+  ghost.style.transform = 'translateX(0)';
+  document.body.appendChild(ghost);
+  ghost.scrollTop = pane.scrollTop;   // 読んでいた高さのまま出ていくように
+
+  // 本体を隣のメモに差し替えて、まだ画面の外（入ってくる側）へ置いておく。
+  // 左へ払った（dir=1）なら次のメモは右から、右へ払ったなら左から入る
+  var from = dir > 0 ? 1 : -1;
+  _jkMove(dir);
+  pane.style.transition = 'none';
+  pane.style.transform = 'translateX(' + (from * 100) + '%)';
+  void pane.offsetWidth;              // ここまでの置き位置を一度描かせてから動かす
+
+  // 2枚を同時に動かす
+  pane.style.transition = 'transform ' + DS_SLIDE_MS + 'ms ease';
+  ghost.style.transition = 'transform ' + DS_SLIDE_MS + 'ms ease';
+  pane.style.transform = 'translateX(0)';
+  ghost.style.transform = 'translateX(' + (-from * 100) + '%)';
+
+  setTimeout(function() {
+    if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    pane.style.transition = '';       // 開け閉めの動き（CSS側）に戻す
+    pane.style.transform = '';
+    _dsSliding = false;
+  }, DS_SLIDE_MS + 20);
+}
+
 document.addEventListener('touchstart', function(e) {
   if (_isDesktop() || !document.body.classList.contains('mobile-detail-open')) return;
+  if (_dsSliding) return;              // 流れている最中は次の指を受けない
   if (e.touches.length !== 1) return;
   if (_dsHasActiveSelection()) return; // 文字選択のハンドル操作とバッティングしないよう除外
   _dsStartX = e.touches[0].clientX;
   _dsStartY = e.touches[0].clientY;
   _dsFromTop = _dsAtTop();             // 戻る判定は、一番上から引き始めた時だけ認める
+  _dsDir = null;
   _dsTracking = true;
 }, { passive: true });
 document.addEventListener('touchmove', function(e) {
@@ -2138,10 +2212,18 @@ document.addEventListener('touchmove', function(e) {
   if (_dsHasActiveSelection()) { _dsTracking = false; return; } // 選択ハンドルのドラッグ中は判定しない
   var dx = e.touches[0].clientX - _dsStartX;
   var dy = e.touches[0].clientY - _dsStartY;
-  if (Math.abs(dx) > Math.abs(dy)) {
+  var ax = Math.abs(dx), ay = Math.abs(dy);
+  if (!_dsDir) {
+    // まだ動きが小さいうちは、どちらの向きか決めない（少しの震えで決めつけないため）
+    if (ax < DS_DECIDE && ay < DS_DECIDE) return;
+    if (ax > ay * DS_SLANT) _dsDir = 'x';
+    else if (ay > ax * DS_SLANT) _dsDir = 'y';
+    else { _dsTracking = false; return; }  // 斜め。横でも縦でもないので、この動きは捨てる
+  }
+  if (_dsDir === 'x') {
     // 横へ払った：一覧に並んでいる順で、隣のメモへ移る。
     // 左へ払うと次（一覧で下にあるメモ）、右へ払うと前（上にあるメモ）
-    if (Math.abs(dx) > DS_SWIPE) { _dsTracking = false; _jkMove(dx < 0 ? 1 : -1); }
+    if (ax > DS_SWIPE) { _dsTracking = false; _dsSlideTo(dx < 0 ? 1 : -1); }
     return;
   }
   // 縦へ動いた：一番上から下へ引いた時だけ戻る。
@@ -2149,7 +2231,7 @@ document.addEventListener('touchmove', function(e) {
   if (!_dsFromTop || !_dsAtTop()) { _dsTracking = false; return; }
   if (dy > DS_PULL) { _dsTracking = false; closeMobileDetail(); }
 }, { passive: true });
-document.addEventListener('touchend', function() { _dsTracking = false; }, { passive: true });
+document.addEventListener('touchend', function() { _dsTracking = false; _dsDir = null; }, { passive: true });
 
 // 一覧のカード：左スワイプで削除ボタンを出す
 var PV_DELETE_W = 76;
