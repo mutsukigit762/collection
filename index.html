@@ -16,16 +16,27 @@
 // 明るい/暗いを、画面が出る前に決めてしまう。
 // あとから決めると、一瞬ライトが見えてから暗くなる「チカッ」が起きるため。
 (function(){
-  var t = null;
-  try { t = localStorage.getItem('theme'); } catch(e) {}
-  if (t !== 'light' && t !== 'dark' && t !== 'dim') {
-    // OSの設定は明るい／暗いの2択しか無いので、暗い側は海の中モードを初期値にする
-    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  var t = null, named = null;
+  try { t = localStorage.getItem('theme'); named = localStorage.getItem('theme-naming'); } catch(e) {}
+  // 名前を付け替えた時の引き継ぎ。昔は海の中モードが dark、ふつうの暗いモードが dim だった。
+  // 済んだ印を別に持たないと、付け替え後に選ばれた dark まで deepsea に戻ってしまうので、
+  // 一度きりの処理として theme-naming で見張る
+  if (named !== 'deepsea') {
+    if (t === 'dark') t = 'deepsea';
+    else if (t === 'dim') t = 'dark';
+    try {
+      if (t) localStorage.setItem('theme', t);
+      localStorage.setItem('theme-naming', 'deepsea');
+    } catch(e) {}
+  }
+  if (t !== 'light' && t !== 'deepsea' && t !== 'dark') {
+    // OSの設定は明るい／暗いの2択しか無いので、暗い側は深海モードを初期値にする
+    t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'deepsea' : 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
   // iOSの時計や電池が並ぶ帯の色も、ここで合わせておく
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t === 'dark' ? '#007FFF' : (t === 'dim' ? '#000' : '#f0ede8'));
+  if (meta) meta.setAttribute('content', t === 'deepsea' ? '#007FFF' : (t === 'dark' ? '#000' : '#f0ede8'));
 })();
 </script>
 <style>
@@ -48,9 +59,9 @@ html{overflow-x:hidden}
    アプリ全体が切り替わる。変数を使っていない数か所は下の方でまとめて上書きしている。
    OSの設定を直接見ずに data-theme で切り替えているのは、見出しのタップで
    手動でも変えられるようにするため（初期値はhead内でOSの設定から決めている） */
-/* dark＝海の中モード、dim＝ふつうの暗いグレー一色モード。地の色などの土台は共通にして、
-   海だけの装飾（青いカード・グラデーションなど）は下の方で dark だけに絞って重ねている */
-:root[data-theme="dark"], :root[data-theme="dim"]{
+/* deepsea＝深海モード、dark＝ふつうの暗い一色モード。地の色などの土台は共通にして、
+   海だけの装飾（青いカード・グラデーションなど）は下の方で deepsea だけに絞って重ねている */
+:root[data-theme="deepsea"], :root[data-theme="dark"]{
   --bg:#2c2c2e;      /* パネルやモーダルなど、地より一段浮いた面（一覧カードは青を別指定） */
   --bg2:#3a3a3c;     /* カテゴリの札などの薄い塗り */
   --bg3:#1c1c1e;     /* 画面の地。暗めのグレー */
@@ -61,12 +72,12 @@ html{overflow-x:hidden}
   --warning-bg:#4d3f07;--warning-text:#fde68a;
   --danger:#ff6b6b;
 }
-/* 海の中モードだけ、地が青くなるぶん細かい文字も灰色だと濁るので、白寄りの青みグレーにする */
-:root[data-theme="dark"]{
+/* 深海モードだけ、地が青くなるぶん細かい文字も灰色だと濁るので、白寄りの青みグレーにする */
+:root[data-theme="deepsea"]{
   --text2:#d7e9f8;--text3:#b3cde2;
 }
 /* ふつうの暗いモードは、グレーではなく真っ黒にする */
-:root[data-theme="dim"]{
+:root[data-theme="dark"]{
   --bg:#000;--bg2:#1a1a1a;--bg3:#000;
   --border:rgba(255,255,255,0.15);--border2:rgba(255,255,255,0.28);
 }
@@ -208,14 +219,14 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
 body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(255,255,255,.90),rgba(255,255,255,0))}
 /* 暗い時は一覧が海の青、詳細が黒。地の色に合わせて被せる色も変える */
-[data-theme="dark"] .status-veil{
+[data-theme="deepsea"] .status-veil{
   background:linear-gradient(to bottom,rgba(0,127,255,.90),rgba(0,127,255,0))}
-[data-theme="dark"] body.mobile-detail-open .status-veil{
+[data-theme="deepsea"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,127,255,.90),rgba(0,127,255,0))}
 /* ふつうの暗いモードは、海と違って地も詳細画面もグレー一色なので、それぞれの地の色に合わせる */
-[data-theme="dim"] .status-veil{
+[data-theme="dark"] .status-veil{
   background:linear-gradient(to bottom,rgba(28,28,30,.90),rgba(28,28,30,0))}
-[data-theme="dim"] body.mobile-detail-open .status-veil{
+[data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(44,44,46,.90),rgba(44,44,46,0))}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
 /* 出る時はふわっと下りてきて、消える時はさらにゆっくり薄くなる */
@@ -229,12 +240,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
 .card-editor .ProseMirror ::selection{background:#d9cfc0;color:#1a1a1a}
 .card-editor .ProseMirror ::-moz-selection{background:#d9cfc0;color:#1a1a1a}
-/* 暗い地（dark・dimどちらも）で、変数を通していない色だけをまとめて差し替える */
-[data-theme="dark"] ::selection, [data-theme="dim"] ::selection{background:#4a443c;color:#fff}
-[data-theme="dark"] ::-moz-selection, [data-theme="dim"] ::-moz-selection{background:#4a443c;color:#fff}
-[data-theme="dark"] .card-editor .ProseMirror a, [data-theme="dim"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
-[data-theme="dark"] .date-unrecovered, [data-theme="dim"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
-[data-theme="dark"] .overlay, [data-theme="dim"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
+/* 暗い地（deepsea・darkどちらも）で、変数を通していない色だけをまとめて差し替える */
+[data-theme="deepsea"] ::selection, [data-theme="dark"] ::selection{background:#4a443c;color:#fff}
+[data-theme="deepsea"] ::-moz-selection, [data-theme="dark"] ::-moz-selection{background:#4a443c;color:#fff}
+[data-theme="deepsea"] .card-editor .ProseMirror a, [data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
+[data-theme="deepsea"] .date-unrecovered, [data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
+[data-theme="deepsea"] .overlay, [data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
@@ -330,32 +341,32 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .pv-selected{border-color:var(--text);background:var(--bg2)}
 /* 暗い時の一覧カードは、暗いグレーの地に鮮やかな青を置く。
    青が強いので、上に乗る文字はグレーではなく白にしないと沈む */
-[data-theme="dark"] .pv-item{background:#007FFF;border-color:rgba(255,255,255,.3);color:#fff}
-[data-theme="dark"] .pv-item .pv-text{color:#fff}
-[data-theme="dark"] .pv-item .pv-muted{color:rgba(255,255,255,.72)}
-[data-theme="dark"] .pv-item .pv-date{color:rgba(255,255,255,.85)}
-[data-theme="dark"] .pv-item .date-unrecovered{color:#ffe27a !important}
+[data-theme="deepsea"] .pv-item{background:#007FFF;border-color:rgba(255,255,255,.3);color:#fff}
+[data-theme="deepsea"] .pv-item .pv-text{color:#fff}
+[data-theme="deepsea"] .pv-item .pv-muted{color:rgba(255,255,255,.72)}
+[data-theme="deepsea"] .pv-item .pv-date{color:rgba(255,255,255,.85)}
+[data-theme="deepsea"] .pv-item .date-unrecovered{color:#ffe27a !important}
 /* 画面の地は、水面の青から深いところの闇へ落ちていくグラデーション。
    画面に貼りついた1枚として敷き、見出しには同じグラデーションの上端ぶんだけを
    切り出して敷くので、見出しと地の境目が出ない */
-[data-theme="dark"] body::before{content:'';position:fixed;inset:0;z-index:-1;
+[data-theme="deepsea"] body::before{content:'';position:fixed;inset:0;z-index:-1;
   background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%)}
-[data-theme="dark"] .sticky-header{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
+[data-theme="deepsea"] .sticky-header{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
 /* 引っ張って戻る時は、ヘッダーの模様のズレ直しも同じ速さで戻す */
 .sticky-header.bg-ease{transition:background-position .25s ease}
 /* ボタン類もカードと同じ青。地に溶けないよう白い線と白い文字で立たせる */
-[data-theme="dark"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="deepsea"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 /* 追加ボタンだけ黒。検索欄と同じで、青の世界からくり抜かれたように見せる */
-[data-theme="dark"] .btn-primary{background:#000;border-color:rgba(255,255,255,.6);color:#fff}
-[data-theme="dark"] .fab{background:#000;border:0.5px solid rgba(255,255,255,.6);color:#fff}
-[data-theme="dark"] .btn-danger{background:#007FFF;border-color:var(--danger);color:var(--danger)}
-[data-theme="dark"] .sort-btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
-[data-theme="dark"] .sort-btn.active{background:#fff;border-color:#fff;color:#007FFF}
-[data-theme="dark"] #fav-filter-toggle.on{color:#ff5b8a;border-color:#ff5b8a}
-[data-theme="dark"] .pv-selected{background:#3399ff;border-color:#fff}
+[data-theme="deepsea"] .btn-primary{background:#000;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="deepsea"] .fab{background:#000;border:0.5px solid rgba(255,255,255,.6);color:#fff}
+[data-theme="deepsea"] .btn-danger{background:#007FFF;border-color:var(--danger);color:var(--danger)}
+[data-theme="deepsea"] .sort-btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
+[data-theme="deepsea"] .sort-btn.active{background:#fff;border-color:#fff;color:#007FFF}
+[data-theme="deepsea"] #fav-filter-toggle.on{color:#ff5b8a;border-color:#ff5b8a}
+[data-theme="deepsea"] .pv-selected{background:#3399ff;border-color:#fff}
 /* 検索欄は黒。カードの青と役割が違うので、地より一段沈ませる */
-[data-theme="dark"] .search-wrap input{background:#000;border-color:var(--border2);color:var(--text)}
-[data-theme="dark"] .search-wrap input::placeholder{color:var(--text3)}
+[data-theme="deepsea"] .search-wrap input{background:#000;border-color:var(--border2);color:var(--text)}
+[data-theme="deepsea"] .search-wrap input::placeholder{color:var(--text3)}
 .pv-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 /* 札が左、時計は右端 */
 .pv-meta-right{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
@@ -394,7 +405,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   }
   /* 暗い時は地を敷かず、一覧と同じ海のグラデーション（body::before）を透かす。
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
-  [data-theme="dark"] .detail-pane{background:transparent;--text-body:#fff}
+  [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
   body.mobile-detail-open .detail-pane{
     transform:translateX(0);
     pointer-events:auto;
@@ -458,8 +469,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .pv-trash-pc svg{width:14px;height:14px}
   /* 詳細画面（PC）：.detail-pane はフレックスの通常配置で、body::before（負のz-index）より
      手前で不透明に塗られてしまうため、透かすのではなく地の色として直接同じ海のグラデーションを敷く */
-  [data-theme="dark"] .detail-pane{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%);--text-body:#fff}
-  [data-theme="dark"] .detail-pane .card{background:none;border:none}
+  [data-theme="deepsea"] .detail-pane{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%);--text-body:#fff}
+  [data-theme="deepsea"] .detail-pane .card{background:none;border:none}
 }
 </style>
 </head>
@@ -474,7 +485,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <div class="left-col" id="left-col">
 <div class="sticky-header">
   <div class="header">
-    <h1 id="app-title" role="button" tabindex="0" title="押すとテーマを切り替え（明るい→暗い(海)→暗い(ふつう)）">collection</h1>
+    <h1 id="app-title" role="button" tabindex="0" title="押すとテーマを切り替え（明るい→深海→暗い(ふつう)）">collection</h1>
     <div style="display:flex;gap:8px">
       <button class="btn btn-sm" id="trash-btn" onclick="toggleTrash()"></button>
       <button class="btn btn-sm" id="cat-mgr-btn" onclick="toggleCatPanel()"></button>
@@ -622,14 +633,14 @@ function _hashStr(s) {
   for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
   return Math.abs(h);
 }
-// dark＝海の中、dim＝ふつうの暗いグレー。どちらも地が暗いので、文字色などの判定はまとめて扱う
+// deepsea＝深海、dark＝ふつうの暗い黒。どちらも地が暗いので、文字色などの判定はまとめて扱う
 function _isDarkSurface() {
   var t = document.documentElement.getAttribute('data-theme');
-  return t === 'dark' || t === 'dim';
+  return t === 'deepsea' || t === 'dark';
 }
-// 一覧カードを海の青で塗るのは dark だけ。dim はグレーのカードのまま
+// 一覧カードを海の青で塗るのは deepsea だけ。dark はふつうのカードのまま
 function _isOceanTheme() {
-  return document.documentElement.getAttribute('data-theme') === 'dark';
+  return document.documentElement.getAttribute('data-theme') === 'deepsea';
 }
 function catColor(name) {
   if (!name || name === NO_CAT) return null;
@@ -2535,15 +2546,15 @@ function _applyTheme(theme, remember) {
   document.documentElement.setAttribute('data-theme', theme);
   // iOSの時計や電池が並ぶ帯の色。ここを合わせないとそこだけ浮く
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#007FFF' : (theme === 'dim' ? '#000' : '#f0ede8'));
+  if (meta) meta.setAttribute('content', theme === 'deepsea' ? '#007FFF' : (theme === 'dark' ? '#000' : '#f0ede8'));
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
 }
-// 見出しをタップするたびに light → dark(海の中) → dim(ふつうの暗さ) → light と巡回する
+// 見出しをタップするたびに light → deepsea(深海) → dark(ふつうの暗さ) → light と巡回する
 function toggleTheme() {
   var cur = document.documentElement.getAttribute('data-theme');
-  var next = cur === 'light' ? 'dark' : (cur === 'dark' ? 'dim' : 'light');
+  var next = cur === 'light' ? 'deepsea' : (cur === 'deepsea' ? 'dark' : 'light');
   // 画面全体の色が変わるので、それ自体が合図になる。トーストは出さない
   _applyTheme(next, true);
 }
@@ -2559,8 +2570,8 @@ function toggleTheme() {
   var follow = function() {
     var saved = null;
     try { saved = localStorage.getItem('theme'); } catch(e) {}
-    if (saved === 'light' || saved === 'dark' || saved === 'dim') return;   // 手動で決めた後は追従しない
-    _applyTheme(q.matches ? 'dark' : 'light', false);
+    if (saved === 'light' || saved === 'deepsea' || saved === 'dark') return;   // 手動で決めた後は追従しない
+    _applyTheme(q.matches ? 'deepsea' : 'light', false);
   };
   if (q.addEventListener) q.addEventListener('change', follow);
   else if (q.addListener) q.addListener(follow);
