@@ -92,8 +92,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 @keyframes ptr-rot{to{transform:rotate(360deg)}}
 /* 引っ張っている間、ページの中身も指について下がる（指を離した時だけ滑らかに戻す） */
 .left-col.ease{transition:transform .25s ease}
-/* 画面の端まで使う設定にしたので、見出しがステータスバーの下に潜らないよう避ける */
-.sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:600px;margin:0 auto;padding:calc(4px + env(safe-area-inset-top, 0px)) 1rem 0}
+/* 画面の端まで使う設定にしたので、見出しがステータスバーの下に潜らないよう避ける。
+   スマホでは上に貼りつけず、カードと同じ流れの中に置いてそのまま一緒に流す。
+   貼りつけると、カードはブラウザが描いてヘッダーはJSが追いかける形になり、
+   その1コマぶんの遅れがガタつきとして見えるため。地の色も、下を何も通らない
+   ので要らない（body の色がそのまま透けて、地とぴったり揃う）。
+   PC は一覧が独立して縦に流れる作りなので、下の900px以上の指定で貼りつけている */
+.sticky-header{max-width:600px;margin:0 auto;padding:calc(4px + env(safe-area-inset-top, 0px)) 1rem 0}
 .app{max-width:600px;margin:0 auto;padding:0 1rem 1rem}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 /* 見出しは明るい/暗いの切り替えボタンも兼ねている。
@@ -210,7 +215,8 @@ mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;pa
    スマホでメモを開いている間は隠れてしまい手ごたえが伝わらない */
 /* 時計や電池が並ぶ帯のぶんだけ、下へ向かって薄くなる膜をかける。
    本文がその下をくぐる時に、透けたまま少しずつ消えていく。
-   一覧は見出しが不透明で上を覆っているので、メモを開いている時だけ出す */
+   見出しも一緒に流れる作りにしたので、一覧でもカードがこの下をくぐる。
+   画面の上で動かないのはこの膜だけになった */
 .status-veil{position:fixed;top:0;left:0;right:0;
   height:env(safe-area-inset-top, 0px);pointer-events:none;z-index:65;
   background:linear-gradient(to bottom,rgba(240,237,232,.90),rgba(240,237,232,0))}
@@ -352,13 +358,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="deepsea"] .pv-item .pv-date{color:rgba(255,255,255,.85)}
 [data-theme="deepsea"] .pv-item .date-unrecovered{color:#ffe27a !important}
 /* 画面の地は、水面の青から深いところの闇へ落ちていくグラデーション。
-   画面に貼りついた1枚として敷き、見出しには同じグラデーションの上端ぶんだけを
-   切り出して敷くので、見出しと地の境目が出ない */
+   画面に貼りついた1枚として敷く。見出しは地の色を持たず透けるだけなので、
+   スマホではこの1枚がそのまま見えていて、境目は最初から出ない
+   （PCで見出しを貼りつける時だけ、下の900px以上の指定で同じ絵柄を切り出している） */
 [data-theme="deepsea"] body::before{content:'';position:fixed;inset:0;z-index:-1;
   background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%)}
-[data-theme="deepsea"] .sticky-header{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
-/* 引っ張って戻る時は、ヘッダーの模様のズレ直しも同じ速さで戻す */
-.sticky-header.bg-ease{transition:background-position .25s ease}
 /* ボタン類もカードと同じ青。地に溶けないよう白い線と白い文字で立たせる */
 [data-theme="deepsea"] .btn{background:#007FFF;border-color:rgba(255,255,255,.6);color:#fff}
 /* 追加ボタンだけ黒。検索欄と同じで、青の世界からくり抜かれたように見せる */
@@ -458,7 +462,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .layout{display:flex;height:100vh;align-items:stretch}
   .left-col{flex:1 1 50%;min-width:0;height:100vh;overflow-y:auto;border-right:0.5px solid var(--border);scrollbar-width:none}
   .left-col::-webkit-scrollbar{display:none}
-  .left-col .sticky-header{max-width:none;margin:0;padding-top:20px}
+  /* PCは一覧だけが独立して縦に流れるので、見出しはその中で上に貼りつける。
+     カードが下を通るぶん、地の色（深海なら地と同じ絵柄の上端）も要る */
+  .left-col .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg3);max-width:none;margin:0;padding-top:20px}
+  [data-theme="deepsea"] .left-col .sticky-header{
+    background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) top/100% 100vh no-repeat}
   /* 一番下のカードが画面の底に貼りつかないよう、下に余白を持たせる
      （j/kで送った時も最後の1枚が窮屈にならない） */
   .left-col .app{max-width:none;margin:0;padding-bottom:96px}
@@ -1611,13 +1619,15 @@ function _jkMove(dir) {
 }
 // 選んだカードを画面が追いかける。上下どちらにはみ出しても、
 // はみ出したぶんだけ動かして端に貼りつける（真ん中に飛ばしたり、
-// 見えている時に動かしたりはしない）。上端は見出しの帯に隠れる分だけ余計に避ける
+// 見えている時に動かしたりはしない）。
+// 上端で避ける量は、その画面で「動かないまま上に居座っているもの」の高さ。
+// PCは貼りついた見出し、スマホは見出しも一緒に流れるので時計の帯だけ
 function _jkScrollFollow(el) {
-  var header = document.querySelector('.sticky-header');
-  var headH = header ? header.getBoundingClientRect().height : 0;
   var pad = 8;
   var r = el.getBoundingClientRect();
   if (_isDesktop()) {
+    var header = document.querySelector('.sticky-header');
+    var headH = header ? header.getBoundingClientRect().height : 0;
     var col = document.getElementById('left-col');
     if (!col) return;
     var cr = col.getBoundingClientRect();
@@ -1625,7 +1635,9 @@ function _jkScrollFollow(el) {
     if (r.top < top) col.scrollTop -= (top - r.top);
     else if (r.bottom > bottom) col.scrollTop += (r.bottom - bottom);
   } else {
-    var top2 = headH + pad, bottom2 = window.innerHeight - pad;
+    var veil = document.querySelector('.status-veil');
+    var veilH = veil ? veil.getBoundingClientRect().height : 0;
+    var top2 = veilH + pad, bottom2 = window.innerHeight - pad;
     if (r.top < top2) window.scrollBy(0, r.top - top2);
     else if (r.bottom > bottom2) window.scrollBy(0, r.bottom - bottom2);
   }
@@ -2188,23 +2200,14 @@ var _ptr = { startX: 0, startY: 0, active: false, pulling: false, dist: 0, busy:
 // 引っ張りに合わせて動かす、ページの中身そのもの
 var _ptrPage = document.getElementById('left-col');
 
-// ヘッダーの地は、画面に貼りついた地と同じ絵柄を上端ぶんだけ切り出したもの。
-// ヘッダーが動くと絵柄も一緒に動いてしまって継ぎ目が出るので、
-// 動いたぶんだけ模様を逆に送り返して、後ろの地とつなぎ直す
-var _hdrEl = document.querySelector('.sticky-header');
-var _hdrCollapse = 0;   // 下スクロールで隠れている量
-var _hdrPull = 0;       // 引っ張りで下がっている量
-function _syncHeaderBg() {
-  if (_hdrEl) _hdrEl.style.backgroundPositionY = (_hdrCollapse - _hdrPull) + 'px';
-}
+// 見出しは地の色を持たず後ろの地がそのまま透けるので、引っ張って動かしても
+// 絵柄がズレない。以前あった、動いたぶん模様を送り返す処理はもう要らない。
 
 function _ptrDraw(dist) {
   _ptrEl.classList.remove('ease');
   _ptrPage.classList.remove('ease');
-  if (_hdrEl) _hdrEl.classList.remove('bg-ease');
   // ページの中身を丸ごと下げて、空いた隙間にスピナーを置く
   _ptrPage.style.transform = 'translateY(' + dist + 'px)';
-  _hdrPull = dist; _syncHeaderBg();
   _ptrEl.style.opacity = Math.min(1, dist / PTR_TRIGGER);
   _ptrEl.style.transform = 'translateY(' + (dist / 2 - 8) + 'px)';
   // 引いた量に合わせてスピナーも1コマずつ回す（離す前から反応している感じを出す）
@@ -2218,8 +2221,6 @@ function _ptrReset() {
   _ptrEl.firstElementChild.style.transform = '';
   _ptrPage.classList.add('ease');
   _ptrPage.style.transform = '';
-  if (_hdrEl) _hdrEl.classList.add('bg-ease');
-  _hdrPull = 0; _syncHeaderBg();
 }
 function _ptrCanStart() {
   return !_isDesktop()
@@ -2271,8 +2272,6 @@ document.addEventListener('touchend', function() {
   _ptrEl.classList.add('spin');
   _ptrPage.classList.add('ease');
   _ptrPage.style.transform = 'translateY(' + PTR_TRIGGER + 'px)';
-  if (_hdrEl) _hdrEl.classList.add('bg-ease');
-  _hdrPull = PTR_TRIGGER; _syncHeaderBg();
   location.reload();
 }, { passive: true });
 
@@ -2522,28 +2521,9 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
   setTimeout(function() { clearInterval(iv); }, 600);
 });
 
-
-// 一覧を下スクロール（指を上へ）するとヘッダーが隠れ、上スクロールで戻る。
-// 一気に消さず、スクロールした量ぶんだけ動かすので指の動きに追従する。
-(function() {
-  var header = document.querySelector('.sticky-header');
-  var H = header.offsetHeight;      // 隠れる量の上限＝ヘッダーの高さ
-  var off = 0;                      // 今どれだけ隠れているか
-  var lastY = window.scrollY;
-  // タブが増えて折り返すなどで高さが変わっても追従する
-  if (window.ResizeObserver) new ResizeObserver(function() { H = header.offsetHeight; }).observe(header);
-
-  window.addEventListener('scroll', function() {
-    if (_isDesktop() || document.body.classList.contains('mobile-detail-open')) return;
-    var y = window.scrollY;
-    var d = y - lastY;
-    lastY = y;
-    if (y <= 0) off = 0;            // 一番上まで戻ったら必ず出す
-    else off = Math.min(Math.max(off + d, 0), H);
-    header.style.transform = off ? 'translateY(' + (-off) + 'px)' : '';
-    _hdrCollapse = off; _syncHeaderBg();
-  }, { passive: true });
-})();
+// 見出しをスクロールに合わせて手で動かす処理は、昔ヘッダーを画面に固定していた
+// 頃の名残なので消した。今はカードと同じ流れに置いてあり、ブラウザが両方まとめて
+// 動かすので、ズレようがない。
 
 // ==== 明るい/暗い(海の中)/暗い(ふつう) の切り替え ====
 // 初期値は head の中でOSの設定から決めてある。ここから先は見出しのタップで上書きできる。
