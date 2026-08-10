@@ -431,10 +431,15 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 詳細画面：カードの枠をなくして地の色に馴染ませ、タイムスタンプを一番上に出す。
      .card は詳細画面でしか使っていないので、一覧側には影響しない */
   .detail-pane .card{background:none;border:none;border-radius:0;padding:0;display:flex;flex-direction:column}
-  .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:10px}
+  .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:0}
   /* カテゴリの札とアイコンの間の空きが、一覧の「collection」にあたる
-     テーマ切り替えの押しどころ。押した時のiOSの灰色の点滅と文字選択は出さない */
-  .detail-pane .card-top{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+     テーマ切り替えの押しどころ。札の高さぶんだけだと細くて狙えないので、
+     日時との間と札の下のすき間を、余白ではなくこの行の内側として取り込んで
+     指1本ぶんの帯にする（見た目の間隔は今までと同じ）。
+     cursor:pointer はiOSに「ここは押せる場所」と分からせるために要る。
+     押した時の灰色の点滅と、指が滑った時の文字選択は出さない */
+  .detail-pane .card-top{margin-bottom:0;padding:10px 0 8px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
   /* 本文はスマホだけ大きくする（PCは14pxのまま）。
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
   /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
