@@ -246,6 +246,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="deepsea"] .card-editor .ProseMirror a, [data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
 [data-theme="deepsea"] .date-unrecovered, [data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
 [data-theme="deepsea"] .overlay, [data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
+/* 点滅する縦棒（カーソル）は、指定しないと文字と同じ色になる。深海は地が青いぶん
+   #dcdcdc のままだと灰色の細い棒に見えて、今どこを打っているのか分かりにくいので白にする */
+[data-theme="deepsea"] .card-editor .ProseMirror,
+[data-theme="deepsea"] input,
+[data-theme="deepsea"] textarea{caret-color:#fff}
 
 /* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
 .bottom-bar{display:none}
