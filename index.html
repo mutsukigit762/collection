@@ -2260,8 +2260,34 @@ document.addEventListener('touchstart', function(e) {
   _dsStartY = e.touches[0].clientY;
   _dsFromTop = _dsAtTop();             // 戻る判定は、一番上から引き始めた時だけ認める
   _dsDir = null;
+  _dsLockV = false;
   _dsTracking = true;
 }, { passive: true });
+
+// 横に払うと決まったら、そこから指を離すまで縦のスクロールを渡さない。
+// 渡したままだと、払っている間に本文が上下にもズレて気持ち悪い。
+// そのためにはブラウザに「この指の動きは自分が引き取る」と言える形で
+// 見張る必要がある（passive:false）。ただしこれはページ全体に付けると
+// スクロール全部が重くなるので、詳細画面の中だけに絞ってある
+var _dsLockV = false;
+var _dsPane = document.getElementById('detail-pane');
+if (_dsPane) _dsPane.addEventListener('touchmove', function(e) {
+  // 横と決まった後。隣へ流れ始めた後もこのまま押さえ続ける
+  if (_dsLockV) { if (e.cancelable) e.preventDefault(); return; }
+  if (!_dsTracking || _dsDir) return;
+  if (_dsHasActiveSelection()) return;
+  var dx = e.touches[0].clientX - _dsStartX;
+  var dy = e.touches[0].clientY - _dsStartY;
+  var ax = Math.abs(dx), ay = Math.abs(dy);
+  // 下の見張りと同じ物差しで、横かどうかだけを一足先に見る。
+  // ここで押さえておかないと、向きが決まったフレームの縦ズレが残る
+  if (ax < DS_DECIDE && ay < DS_DECIDE) return;
+  if (ax > ay * DS_SLANT) {
+    _dsLockV = true;
+    if (e.cancelable) e.preventDefault();
+  }
+}, { passive: false });
+
 document.addEventListener('touchmove', function(e) {
   if (!_dsTracking) return;
   if (_dsHasActiveSelection()) { _dsTracking = false; return; } // 選択ハンドルのドラッグ中は判定しない
@@ -2291,6 +2317,7 @@ document.addEventListener('touchmove', function(e) {
 function _dsEnd() {
   _dsTracking = false;
   _dsDir = null;
+  _dsLockV = false;      // 指が離れたので、縦のスクロールをブラウザに返す
   // 払ったのに隣が無かった時など、流れが始まっていなければここで元に戻す。
   // 流れている最中は、終わりの後片付け（_dsSlideTo）に任せる
   if (!_dsSliding) document.body.classList.remove('ds-swiping');
