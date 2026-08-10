@@ -253,7 +253,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* 暗い地（deepsea・darkどちらも）で、変数を通していない色だけをまとめて差し替える */
 [data-theme="deepsea"] ::selection, [data-theme="dark"] ::selection{background:#4a443c;color:#fff}
 [data-theme="deepsea"] ::-moz-selection, [data-theme="dark"] ::-moz-selection{background:#4a443c;color:#fff}
-[data-theme="deepsea"] .card-editor .ProseMirror a, [data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
+[data-theme="dark"] .card-editor .ProseMirror a{color:#6ea8fe}   /* 元の青は暗すぎて読めない */
+/* 深海モードは地そのものが青いので、青いリンクだと海に溶けて見つからない。
+   青の反対側の黄にして、白の本文とも見分けが付くようにする */
+[data-theme="deepsea"] .card-editor .ProseMirror a{color:#ffe27a}
 [data-theme="deepsea"] .date-unrecovered, [data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
 [data-theme="deepsea"] .overlay, [data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
 /* 点滅する縦棒（カーソル）は、指定しないと文字と同じ色になる。深海は地が青いぶん
