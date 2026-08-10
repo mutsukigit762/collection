@@ -2543,6 +2543,12 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
 // ここでやるのは hide を付け外しする合図だけで、動き自体はCSSに任せている。
 // 昔はスクロールした量ぶんJSで動かしていたが、カードを描くのはブラウザ本体なので
 // JSが1コマ遅れ、それがガタつきとして見えていた。合図だけなら遅れようがない。
+// 隠れ始めるまでの粘りは、この2つの数字だけで決まる（時間ではなく動いた距離で見る）。
+// 小さいほど早く消え、大きいほど粘る
+var HDR_MOVE = 8;       // これだけ動いてから、隠すか出すかを判断する
+var HDR_FROM_TOP = 12;  // 画面の一番上からこれより下にいる時だけ隠す。
+                        // 0にしないのは、iOSの跳ね返りで上端が少し揺れる間に
+                        // 隠れたり出たりを繰り返さないため
 (function() {
   var header = document.querySelector('.sticky-header');
   if (!header) return;
@@ -2571,10 +2577,9 @@ document.getElementById('detail-pane').addEventListener('click', function(e) {
     var d = y - lastY;
     // 指のわずかな揺れで出たり隠れたりしないよう、ある程度動いてから判断する。
     // 足りない間は lastY を進めないので、少しずつの動きもいずれ積み上がって効く
-    if (Math.abs(d) < 8) return;
+    if (Math.abs(d) < HDR_MOVE) return;
     lastY = y;
-    // 見出しの高さぶんも進んでいないうちから隠すと、出た直後に消えて落ち着かない
-    setHidden(d > 0 && y > header.offsetHeight);
+    setHidden(d > 0 && y > HDR_FROM_TOP);
   }, { passive: true });
 })();
 
