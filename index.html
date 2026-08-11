@@ -1547,7 +1547,18 @@ async function deleteNote(id) {
   saveTrash(trash);
   notes = notes.filter(function(x){ return x.id !== id; });
   destroyEditor(id);
-  if (!_isDesktop()) closeMobileDetail();
+  // スマホでも詳細画面に留まったまま、次のメモへ移る。
+  // 一覧へ戻るのは、移る先がもう無くなった時だけ。
+  // （renderCards はスマホだと詳細画面に手を触れないので、ここで載せ替える）
+  if (!_isDesktop()) {
+    if (selectedCardId) {
+      renderDetail();
+      var pane = document.getElementById('detail-pane');
+      if (pane) pane.scrollTop = 0;
+    } else {
+      closeMobileDetail();
+    }
+  }
   render();
   try {
     await setDoc(doc(db, NOTES_COLL, id), { deleted: true, updatedAt: serverTimestamp() }, { merge: true });
