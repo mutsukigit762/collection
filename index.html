@@ -412,7 +412,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 @media(max-width:899px){
   body.mobile-detail-open .left-col{display:none}
   body.mobile-detail-open .bottom-bar{display:none}
-  body.mobile-detail-open .fab{display:none}
+  /* 新規作成ボタンは詳細画面でも出しっぱなしにする。
+     読んでいる邪魔をしないよう薄くして、詳細画面（z-index:60）より前に置く */
+  body.mobile-detail-open .fab{opacity:0.35;z-index:61}
   .detail-pane{
     display:block;
     position:fixed;inset:0;
@@ -1923,8 +1925,8 @@ var _lbVx = 0, _lbVy = 0;
 var _lbMoveT = 0, _lbMoveX = 0, _lbMoveY = 0;
 var _lbInertiaRAF = null;
 var LB_FLICK_MAX = 3;      // 速さの上限。これ以上は速すぎるので頭打ちにする
-var LB_FLICK_MIN = 0.5;    // これより遅ければ滑らせない（ゆっくり見回している時に勝手に動かないように）
-var LB_FRICTION = 0.93;    // 1フレームごとにこれだけ弱める（小さいほど早く止まる）
+var LB_FLICK_MIN = 0.35;   // これより遅ければ滑らせない（ゆっくり見回している時に勝手に動かないように）
+var LB_FRICTION = 0.96;    // 1フレームごとにこれだけ弱める（1に近いほどよく滑る）
 var _lbLastTapT = 0, _lbLastTapX = 0, _lbLastTapY = 0;
 var _lbMouseDown = false;
 // 指を動かしたのか、ただ叩いただけなのかの区別。
