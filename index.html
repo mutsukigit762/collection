@@ -402,6 +402,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 @media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
 .pv-selected .pv-cat{background:var(--bg3)}
 .pv-date{font-size:10px;color:var(--text3);white-space:nowrap}
+/* 一覧で、表が入っているメモに付ける目印 */
+.pv-table-mark{display:inline-flex;align-items:center;color:var(--text3);flex:0 0 auto}
+.pv-table-mark svg{width:13px;height:13px}
 .pv-row{display:flex;gap:8px;align-items:flex-start}
 .pv-thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;flex:0 0 auto}
 .pv-text{font-size:14px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
@@ -2374,13 +2377,17 @@ function cardPreviewHTML(n) {
   var plain = htmlToPlainText(n.body || '').trim();
   var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
   var thumb = m ? '<img class="pv-thumb" src="' + esc(m[1]) + '" loading="lazy">' : '';
+  // 表が入っているメモは、本文を字にすると行がつながって見分けが付かないので目印を出す
+  var tableMark = /<table[\s>]/i.test(n.body || '')
+    ? '<span class="pv-table-mark" title="表が入っている" aria-label="表が入っている">' + IC.table + '</span>' : '';
   var snippet = plain ? escAndHighlight(plain.slice(0, 300), searchQuery)
-    : (m ? '<span class="pv-muted">（画像）</span>' : '<span class="pv-muted">（空）</span>');
+    : (m ? '<span class="pv-muted">（画像）</span>'
+         : (tableMark ? '<span class="pv-muted">（表）</span>' : '<span class="pv-muted">（空）</span>'));
   var sel = n.id === selectedCardId ? ' pv-selected' : '';
   return '<div class="pv-row-wrap">'
     + '<button class="pv-delete-btn" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" aria-label="削除">' + IC.trash + '</button>'
     + '<div class="pv-item' + sel + '" data-id="' + n.id + '" onclick="onCardClick(\'' + n.id + '\')">'
-    + '<div class="pv-meta">' + catChipHTML(n)
+    + '<div class="pv-meta">' + catChipHTML(n) + tableMark
     + '<span class="pv-meta-right"><span class="pv-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>'
     + '<button class="pv-trash-pc" onclick="event.stopPropagation();deleteNote(\'' + n.id + '\')" title="ゴミ箱へ" aria-label="削除">' + IC.trash + '</button></span></div>'
     + '<div class="pv-row">' + thumb + '<div class="pv-text">' + snippet + '</div></div>'
