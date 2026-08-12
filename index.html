@@ -168,17 +168,21 @@ select.sort-btn{padding-right:10px}
 .tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
 .tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
 @media (hover:hover){.tb-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}}
-.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow:hidden}
-.lb-track{position:absolute;top:0;left:0;height:100%;display:flex;will-change:transform}
+/* touch-action:none：ピンチも指の動きも全部こっちで受け取る（ブラウザ任せの拡大を止める） */
+.img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow:hidden;touch-action:none}
+/* スライドは画面全体に広がるので、z-index を付けないと×ボタンや矢印がその下に隠れて押せなくなる */
+.lb-track{position:absolute;top:0;left:0;height:100%;display:flex;will-change:transform;z-index:1}
 .lb-slide{display:flex;align-items:center;justify-content:center;width:100vw;height:100%;box-sizing:border-box;padding:0 8px}
-.lb-slide img{max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none}
-.img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.img-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+.lb-slide img{max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}
+.img-modal-bg.lb-zoomed .lb-slide img{cursor:grab}
+.img-modal-bg.lb-zoomed .lb-slide img:active{cursor:grabbing}
+.img-modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.img-modal-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;z-index:2}
 @media (hover:hover){.img-modal-arrow:hover{background:rgba(255,255,255,0.3)}}
 .img-modal-arrow.prev{left:12px}
 .img-modal-arrow.next{right:12px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
-.img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px}
+.img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px;z-index:2}
 .card-date{font-size:11px;color:var(--text3);margin-top:6px}
 .date-unrecovered{color:#e11d48 !important;font-weight:600}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
@@ -947,11 +951,13 @@ function initEditor(id, body) {
       e.preventDefault();
       e.stopPropagation();
       if (document.activeElement) document.activeElement.blur();
-      var allImgs = Array.from(editorEl.querySelectorAll('img'))
-        .map(function(i){ return i.src; })
-        .filter(function(src){ return /^https?:\/\//.test(src); });
-      var idx = allImgs.indexOf(img.src);
-      _lbOpen(allImgs, idx < 0 ? 0 : idx);
+      // 同じ画像を2回貼っている時でも押した方が開くように、URLではなく要素で位置を探す
+      var imgEls = Array.from(editorEl.querySelectorAll('img'))
+        .filter(function(el){ return /^https?:\/\//.test(el.src); });
+      var idx = imgEls.indexOf(img);
+      // アップロード前などで一覧に入らない画像は、その1枚だけ開く（別の画像が開くのを防ぐ）
+      if (idx < 0) { _lbOpen([img.src], 0); return; }
+      _lbOpen(imgEls.map(function(el){ return el.src; }), idx);
     });
   }
 
@@ -1891,20 +1897,113 @@ var _lbBg = null;
 var _lbUrls = [];
 var _lbIdx = 0;
 var _lbTouchStartX = 0;
+var _lbTouchStartY = 0;
 var _lbTouchDx = 0;
 var _lbDragging = false;
+// 指を置いた直後はまだ縦横どっちの操作か分からないので、少し動かしてから決める。
+// 0＝未確定／1＝横に払っている（ページ送り）／2＝縦（無視する）
+var _lbAxis = 0;
+var _lbBounceTimer = null;
+
+// 拡大（ピンチ／ダブルタップ）の状態。今表示している1枚だけが持つ。
+var LB_MAX_SCALE = 4;
+var _lbScale = 1, _lbTx = 0, _lbTy = 0;
+var _lbPinching = false, _lbPanning = false;
+var _lbPinchStartDist = 0, _lbPinchStartScale = 1, _lbPinchLastCx = 0, _lbPinchLastCy = 0;
+var _lbPanStartX = 0, _lbPanStartY = 0, _lbPanStartTx = 0, _lbPanStartTy = 0;
+var _lbLastTapT = 0, _lbLastTapX = 0, _lbLastTapY = 0;
+var _lbMouseDown = false;
 
 var EASE = 'cubic-bezier(0.25,0.46,0.45,0.94)';
 
 function _lbTrack() { return _lbBg ? _lbBg.querySelector('.lb-track') : null; }
 
-function _lbSetPos(dx, animate) {
+function _lbSetPos(dx, animate, dur) {
   var track = _lbTrack();
   if (!track) return;
   var base = -_lbIdx * 100;
   var offset = dx ? (dx / window.innerWidth * 100) : 0;
-  track.style.transition = animate ? ('transform 0.32s ' + EASE) : 'none';
+  track.style.transition = animate ? ('transform ' + (dur || 0.32) + 's ' + EASE) : 'none';
   track.style.transform = 'translateX(' + (base + offset) + 'vw)';
+}
+
+// ここから拡大まわり ------------------------------------------------
+
+function _lbImg() {
+  if (!_lbBg) return null;
+  return _lbBg.querySelectorAll('.lb-slide img')[_lbIdx] || null;
+}
+
+function _lbApplyZoom(animate) {
+  var img = _lbImg();
+  if (!img) return;
+  img.style.transition = animate ? ('transform 0.25s ' + EASE) : 'none';
+  img.style.transform = 'translate(' + _lbTx + 'px,' + _lbTy + 'px) scale(' + _lbScale + ')';
+  if (_lbBg) _lbBg.classList.toggle('lb-zoomed', _lbScale > 1.02);
+}
+
+// 拡大した画像が画面から離れていかないように、はみ出している分までしか動かせなくする
+function _lbClamp() {
+  var img = _lbImg();
+  if (!img) return;
+  var maxX = Math.max(0, (img.offsetWidth * _lbScale - window.innerWidth) / 2);
+  var maxY = Math.max(0, (img.offsetHeight * _lbScale - window.innerHeight) / 2);
+  _lbTx = Math.min(maxX, Math.max(-maxX, _lbTx));
+  _lbTy = Math.min(maxY, Math.max(-maxY, _lbTy));
+}
+
+// (cx,cy) の位置を動かさないまま倍率だけ変える（指でつまんだ場所が逃げないように）
+function _lbZoomTo(scale, cx, cy) {
+  var s0 = _lbScale;
+  var s1 = Math.min(LB_MAX_SCALE, Math.max(1, scale));
+  var ox = window.innerWidth / 2, oy = window.innerHeight / 2;
+  _lbTx = (cx - ox) * (1 - s1 / s0) + _lbTx * s1 / s0;
+  _lbTy = (cy - oy) * (1 - s1 / s0) + _lbTy * s1 / s0;
+  _lbScale = s1;
+  _lbClamp();
+}
+
+function _lbResetZoom(animate) {
+  _lbScale = 1; _lbTx = 0; _lbTy = 0;
+  _lbApplyZoom(animate);
+}
+
+// 指を離した時の後始末。ほぼ等倍まで縮めていたら等倍に吸い付かせる
+function _lbSettleZoom() {
+  if (_lbScale <= 1.02) { _lbResetZoom(true); return; }
+  _lbClamp();
+  _lbApplyZoom(true);
+}
+
+function _lbToggleZoomAt(cx, cy) {
+  if (_lbScale > 1.02) _lbResetZoom(true);
+  else { _lbZoomTo(2.5, cx, cy); _lbApplyZoom(true); }
+}
+
+function _lbMouseUp() { _lbMouseDown = false; }
+
+function _lbTouchDist(t) {
+  return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+}
+
+function _lbStartPan(t) {
+  _lbPanning = true;
+  _lbPanStartX = t.clientX; _lbPanStartY = t.clientY;
+  _lbPanStartTx = _lbTx; _lbPanStartTy = _lbTy;
+}
+
+// 画像の上を素早く2回叩いたら拡大／等倍を切り替える
+function _lbTapCheck(e) {
+  var t = e.changedTouches && e.changedTouches[0];
+  if (!t || !e.target.closest || !e.target.closest('.lb-slide img')) return;
+  var now = Date.now();
+  if (now - _lbLastTapT < 300 && Math.abs(t.clientX - _lbLastTapX) < 30 && Math.abs(t.clientY - _lbLastTapY) < 30) {
+    _lbLastTapT = 0;
+    e.preventDefault();
+    _lbToggleZoomAt(t.clientX, t.clientY);
+  } else {
+    _lbLastTapT = now; _lbLastTapX = t.clientX; _lbLastTapY = t.clientY;
+  }
 }
 
 function _lbUpdateUI() {
@@ -1918,20 +2017,27 @@ function _lbUpdateUI() {
 
 function _lbGo(dir) {
   var newIdx = _lbIdx + dir;
+  // これ以上めくれない時は、ちょっと押してから戻す（端まで来たのが指で分かるように）
   if (newIdx < 0 || newIdx >= _lbUrls.length) {
-    _lbSetPos(dir > 0 ? -18 : 18, true);
-    setTimeout(function(){ _lbSetPos(0, true); }, 20);
+    clearTimeout(_lbBounceTimer);
+    _lbSetPos(dir > 0 ? -28 : 28, true, 0.13);
+    _lbBounceTimer = setTimeout(function(){ _lbSetPos(0, true, 0.22); }, 140);
     return;
   }
+  _lbResetZoom(true);
   _lbIdx = newIdx;
   _lbSetPos(0, true);
   _lbUpdateUI();
 }
 
 function _lbClose() {
+  clearTimeout(_lbBounceTimer);
   if (_lbBg) { _lbBg.remove(); _lbBg = null; }
+  _lbScale = 1; _lbTx = 0; _lbTy = 0;
+  _lbPinching = false; _lbPanning = false; _lbDragging = false; _lbMouseDown = false;
   document.body.style.overflow = '';
   document.removeEventListener('keydown', _lbKeyHandler);
+  window.removeEventListener('mouseup', _lbMouseUp);
 }
 
 function _lbKeyHandler(e) {
@@ -1971,25 +2077,85 @@ function _lbOpen(urls, idx) {
   if (next) next.onclick = function(e){ e.stopPropagation(); _lbGo(1); };
 
   bg.addEventListener('touchstart', function(e){
+    clearTimeout(_lbBounceTimer);
+    // 指2本＝つまんで拡大。ページ送りの方は止める
+    if (e.touches.length >= 2) {
+      _lbDragging = false; _lbPanning = false; _lbAxis = 0;
+      _lbPinching = true;
+      _lbPinchStartDist = _lbTouchDist(e.touches);
+      _lbPinchStartScale = _lbScale;
+      _lbPinchLastCx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      _lbPinchLastCy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      return;
+    }
+    // 拡大中の指1本は、ページ送りではなく画像を動かす操作
+    if (_lbScale > 1.02) { _lbStartPan(e.touches[0]); return; }
     _lbTouchStartX = e.touches[0].clientX;
+    _lbTouchStartY = e.touches[0].clientY;
     _lbTouchDx = 0;
+    _lbAxis = 0;
     _lbDragging = true;
     var track = _lbTrack();
     if (track) track.style.transition = 'none';
-  }, { passive: true });
+  }, { passive: false });
 
   bg.addEventListener('touchmove', function(e){
+    if (_lbPinching && e.touches.length >= 2) {
+      e.preventDefault();
+      var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      // 2本指ごと平行に動かした分は、そのまま画像を動かす
+      _lbTx += cx - _lbPinchLastCx;
+      _lbTy += cy - _lbPinchLastCy;
+      _lbPinchLastCx = cx; _lbPinchLastCy = cy;
+      var d = _lbTouchDist(e.touches);
+      if (_lbPinchStartDist > 0) _lbZoomTo(_lbPinchStartScale * d / _lbPinchStartDist, cx, cy);
+      _lbApplyZoom(false);
+      return;
+    }
+    if (_lbPanning) {
+      e.preventDefault();
+      _lbTx = _lbPanStartTx + (e.touches[0].clientX - _lbPanStartX);
+      _lbTy = _lbPanStartTy + (e.touches[0].clientY - _lbPanStartY);
+      _lbClamp();
+      _lbApplyZoom(false);
+      return;
+    }
     if (!_lbDragging) return;
-    _lbTouchDx = e.touches[0].clientX - _lbTouchStartX;
+    var dx = e.touches[0].clientX - _lbTouchStartX;
+    var dy = e.touches[0].clientY - _lbTouchStartY;
+    // 10px 動いた時点で縦か横かを決める。縦と決まったら以降は何もしない
+    if (_lbAxis === 0) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      _lbAxis = Math.abs(dx) > Math.abs(dy) ? 1 : 2;
+    }
+    if (_lbAxis !== 1) return;
+    e.preventDefault();
+    _lbTouchDx = dx;
     var atStart = _lbIdx === 0 && _lbTouchDx > 0;
     var atEnd = _lbIdx === _lbUrls.length - 1 && _lbTouchDx < 0;
     var resistance = (atStart || atEnd) ? 0.2 : 1;
     _lbSetPos(_lbTouchDx * resistance, false);
-  }, { passive: true });
+  }, { passive: false });
 
   bg.addEventListener('touchend', function(e){
-    if (!_lbDragging) return;
+    if (_lbPinching) {
+      // 指が1本だけ残ったら、そのまま画像を動かす操作に引き継ぐ
+      if (e.touches.length >= 1) { _lbPinching = false; _lbStartPan(e.touches[0]); return; }
+      _lbPinching = false;
+      _lbSettleZoom();
+      return;
+    }
+    if (_lbPanning) {
+      if (e.touches.length >= 1) return;
+      _lbPanning = false;
+      _lbSettleZoom();
+      _lbTapCheck(e);
+      return;
+    }
+    if (!_lbDragging) { _lbTapCheck(e); return; }
     _lbDragging = false;
+    if (_lbAxis !== 1) { _lbTapCheck(e); return; }
     var threshold = window.innerWidth * 0.15;
     if (_lbTouchDx < -threshold) {
       _lbGo(1);
@@ -1998,25 +2164,50 @@ function _lbOpen(urls, idx) {
     } else {
       _lbSetPos(0, true);
     }
-  }, { passive: true });
+  }, { passive: false });
+
+  // パソコン用：ダブルクリックで拡大、ホイールで倍率、拡大中はドラッグで動かす
+  bg.addEventListener('dblclick', function(e){
+    if (!e.target.closest('.lb-slide img')) return;
+    e.preventDefault();
+    _lbToggleZoomAt(e.clientX, e.clientY);
+  });
+
+  bg.addEventListener('wheel', function(e){
+    if (!e.target.closest('.lb-slide img') && _lbScale <= 1.02) return;
+    e.preventDefault();
+    _lbZoomTo(_lbScale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
+    _lbApplyZoom(false);
+    if (_lbScale <= 1.02) _lbResetZoom(false);
+  }, { passive: false });
+
+  bg.addEventListener('mousedown', function(e){
+    if (_lbScale <= 1.02 || !e.target.closest('.lb-slide img')) return;
+    e.preventDefault();
+    _lbMouseDown = true;
+    _lbPanStartX = e.clientX; _lbPanStartY = e.clientY;
+    _lbPanStartTx = _lbTx; _lbPanStartTy = _lbTy;
+  });
+
+  bg.addEventListener('mousemove', function(e){
+    if (!_lbMouseDown) return;
+    _lbTx = _lbPanStartTx + (e.clientX - _lbPanStartX);
+    _lbTy = _lbPanStartTy + (e.clientY - _lbPanStartY);
+    _lbClamp();
+    _lbApplyZoom(false);
+  });
+
+  window.addEventListener('mouseup', _lbMouseUp);
 
   _lbBg = bg;
+  _lbScale = 1; _lbTx = 0; _lbTy = 0;
+  _lbPinching = false; _lbPanning = false; _lbDragging = false; _lbMouseDown = false;
   document.body.style.overflow = 'hidden';
   document.body.appendChild(bg);
   _lbSetPos(0, false);
   _lbUpdateUI();
   document.addEventListener('keydown', _lbKeyHandler);
 }
-
-function openImgModal(src, cardId) {
-  var card = document.getElementById('card-' + cardId);
-  var urls = card
-    ? Array.from(card.querySelectorAll('.card-body-view img')).map(function(i){ return i.src; })
-    : [src];
-  var idx = urls.indexOf(src);
-  _lbOpen(urls, idx < 0 ? 0 : idx);
-}
-window.openImgModal = openImgModal;
 
 function renderTabs() {
   var t = document.getElementById('tabs');
