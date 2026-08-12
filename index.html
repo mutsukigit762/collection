@@ -1913,6 +1913,13 @@ var _lbScale = 1, _lbTx = 0, _lbTy = 0;
 var _lbPinching = false, _lbPanning = false;
 var _lbPinchStartDist = 0, _lbPinchStartScale = 1, _lbPinchLastCx = 0, _lbPinchLastCy = 0;
 var _lbPanStartX = 0, _lbPanStartY = 0, _lbPanStartTx = 0, _lbPanStartTy = 0;
+// 指を離した後に少しだけ滑らせるための、直前の指の速さ（1ミリ秒あたり何px動いたか）
+var _lbVx = 0, _lbVy = 0;
+var _lbMoveT = 0, _lbMoveX = 0, _lbMoveY = 0;
+var _lbInertiaRAF = null;
+var LB_FLICK_MAX = 3;      // 速さの上限。これ以上は速すぎるので頭打ちにする
+var LB_FLICK_MIN = 0.5;    // これより遅ければ滑らせない（ゆっくり見回している時に勝手に動かないように）
+var LB_FRICTION = 0.93;    // 1フレームごとにこれだけ弱める（小さいほど早く止まる）
 var _lbLastTapT = 0, _lbLastTapX = 0, _lbLastTapY = 0;
 var _lbMouseDown = false;
 // 指を動かしたのか、ただ叩いただけなのかの区別。
@@ -1991,13 +1998,63 @@ function _lbZoomTo(scale, cx, cy) {
 }
 
 function _lbResetZoom(animate) {
+  _lbStopInertia();
   _lbScale = 1; _lbTx = 0; _lbTy = 0;
   _lbApplyZoom(animate);
 }
 
 // 指を離した時の後始末。ほぼ等倍まで縮めていたら等倍に吸い付かせる
+function _lbStopInertia() {
+  if (_lbInertiaRAF) { cancelAnimationFrame(_lbInertiaRAF); _lbInertiaRAF = null; }
+  _lbVx = 0; _lbVy = 0;
+}
+
+// 指の動きを記録しておく。離した時にこの速さで滑らせる
+function _lbTrackSpeed(x, y) {
+  var now = performance.now();
+  var dt = now - _lbMoveT;
+  if (_lbMoveT && dt > 0 && dt < 100) {
+    // 直前の値と混ぜて均す。1回のブレでいきなり飛ばないように
+    _lbVx = _lbVx * 0.3 + ((x - _lbMoveX) / dt) * 0.7;
+    _lbVy = _lbVy * 0.3 + ((y - _lbMoveY) / dt) * 0.7;
+  }
+  _lbMoveT = now; _lbMoveX = x; _lbMoveY = y;
+}
+
+// 指を離した後の滑り。始めたら true を返す
+function _lbStartInertia() {
+  _lbStopInertia_keepSpeed();
+  var sp = Math.hypot(_lbVx, _lbVy);
+  if (sp < LB_FLICK_MIN) return false;
+  if (sp > LB_FLICK_MAX) { _lbVx *= LB_FLICK_MAX / sp; _lbVy *= LB_FLICK_MAX / sp; }
+  var last = performance.now();
+  var step = function(now) {
+    var dt = Math.min(32, now - last);   // タブが止まっていた時に飛びすぎないよう頭打ち
+    last = now;
+    _lbTx += _lbVx * dt;
+    _lbTy += _lbVy * dt;
+    var bx = _lbTx, by = _lbTy;
+    _lbClamp();
+    if (_lbTx !== bx) _lbVx = 0;   // 端に着いたら、その向きはそこで止める
+    if (_lbTy !== by) _lbVy = 0;
+    _lbApplyZoom(false);
+    var decay = Math.pow(LB_FRICTION, dt / 16);
+    _lbVx *= decay; _lbVy *= decay;
+    if (Math.hypot(_lbVx, _lbVy) < 0.02) { _lbInertiaRAF = null; _lbVx = 0; _lbVy = 0; return; }
+    _lbInertiaRAF = requestAnimationFrame(step);
+  };
+  _lbInertiaRAF = requestAnimationFrame(step);
+  return true;
+}
+
+// 走っている滑りだけ止めて、速さは残す（滑りを始める時の後始末用）
+function _lbStopInertia_keepSpeed() {
+  if (_lbInertiaRAF) { cancelAnimationFrame(_lbInertiaRAF); _lbInertiaRAF = null; }
+}
+
 function _lbSettleZoom() {
   if (_lbScale <= 1.02) { _lbResetZoom(true); return; }
+  if (_lbStartInertia()) return;   // 滑り出したら、位置合わせはそちらに任せる
   _lbClamp();
   _lbApplyZoom(true);
 }
@@ -2014,9 +2071,11 @@ function _lbTouchDist(t) {
 }
 
 function _lbStartPan(t) {
+  _lbStopInertia();          // 滑っている途中で指を置いたら、そこで止める
   _lbPanning = true;
   _lbPanStartX = t.clientX; _lbPanStartY = t.clientY;
   _lbPanStartTx = _lbTx; _lbPanStartTy = _lbTy;
+  _lbMoveT = 0; _lbMoveX = t.clientX; _lbMoveY = t.clientY;
 }
 
 // 画像の上を素早く2回叩いたら拡大／等倍を切り替える
@@ -2060,6 +2119,7 @@ function _lbGo(dir) {
 function _lbClose() {
   clearTimeout(_lbBounceTimer);
   clearTimeout(_lbSuppressTimer);
+  _lbStopInertia();
   if (_lbBg) { _lbBg.remove(); _lbBg = null; }
   _lbScale = 1; _lbTx = 0; _lbTy = 0;
   _lbPinching = false; _lbPanning = false; _lbDragging = false; _lbMouseDown = false;
@@ -2110,6 +2170,7 @@ function _lbOpen(urls, idx) {
 
   bg.addEventListener('touchstart', function(e){
     clearTimeout(_lbBounceTimer);
+    _lbStopInertia();
     if (e.touches.length === 1) _lbMoved = false;
     // 指2本＝つまんで拡大。ページ送りの方は止める
     if (e.touches.length >= 2) {
@@ -2152,6 +2213,7 @@ function _lbOpen(urls, idx) {
       var pdx = e.touches[0].clientX - _lbPanStartX;
       var pdy = e.touches[0].clientY - _lbPanStartY;
       if (Math.abs(pdx) > 6 || Math.abs(pdy) > 6) _lbMarkMoved();
+      _lbTrackSpeed(e.touches[0].clientX, e.touches[0].clientY);
       _lbTx = _lbPanStartTx + pdx;
       _lbTy = _lbPanStartTy + pdy;
       _lbClamp();
@@ -2217,6 +2279,7 @@ function _lbOpen(urls, idx) {
   bg.addEventListener('wheel', function(e){
     if (!e.target.closest('.lb-slide img') && _lbScale <= 1.02) return;
     e.preventDefault();
+    _lbStopInertia();
     _lbZoomTo(_lbScale * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
     _lbApplyZoom(false);
     if (_lbScale <= 1.02) _lbResetZoom(false);
@@ -2225,6 +2288,7 @@ function _lbOpen(urls, idx) {
   bg.addEventListener('mousedown', function(e){
     if (_lbScale <= 1.02 || !e.target.closest('.lb-slide img')) return;
     e.preventDefault();
+    _lbStopInertia();
     _lbMouseDown = true;
     _lbPanStartX = e.clientX; _lbPanStartY = e.clientY;
     _lbPanStartTx = _lbTx; _lbPanStartTy = _lbTy;
