@@ -423,10 +423,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
        指の動きを横取りせずに済ませるための指定 */
     overscroll-behavior-y:contain;
     /* 1行が長すぎると目が戻りにくいので、左右の余白を広げて20字前後で折り返させる。
-       下を大きく空けているのは、最後の行を画面の上の方まで持ち上げて
-       読めるようにするため。本文が短いうちは画面に収まるので、
-       余計なスクロールは生まれない */
-    padding:calc(12px + env(safe-area-inset-top)) 22px 80vh;
+       下を空けているのは、最後の行を画面の上の方まで持ち上げて読めるようにするため。
+       読んでいるだけの時は純正メモと同じくらい（最後の行が画面の真ん中あたりで
+       止まる高さ）にしてある。打ち始めるとキーボードで下半分が隠れるので、
+       その時だけ下の余白を増やす（body.detail-editing）。
+       本文が短いうちは画面に収まるので、余計なスクロールは生まれない */
+    padding:calc(12px + env(safe-area-inset-top)) 22px 50vh;
     /* 下から せり上がって開き、下へ 沈んで閉じる。
        戻る操作が下へ引くしぐさなので、閉じる向きもそれに合わせている */
     transform:translateY(100%);
@@ -440,6 +442,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transform:translateY(0);
     pointer-events:auto;
   }
+  /* 打っている間だけ。キーボードで隠れるぶんを足して、
+     打っている行がキーボードの上に出るようにする */
+  body.detail-editing .detail-pane{padding-bottom:80vh}
   /* 隣のメモへ横に流れる時、出ていく側として一瞬だけ置く写し。
      見た目だけの置き物なので、指も文字選択も通さない。
      入ってくる本体（z-index:60）より一段下に敷く */
@@ -2466,9 +2471,27 @@ window.onCardClick = onCardClick;
 function selectCard(id) { openCard(id); }
 window.selectCard = selectCard;
 
+// 本文を打ち始めた／打ち終えたを見て、下の余白の広さを切り替える。
+// 読んでいるだけの時に余白が広いと、最後の行が画面の上まで行きすぎる
+function _detailEditing(on) {
+  document.body.classList.toggle('detail-editing', !!on);
+}
+document.addEventListener('focusin', function(e) {
+  if (e.target.closest && e.target.closest('.detail-pane .ProseMirror')) _detailEditing(true);
+});
+document.addEventListener('focusout', function(e) {
+  if (!(e.target.closest && e.target.closest('.detail-pane .ProseMirror'))) return;
+  // 次にどこへ移るかが決まってから見る（本文の中で移っただけなら、そのまま）
+  setTimeout(function() {
+    var a = document.activeElement;
+    if (!a || !a.closest || !a.closest('.detail-pane .ProseMirror')) _detailEditing(false);
+  }, 0);
+});
+
 function closeMobileDetail() {
   var wasOpen = document.body.classList.contains('mobile-detail-open');
   document.body.classList.remove('mobile-detail-open');
+  _detailEditing(false);
   if (wasOpen) _refreshPreviewCard(selectedCardId);
   // 一覧が再表示されたらスクロール位置を戻す（描画確定後に）
   if (wasOpen && !_isDesktop()) {
