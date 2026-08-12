@@ -172,6 +172,8 @@ select.sort-btn{padding-right:10px}
 .img-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow:hidden;touch-action:none}
 /* スライドは画面全体に広がるので、z-index を付けないと×ボタンや矢印がその下に隠れて押せなくなる */
 .lb-track{position:absolute;top:0;left:0;height:100%;display:flex;will-change:transform;z-index:1}
+/* ノッチの高さを測るためだけの、見えない物差し */
+.lb-safe-probe{position:absolute;top:0;left:0;width:0;height:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden}
 .lb-slide{display:flex;align-items:center;justify-content:center;width:100vw;height:100%;box-sizing:border-box;padding:0 8px}
 .lb-slide img{max-width:100%;max-height:82vh;border-radius:8px;display:block;user-select:none;-webkit-user-drag:none;transform-origin:center center;will-change:transform}
 .img-modal-bg.lb-zoomed .lb-slide img{cursor:grab}
@@ -1957,13 +1959,24 @@ function _lbApplyZoom(animate) {
 }
 
 // 拡大した画像が画面から離れていかないように、はみ出している分までしか動かせなくする
+// 画面の一番上は時計やアンテナが出ている帯（ノッチ）に隠れる。
+// その帯の高さを実際に測る（端末や向きで変わるので、その都度）
+function _lbSafeTop() {
+  if (!_lbBg) return 0;
+  var probe = _lbBg.querySelector('.lb-safe-probe');
+  return probe ? probe.getBoundingClientRect().height : 0;
+}
+
 function _lbClamp() {
   var img = _lbImg();
   if (!img) return;
   var maxX = Math.max(0, (img.offsetWidth * _lbScale - window.innerWidth) / 2);
   var maxY = Math.max(0, (img.offsetHeight * _lbScale - window.innerHeight) / 2);
+  // 縦にはみ出すほど拡大している時は、ノッチの分だけ余分に下げられるようにする。
+  // ここを足さないと、画像の上の方がノッチの裏に入ったまま出てこない
+  var extra = maxY > 0 ? _lbSafeTop() : 0;
   _lbTx = Math.min(maxX, Math.max(-maxX, _lbTx));
-  _lbTy = Math.min(maxY, Math.max(-maxY, _lbTy));
+  _lbTy = Math.min(maxY + extra, Math.max(-maxY, _lbTy));
 }
 
 // (cx,cy) の位置を動かさないまま倍率だけ変える（指でつまんだ場所が逃げないように）
@@ -2076,7 +2089,8 @@ function _lbOpen(urls, idx) {
   }
   trackHTML += '</div>';
 
-  bg.innerHTML = '<button class="img-modal-close" title="閉じる">×</button>'
+  bg.innerHTML = '<div class="lb-safe-probe"></div>'
+    + '<button class="img-modal-close" title="閉じる">×</button>'
     + (urls.length > 1 ? '<button class="img-modal-arrow prev">‹</button>' : '')
     + trackHTML
     + (urls.length > 1 ? '<button class="img-modal-arrow next">›</button>' : '')
