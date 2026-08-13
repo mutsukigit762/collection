@@ -53,6 +53,10 @@ html{overflow-x:hidden}
      --bg はカードと詳細画面の地、--bg3 は画面の地でそれより一段濃い */
   --bg:#fbe7ec;--bg2:#f6dae1;--bg3:#f3ccd6;
   --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  /* スクロールバーの色。一覧（ページそのもののスクロール）は端末が地の色から
+     決めてくれるが、詳細画面のように箱の中だけスクロールする所は白いまま出てくる。
+     推測に任せず、ここで直に指定する */
+  --bar:rgba(0,0,0,0.38);
   /* メモ本文だけの色。真っ黒だと目が疲れるので、純正メモの実測値(#454545)に合わせる。
      ボタンや見出しの黒は --text のまま */
   --text-body:#454545;
@@ -69,6 +73,7 @@ html{overflow-x:hidden}
    海だけの装飾（青いカード・グラデーションなど）は下の方で deepsea だけに絞って重ねている */
 :root[data-theme="deepsea"], :root[data-theme="dark"]{
   color-scheme:dark;   /* 暗い地に合わせて、スクロールバーも明るい色にする */
+  --bar:rgba(255,255,255,0.45);
   --bg:#2c2c2e;      /* パネルやモーダルなど、地より一段浮いた面（一覧カードは青を別指定） */
   --bg2:#3a3a3c;     /* カテゴリの札などの薄い塗り */
   --bg3:#1c1c1e;     /* 画面の地。暗めのグレー */
@@ -447,6 +452,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transform:translateY(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
+    /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める */
+    color-scheme:inherit;
+    scrollbar-color:var(--bar) transparent;
   }
   /* 暗い時は地を敷かず、一覧と同じ海のグラデーション（body::before）を透かす。
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
