@@ -452,7 +452,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transform:translateY(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
-    /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める */
+    /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める。
+       ただし隣のメモへ流れた後だけは、iOSがこの指定を見失って白いバーに戻る。
+       色を入れ直す・バーを作り直させる、どちらも効かなかった。
+       原因は、切り替えの時にこの箱そのものを左右に動かしていること。
+       直すなら中身だけを動かす作りに変えることになるので、今はそのままにしている */
     color-scheme:inherit;
     scrollbar-color:var(--bar) transparent;
   }
@@ -2602,21 +2606,6 @@ function _dsMakeGhost() {
   return ghost;
 }
 
-// 面を左右に動かすと、iOSは動かし終わった後にスクロールバーの色の指定を見失って
-// 白いバーに戻してしまう。色を入れ直すだけでは思い出さないので、
-// いったんバーそのものを消して、次の描き替えで作り直させる
-function _dsRefreshBar(pane) {
-  if (!pane) return;
-  pane.style.scrollbarWidth = 'none';
-  pane.style.scrollbarColor = 'transparent transparent';
-  void pane.offsetWidth;            // ここで一度計算させないと、消して戻しただけで終わる
-  requestAnimationFrame(function() {
-    if (!pane) return;
-    pane.style.scrollbarWidth = '';
-    pane.style.scrollbarColor = '';
-  });
-}
-
 // 差し替え済みの本体と、出ていく写しを、左右に流す。
 // dir>0 なら本体は右から入ってきて、写しは左へ抜ける
 function _dsRunSlide(ghost, dir) {
@@ -2644,7 +2633,6 @@ function _dsRunSlide(ghost, dir) {
     pane.style.transform = '';
     _dsSliding = false;
     document.body.classList.remove('ds-swiping');  // 流れきったので、バーをまた出す
-    _dsRefreshBar(pane);
   }, DS_SLIDE_MS + 20);
 }
 
