@@ -450,7 +450,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
   [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
   body.mobile-detail-open .detail-pane{
-    transform:translateY(0);
+    /* translateY(0) ではなく none にしている。ぴったり0でも「動かしている面」の
+       扱いが残り、iOSがこの中のスクロールバーを出してくれなくなるため。
+       none でも 100% との間は行き来できるので、開け閉めの動きはそのまま */
+    transform:none;
     pointer-events:auto;
   }
   /* 打っている間だけ。キーボードで隠れるぶんを足して、
