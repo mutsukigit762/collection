@@ -292,9 +292,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     justify-content:center;
     position:fixed;
     right:20px;
-    /* 下から 72px ＝ もとの位置(20px)＋ボタンの高さ(52px)。
-       低すぎて押しづらかったので、もとの上端が下端に来る高さまで上げた */
-    bottom:calc(72px + env(safe-area-inset-bottom));
+    bottom:calc(20px + env(safe-area-inset-bottom));
     z-index:51;
     width:52px;height:52px;
     border-radius:50%;
