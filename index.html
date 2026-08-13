@@ -2603,12 +2603,18 @@ function _dsMakeGhost() {
 }
 
 // 面を左右に動かすと、iOSは動かし終わった後にスクロールバーの色の指定を見失って
-// 白いバーに戻してしまう。いったん別の色を入れて外し、指定を思い出させる
+// 白いバーに戻してしまう。色を入れ直すだけでは思い出さないので、
+// いったんバーそのものを消して、次の描き替えで作り直させる
 function _dsRefreshBar(pane) {
   if (!pane) return;
+  pane.style.scrollbarWidth = 'none';
   pane.style.scrollbarColor = 'transparent transparent';
-  void pane.offsetWidth;            // ここで一度計算させないと、入れて外しただけで終わる
-  pane.style.scrollbarColor = '';
+  void pane.offsetWidth;            // ここで一度計算させないと、消して戻しただけで終わる
+  requestAnimationFrame(function() {
+    if (!pane) return;
+    pane.style.scrollbarWidth = '';
+    pane.style.scrollbarColor = '';
+  });
 }
 
 // 差し替え済みの本体と、出ていく写しを、左右に流す。
