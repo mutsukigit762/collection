@@ -631,7 +631,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 import { Editor, Node, mergeAttributes } from 'https://esm.sh/@tiptap/core@2.4.0';
 import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0';
@@ -680,6 +680,7 @@ const app = initializeApp(firebaseConfig);
 // 仮にここを消しても他人はデータを読めない。二重の守り。
 const auth = getAuth(app);
 await new Promise((resolve) => {
+  getRedirectResult(auth).catch(() => {});
   const gate = document.createElement('div');
   gate.style.cssText = 'position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#111;color:#eee;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px';
   gate.innerHTML = '<div style="font-size:15px;opacity:.75;line-height:1.7">このアプリはムツキ専用だよ<br>Googleでログインしてね</div>'
@@ -693,8 +694,14 @@ await new Promise((resolve) => {
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (e) {
-      err.textContent = 'ログインできなかった：' + (e && e.code ? e.code : e);
-      btn.disabled = false;
+      // Safari はポップアップを塞ぐことがある。その時は画面ごと切り替える方式に回す。
+      try {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+        return;
+      } catch (e2) {
+        err.textContent = 'ログインできなかった：' + (e2 && e2.code ? e2.code : e2);
+        btn.disabled = false;
+      }
     }
   });
   document.body.appendChild(gate);
