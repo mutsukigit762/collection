@@ -452,13 +452,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     transform:translateY(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
-    /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める。
-       ただし隣のメモへ流れた後だけは、iOSがこの指定を見失って白いバーに戻る。
-       色を入れ直す・バーを作り直させる、どちらも効かなかった。
-       原因は、切り替えの時にこの箱そのものを左右に動かしていること。
-       直すなら中身だけを動かす作りに変えることになるので、今はそのままにしている */
+    /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める */
     color-scheme:inherit;
     scrollbar-color:var(--bar) transparent;
+    /* 切り替えの時に中身（.detail-inner）だけを左右へ動かすので、
+       はみ出したぶんはこの箱の縁で切る */
+    overflow-x:hidden;
   }
   /* 暗い時は地を敷かず、一覧と同じ海のグラデーション（body::before）を透かす。
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
@@ -606,7 +605,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div class="cards" id="cards"></div>
 </div>
 </div>
-<div class="detail-pane" id="detail-pane"></div>
+<!-- 詳細画面。メモを切り替える時に左右へ動かすのは中の detail-inner だけで、
+     スクロールを持つ箱（detail-pane）自体は動かさない。
+     箱を動かすと、iOSが動かし終わったあとスクロールバーの色の指定を見失うため -->
+<div class="detail-pane" id="detail-pane"><div class="detail-inner" id="detail-inner"></div></div>
 </div>
 <button class="fab" id="fab-add" onclick="addNote()" aria-label="新規作成"></button>
 <div class="bottom-bar" id="bottom-bar">
@@ -2447,11 +2449,11 @@ function _updatePreviewSelection() {
 }
 
 function renderDetail() {
-  var pane = document.getElementById('detail-pane');
-  if (!pane) return;
+  var inner = _detailInner();
+  if (!inner) return;
   var n = notes.find(function(x){ return x.id === selectedCardId; });
   if (!n) n = notes.filter(catFilterNote)[0];
-  if (!n) { pane.innerHTML = ''; _mountedDetailId = null; return; }
+  if (!n) { inner.innerHTML = ''; _mountedDetailId = null; return; }
   selectedCardId = n.id;
   // すでに同じカードのエディタが載っていれば載せ直さない（編集中フォーカスを保つ）
   if (_mountedDetailId === n.id && editors[n.id] && document.getElementById('editor-' + n.id)) {
@@ -2459,7 +2461,7 @@ function renderDetail() {
     return;
   }
   if (_mountedDetailId && _mountedDetailId !== n.id) destroyEditor(_mountedDetailId);
-  pane.innerHTML = '<div class="detail-mobile-bar"><button class="detail-back-btn" onclick="closeMobileDetail()">' + IC.arrowLeft + '一覧へ戻る</button></div>' + detailCardHTML(n);
+  inner.innerHTML = '<div class="detail-mobile-bar"><button class="detail-back-btn" onclick="closeMobileDetail()">' + IC.arrowLeft + '一覧へ戻る</button></div>' + detailCardHTML(n);
   initEditor(n.id, n.body);
   _mountedDetailId = n.id;
   _updatePreviewSelection();
@@ -2556,6 +2558,8 @@ function _dsHasActiveSelection() {
   var sel = window.getSelection ? window.getSelection() : null;
   return !!(sel && !sel.isCollapsed && sel.toString().length > 0);
 }
+// 詳細画面の中身が入っている入れ物。切り替えで動かすのはここだけ
+function _detailInner() { return document.getElementById('detail-inner'); }
 function _dsAtTop() {
   var pane = document.getElementById('detail-pane');
   return !!pane && pane.scrollTop <= 0;
@@ -2610,27 +2614,30 @@ function _dsMakeGhost() {
 // dir>0 なら本体は右から入ってきて、写しは左へ抜ける
 function _dsRunSlide(ghost, dir) {
   var pane = document.getElementById('detail-pane');
-  if (!pane || !ghost) {
+  var inner = _detailInner();
+  if (!pane || !inner || !ghost) {
     if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
     _dsSliding = false;
     return;
   }
   document.body.classList.add('ds-swiping');   // 流れている間はスクロールバーを出さない
   var from = dir > 0 ? 1 : -1;
-  pane.style.transition = 'none';
-  pane.style.transform = 'translateX(' + (from * 100) + '%)';
-  void pane.offsetWidth;              // ここまでの置き位置を一度描かせてから動かす
+  // 箱の幅ぶんだけ動かす。％だと左右の余白のぶん足りず、端に前の中身が残る
+  var w = pane.clientWidth;
+  inner.style.transition = 'none';
+  inner.style.transform = 'translateX(' + (from * w) + 'px)';
+  void inner.offsetWidth;             // ここまでの置き位置を一度描かせてから動かす
 
-  // 2枚を同時に動かす
-  pane.style.transition = 'transform ' + DS_SLIDE_MS + 'ms ease';
+  // 2枚を同時に動かす。入ってくる側は中身だけ、出ていく側は写しごと
+  inner.style.transition = 'transform ' + DS_SLIDE_MS + 'ms ease';
   ghost.style.transition = 'transform ' + DS_SLIDE_MS + 'ms ease';
-  pane.style.transform = 'translateX(0)';
-  ghost.style.transform = 'translateX(' + (-from * 100) + '%)';
+  inner.style.transform = 'translateX(0)';
+  ghost.style.transform = 'translateX(' + (-from * w) + 'px)';
 
   setTimeout(function() {
     if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
-    pane.style.transition = '';       // 開け閉めの動き（CSS側）に戻す
-    pane.style.transform = '';
+    inner.style.transition = '';
+    inner.style.transform = '';
     _dsSliding = false;
     document.body.classList.remove('ds-swiping');  // 流れきったので、バーをまた出す
   }, DS_SLIDE_MS + 20);
@@ -2915,8 +2922,8 @@ function renderCardsDesktop() {
   if (searchQuery) countEl.textContent = list.length + '件ヒット';
   if (!list.length) {
     el.innerHTML = '<div class="empty">' + (searchQuery ? IC.searchLg + '見つからなかった' : IC.inboxLg + 'まだ何もない') + '</div>';
-    var pane = document.getElementById('detail-pane');
-    if (pane) pane.innerHTML = '';
+    var inner = _detailInner();
+    if (inner) inner.innerHTML = '';
     _mountedDetailId = null;
     return;
   }
