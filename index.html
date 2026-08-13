@@ -291,6 +291,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     border:none;
     box-shadow:0 2px 10px rgba(0,0,0,0.3);
     cursor:pointer;
+    opacity:0.35;   /* 一覧でも詳細画面でも、読む邪魔をしない濃さで置いておく */
   }
   .fab svg{width:24px;height:24px}
 }
@@ -416,8 +417,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   body.mobile-detail-open .left-col{display:none}
   body.mobile-detail-open .bottom-bar{display:none}
   /* 新規作成ボタンは詳細画面でも出しっぱなしにする。
-     読んでいる邪魔をしないよう薄くして、詳細画面（z-index:60）より前に置く */
-  body.mobile-detail-open .fab{opacity:0.35;z-index:61}
+     薄さは一覧と同じで、詳細画面（z-index:60）より前に置いて押せるようにする */
+  body.mobile-detail-open .fab{z-index:61}
   .detail-pane{
     display:block;
     position:fixed;inset:0;
