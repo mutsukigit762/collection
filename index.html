@@ -505,8 +505,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 一覧カード：文字を大きく、行数にかかわらず高さを3行分で揃える */
   .pv-cat{font-size:11px}
   .pv-date{font-size:11px}
-  /* 本文は詳細画面と同じ17px。開く前と開いた後で文字の大きさが変わらないようにする */
-  .pv-text{font-size:17px;line-height:1.5;min-height:calc(1.5em * 3)}
+  /* 本文は詳細画面より一回り小さい15.5px。ただし色と行送りは詳細に揃える。
+     色は --text（ほぼ黒）のままだと一覧だけ黒く詰まって、同じ文章なのに
+     別の書体に見えてしまうため。行送りも詳細と同じ28pxにして、
+     3行ぶんの高さ（28*3=84px）でカードの高さを揃える */
+  .pv-text{font-size:15.5px;line-height:28px;color:var(--text-body);min-height:calc(28px * 3)}
   .pv-thumb{width:54px;height:54px}
   /* 詳細画面：カードの枠をなくして地の色に馴染ませ、タイムスタンプを一番上に出す。
      .card は詳細画面でしか使っていないので、一覧側には影響しない */
