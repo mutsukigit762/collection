@@ -631,6 +631,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 import { Editor, Node, mergeAttributes } from 'https://esm.sh/@tiptap/core@2.4.0';
@@ -716,7 +717,22 @@ const storage = getStorage(app);
 const NOTES_COLL = 'collection_notes';
 const CATS_COLL = 'collection_categories';
 const ALGOLIA_APP_ID = 'J90KE9AP6P';
-const ALGOLIA_SEARCH_KEY = 'dcd2d9c7819580a05c4e61dbe07d2046';
+
+// 検索用の鍵は、もうここには書かない。
+// 以前は本物の鍵を直接書いていたので、公開ページを開いた誰でもメモ本文を
+// 引ける状態だった。今はサーバ側の係（getSearchKey）に頼んで、
+// ログイン済みの本人にだけ発行される「2時間で切れる鍵」をその場でもらう。
+const _fns = getFunctions(app, 'asia-northeast1');
+var _searchKey = null;
+var _searchKeyExp = 0;
+async function fetchSearchKey() {
+  var now = Math.floor(Date.now() / 1000);
+  if (_searchKey && _searchKeyExp - 60 > now) return _searchKey;   // まだ使えるなら使い回す
+  var res = await httpsCallable(_fns, 'getSearchKey')();
+  _searchKey = res.data.key;
+  _searchKeyExp = res.data.validUntil;
+  return _searchKey;
+}
 const ALGOLIA_INDEX = 'collection_notes';
 
 // タイムスタンプをタップして日時を編集できるようにするかどうかのスイッチ。
@@ -1360,12 +1376,14 @@ async function searchNotes(q2) {
   var seq = ++_searchSeq;
   setSyncStatus('検索中…');
   try {
+    var key = await fetchSearchKey();
+    if (seq !== _searchSeq) return;
     var url = 'https://' + ALGOLIA_APP_ID + '-dsn.algolia.net/1/indexes/' + ALGOLIA_INDEX + '/query';
     var res = await fetch(url, {
       method: 'POST',
       headers: {
         'X-Algolia-Application-Id': ALGOLIA_APP_ID,
-        'X-Algolia-API-Key': ALGOLIA_SEARCH_KEY,
+        'X-Algolia-API-Key': key,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ query: q2, hitsPerPage: 500, attributesToRetrieve: ['objectID','body','cat','date','created_at','fav'] })
