@@ -631,6 +631,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 import { Editor, Node, mergeAttributes } from 'https://esm.sh/@tiptap/core@2.4.0';
 import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0';
@@ -672,6 +673,37 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// ---- ログインの門番 ----
+// ここを通り抜けるまで、この下のアプリ本体は一行も動かない。
+// データベース側のルールも「この人だけ」に絞ってあるので、
+// 仮にここを消しても他人はデータを読めない。二重の守り。
+const auth = getAuth(app);
+await new Promise((resolve) => {
+  const gate = document.createElement('div');
+  gate.style.cssText = 'position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#111;color:#eee;font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px';
+  gate.innerHTML = '<div style="font-size:15px;opacity:.75;line-height:1.7">このアプリはムツキ専用だよ<br>Googleでログインしてね</div>'
+    + '<button type="button" style="padding:14px 28px;font-size:16px;border:0;border-radius:12px;background:#4285f4;color:#fff;font-weight:600">Googleでログイン</button>'
+    + '<div style="font-size:13px;color:#f88;min-height:1.4em"></div>';
+  const btn = gate.querySelector('button');
+  const err = gate.querySelector('div:last-child');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    err.textContent = '';
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider());
+    } catch (e) {
+      err.textContent = 'ログインできなかった：' + (e && e.code ? e.code : e);
+      btn.disabled = false;
+    }
+  });
+  document.body.appendChild(gate);
+  onAuthStateChanged(auth, (user) => {
+    if (user) { gate.remove(); resolve(); }
+    else { gate.style.display = 'flex'; }
+  });
+});
+
 const db = getFirestore(app);
 const storage = getStorage(app);
 const NOTES_COLL = 'collection_notes';
