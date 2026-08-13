@@ -2472,7 +2472,10 @@ function catChipHTML(n) {
 function cardPreviewHTML(n) {
   var plain = htmlToPlainText(n.body || '').trim();
   var m = (n.body || '').match(/<img[^>]+src="([^"]+)"/);
-  var thumb = m ? '<img class="pv-thumb" src="' + esc(m[1]) + '" loading="lazy">' : '';
+  // m[1] は本文HTMLから抜いた時点で既にエスケープ済み（&amp; の形）なので、
+  // ここで esc() を通すと &amp;amp; になり、URLの &token= が amp;token= に化けて画像が出なくなる。
+  // 正規表現が src="…" の中身を取っている都合上、m[1] に生の " は入らないためそのまま埋めてよい。
+  var thumb = m ? '<img class="pv-thumb" src="' + m[1] + '" loading="lazy">' : '';
   // 表が入っているメモは、本文を字にすると行がつながって見分けが付かないので目印を出す
   var tableMark = /<table[\s>]/i.test(n.body || '')
     ? '<span class="pv-table-mark" title="表が入っている" aria-label="表が入っている">' + IC.table + '</span>' : '';
