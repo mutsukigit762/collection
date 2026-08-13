@@ -2545,8 +2545,14 @@ function closeMobileDetail() {
 }
 window.closeMobileDetail = closeMobileDetail;
 
+// 下に引いて一覧へ戻る動きを使うかどうかのスイッチ。
+// false … 引いても戻らない（左下の戻るボタンを付けたので、今はこちら）
+// true  … 元どおり、一番上から下へ引くと一覧へ戻る
+// 仕組み本体は消していないので、true に戻すだけで前と全く同じ使い心地で復活する。
+const DS_PULL_BACK_ENABLED = false;
+
 // 詳細画面の指の動き。縦と横で役目が違う。
-//   下へ引く（一番上まで来ている時だけ）… 一覧へ戻る
+//   下へ引く（一番上まで来ている時だけ）… 一覧へ戻る（DS_PULL_BACK_ENABLED が true の時だけ）
 //   横へ払う                        … 前後のメモへ移る
 // 向きは、指が DS_DECIDE だけ動いたところで一度だけ見分けて、あとは固定する。
 // まっすぐ横・まっすぐ縦とみなせない斜めの動きは、どちらの操作でもないので捨てる
@@ -2724,6 +2730,7 @@ document.addEventListener('touchmove', function(e) {
   }
   // 縦へ動いた：一番上から下へ引いた時だけ戻る。
   // 読んでいる途中や、指を上へ動かしてスクロールした時は何もしない
+  if (!DS_PULL_BACK_ENABLED) { _dsTracking = false; return; }
   if (!_dsFromTop || !_dsAtTop()) { _dsTracking = false; return; }
   if (dy > DS_PULL) { _dsTracking = false; closeMobileDetail(); }
 }, { passive: true });
