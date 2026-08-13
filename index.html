@@ -1560,6 +1560,7 @@ async function deleteNote(id) {
   var n = notes.find(function(x){ return x.id === id; });
   if (!n) return;
   // 削除後は1つ下のカードにフォーカスを移す（今表示中のカードを消した時だけ）
+  var wasShowing = (selectedCardId === id);
   if (selectedCardId === id) {
     var list = searchQuery ? notes : notes.filter(catFilterNote);
     var idx = list.findIndex(function(x){ return x.id === id; });
@@ -1567,6 +1568,10 @@ async function deleteNote(id) {
     var next = idx >= 0 ? (rest[idx] || rest[idx - 1]) : null;
     selectedCardId = next ? next.id : null;
   }
+  // 開いているメモを消す時は、横に払った時と同じ流れる動きで次のメモへ移る。
+  // 写しは中身に手を付ける前に取る（エディタを畳むと本文が消えてしまうため）
+  var ghost = (wasShowing && selectedCardId && _dsCanSlide()) ? _dsMakeGhost() : null;
+  if (ghost) _dsSliding = true;
   trash.push(n);
   saveTrash(trash);
   notes = notes.filter(function(x){ return x.id !== id; });
@@ -1579,6 +1584,8 @@ async function deleteNote(id) {
       renderDetail();
       var pane = document.getElementById('detail-pane');
       if (pane) pane.scrollTop = 0;
+      // 消したメモが左へ抜けて、次のメモが右から入ってくる
+      if (ghost) _dsRunSlide(ghost, 1);
     } else {
       closeMobileDetail();
     }
@@ -2555,17 +2562,21 @@ function _dsSlideWhenLoaded(dir) {
   });
 }
 
-function _dsSlideTo(dir) {
-  if (_dsSliding) return;
-  // 端。ただし「次へ」の側は、続きが未読み込みなだけかもしれないので確かめる
-  if (!_jkPeekId(dir)) { _dsSlideWhenLoaded(dir); return; }
-  var pane = document.getElementById('detail-pane');
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!pane || reduce) { _jkMove(dir); return; }  // 動きを減らす設定の時は、流さずに差し替える
-  _dsSliding = true;
+// 今、流す動きを見せられるか（流れている最中・詳細画面が開いていない・
+// 動きを減らす設定、のいずれでもないか）
+function _dsCanSlide() {
+  if (_dsSliding) return false;
+  if (!document.getElementById('detail-pane')) return false;
+  if (_isDesktop() || !document.body.classList.contains('mobile-detail-open')) return false;
+  return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
 
-  // 出ていく側：今の見た目をそのまま写す。id と編集可能の印は、
-  // 本体と二重になって取り違えのもとになるので剥がしておく
+// 出ていく側：今の見た目をそのまま写す。id と編集可能の印は、
+// 本体と二重になって取り違えのもとになるので剥がしておく。
+// 中身を差し替える前に呼ぶこと（後だと新しい中身を写してしまう）
+function _dsMakeGhost() {
+  var pane = document.getElementById('detail-pane');
+  if (!pane) return null;
   var ghost = document.createElement('div');
   ghost.className = pane.className + ' ds-ghost';
   ghost.innerHTML = pane.innerHTML;
@@ -2575,11 +2586,20 @@ function _dsSlideTo(dir) {
   ghost.style.transform = 'translateX(0)';
   document.body.appendChild(ghost);
   ghost.scrollTop = pane.scrollTop;   // 読んでいた高さのまま出ていくように
+  return ghost;
+}
 
-  // 本体を隣のメモに差し替えて、まだ画面の外（入ってくる側）へ置いておく。
-  // 左へ払った（dir=1）なら次のメモは右から、右へ払ったなら左から入る
+// 差し替え済みの本体と、出ていく写しを、左右に流す。
+// dir>0 なら本体は右から入ってきて、写しは左へ抜ける
+function _dsRunSlide(ghost, dir) {
+  var pane = document.getElementById('detail-pane');
+  if (!pane || !ghost) {
+    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    _dsSliding = false;
+    return;
+  }
+  document.body.classList.add('ds-swiping');   // 流れている間はスクロールバーを出さない
   var from = dir > 0 ? 1 : -1;
-  _jkMove(dir);
   pane.style.transition = 'none';
   pane.style.transform = 'translateX(' + (from * 100) + '%)';
   void pane.offsetWidth;              // ここまでの置き位置を一度描かせてから動かす
@@ -2597,6 +2617,21 @@ function _dsSlideTo(dir) {
     _dsSliding = false;
     document.body.classList.remove('ds-swiping');  // 流れきったので、バーをまた出す
   }, DS_SLIDE_MS + 20);
+}
+
+function _dsSlideTo(dir) {
+  if (_dsSliding) return;
+  // 端。ただし「次へ」の側は、続きが未読み込みなだけかもしれないので確かめる
+  if (!_jkPeekId(dir)) { _dsSlideWhenLoaded(dir); return; }
+  var pane = document.getElementById('detail-pane');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!pane || reduce) { _jkMove(dir); return; }  // 動きを減らす設定の時は、流さずに差し替える
+  _dsSliding = true;
+  var ghost = _dsMakeGhost();
+  // 本体を隣のメモに差し替えて、まだ画面の外（入ってくる側）へ置いておく。
+  // 左へ払った（dir=1）なら次のメモは右から、右へ払ったなら左から入る
+  _jkMove(dir);
+  _dsRunSlide(ghost, dir);
 }
 
 document.addEventListener('touchstart', function(e) {
