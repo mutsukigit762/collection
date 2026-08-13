@@ -481,15 +481,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     -webkit-user-select:none;
     user-select:none;
   }
-  /* 横に払っている間だけ、縦のスクロールバーを消す。
-     中身を隣のメモに入れ替えると頭まで戻すので、そこでバーが光ってしまい、
-     流れる画面と一緒に横へ滑っていって目に障る。
-     写し（.ds-ghost）も読んでいた高さに合わせる時に同じことが起きるので、
-     こちらは出ている間ずっと出さない。
-     縦に読んでいる時のバーはそのまま（消すのは横に払っている間だけ） */
-  body.ds-swiping .detail-pane,
+  /* 写しはバーを出さない（読んでいた高さに合わせる時に光ってしまうため）。
+     本体の箱からは、かつて同じ理由で払っている間だけバーを消していたが、
+     やめた。太さを none にするとバーそのものが作り直され、戻した時に
+     色の指定（scrollbar-color）が拾われず白いバーに戻ってしまうため。
+     今は箱ではなく中身だけを動かしているので、バーが横へ滑ることもない */
   .ds-ghost{scrollbar-width:none}
-  body.ds-swiping .detail-pane::-webkit-scrollbar,
   .ds-ghost::-webkit-scrollbar{display:none}
   .detail-mobile-bar{
     display:none;
