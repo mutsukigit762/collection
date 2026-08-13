@@ -3144,6 +3144,13 @@ function _applyTheme(theme, remember) {
   if (remember) { try { localStorage.setItem('theme', theme); } catch(e) {} }
   // 色の大半はCSS変数なので勝手に切り替わるが、カテゴリの札だけJSで色を作っているため描き直す
   render();
+  // 詳細画面は render() では作り直さない（打ちかけの本文を壊さないため）。
+  // そのままだと札だけ前のテーマの色が残るので、ここで塗り直す
+  var chip = document.querySelector('.detail-pane .cat-btn');
+  if (chip) {
+    var dn = notes.find(function(x){ return x.id === _mountedDetailId; });
+    chip.setAttribute('style', catChipStyle(dn ? dn.cat : null));
+  }
 }
 // 見出しをタップするたびに light → deepsea(深海) → dark(ふつうの暗さ) → light と巡回する
 function toggleTheme() {
