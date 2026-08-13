@@ -153,7 +153,11 @@ select.sort-btn{padding-right:10px}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1rem}
 .card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
-.cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+/* 右端のボタン列。ボタンは縮ませず、あふれる時はカテゴリの札の方を詰めさせる */
+.card-top-actions{display:inline-flex;align-items:center;gap:10px;flex:0 0 auto}
+/* ひと組の中はぴったり、組と組の間だけ上の gap で空く */
+.cta-group{display:inline-flex;align-items:center;gap:2px}
+.cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (hover:hover){.cat-btn:hover{border-color:var(--border2)}}
 .card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text-body);line-height:1.6;outline:none}
 .card-editor .ProseMirror{outline:none;min-height:40px;word-break:break-word}
@@ -766,6 +770,9 @@ const IC = {
   chevronLeft: '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
   arrowLeft: '<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
   table: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>',
+  // 紙が2枚重なった絵＝コピー、クリップボード＝貼り付け。他のアイコンと同じ線の太さ・大きさに揃えてある
+  copy: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  paste: '<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
 };
 
 document.getElementById('trash-btn').innerHTML = IC.trash + ' ゴミ箱';
@@ -1606,6 +1613,60 @@ async function toggleFav(id) {
   if (favOnly && !n.fav) loadNotes(true);
 }
 window.toggleFav = toggleFav;
+
+// 本文を文字だけにして写し取る。段落の切れ目は改行1つ（詳細画面の見た目と揃える）。
+// 画像や表はHTMLなので文字としては落ちる。そこは割り切って「読める形」を優先している
+async function copyNote(id) {
+  var ed = editors[id];
+  var text = ed ? ed.getText({ blockSeparator: '\n' }) : '';
+  if (!text.trim()) { showToast('コピーする本文がないよ'); return; }
+  // Safariは指で押した流れが切れると書き込みを拒むので、await を挟まずそのまま呼ぶ
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('コピーしました');
+  } catch(e) {
+    console.error(e);
+    showToast('コピーできませんでした');
+  }
+}
+window.copyNote = copyNote;
+
+// クリップボードの文字を、今カーソルがある所に差し込む。
+// iOSでは読み取りの前にOSの「ペースト」確認が一度出る（こちらでは消せない）
+async function pasteNote(id) {
+  var ed = editors[id];
+  if (!ed) return;
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    showToast('この画面では貼り付けできないよ');
+    return;
+  }
+  var text = '';
+  try {
+    text = await navigator.clipboard.readText();
+  } catch(e) {
+    console.error(e);
+    showToast('貼り付けできませんでした');
+    return;
+  }
+  if (!text) { showToast('クリップボードが空だよ'); return; }
+  // 文字を1つずつ text ノードとして積む。insertContent に文字列を渡すと
+  // HTMLとして読まれて山カッコが消えるので、貼り付け処理（handlePaste）と同じ作りにしてある
+  var lines = text.split(/\r?\n/);
+  var content = [];
+  lines.forEach(function(line, idx) {
+    if (idx > 0) content.push({ type: 'hardBreak' });
+    if (line) content.push({ type: 'text', text: line });
+  });
+  var startPos = ed.state.selection.from;
+  ed.chain().focus().insertContent(content).run();
+  // タグを含むコードっぽい文字は、中のURLを autolink が拾って全体をリンクにしてしまう。
+  // その時だけ打ち消す（handlePaste と同じ判定）
+  if (/<[a-zA-Z/!]/.test(text)) {
+    var endPos = ed.state.selection.from;
+    ed.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
+  }
+}
+window.pasteNote = pasteNote;
 
 // created_at は日本時間の壁時計をそのまま並べた文字列なので、9時間ぶん戻して本当の時刻に直す
 function _createdAtDate(n) {
@@ -2501,10 +2562,18 @@ function detailCardHTML(n) {
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top" onclick="_detailThemeTap(event)">'
     + '<button class="cat-btn" style="' + esc(catChipStyle(n.cat)) + '" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
-    + '<span style="display:inline-flex;align-items:center;gap:2px">'
+    // 本文を扱う2つと、メモそのものを扱う3つは役割が違うので、
+    // ひと組ずつ span に入れて間を空ける。誤って隣を押す事故も減る
+    + '<span class="card-top-actions">'
+    + '<span class="cta-group">'
+    + '<button class="btn-icon" onclick="copyNote(\'' + n.id + '\')" title="本文をコピー" aria-label="本文をコピー">' + IC.copy + '</button>'
+    + '<button class="btn-icon" onclick="pasteNote(\'' + n.id + '\')" title="カーソルの位置に貼り付け" aria-label="貼り付け">' + IC.paste + '</button>'
+    + '</span>'
+    + '<span class="cta-group">'
     + '<button class="btn-icon" onclick="resetUpdatedAt(\'' + n.id + '\')" title="更新日時をリセット（作成日時に戻す）" aria-label="更新日時をリセット">' + IC.restore + '</button>'
     + '<button class="fav-btn' + (n.fav ? ' on' : '') + '" data-fav-id="' + n.id + '" onclick="toggleFav(\'' + n.id + '\')" title="' + (n.fav ? 'お気に入りを外す' : 'お気に入りに追加') + '" aria-label="お気に入り">' + IC.heart + '</button>'
     + '<button class="btn-icon" onclick="deleteNote(\'' + n.id + '\')" title="ゴミ箱へ">' + IC.trash + '</button>'
+    + '</span>'
     + '</span>'
     + '</div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
