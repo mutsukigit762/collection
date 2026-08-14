@@ -1474,7 +1474,14 @@ function addNote() {
   });
   render();
   selectCard(ref.id);
-  _focusSelectedEditor();      // ここまでが指を離した流れの続きなのでキーボードが出る
+  // 新しいメモは空なので、カーソルを見せるための移動はいらない（scroll に false）。
+  // 一覧から開いた1回目は詳細画面がまだ下からせり上がっている最中で、
+  // その途中の位置を見て「カーソルが画面の1つ下にある」と勘違いされ、
+  // 中身が画面の上へ飛んでいってしまうため。
+  // 呼ぶこと自体は指を離した流れの続きなので、キーボードはこれまで通り出る
+  _focusSelectedEditor(false);
+  // そのうえで、キーボードが出る時のiOS側の勝手な動きも押さえておく
+  _holdDetailScroll(0);
   // 保存はあとから追いかける
   setDoc(ref, {
     cat: cat,
@@ -1940,6 +1947,20 @@ function _focusSelectedEditor(scroll) {
   // 入れる時もスクロールさせない
   var pm = document.querySelector('#editor-' + id + ' .ProseMirror');
   if (pm && document.activeElement !== pm) pm.focus({ preventScroll: true });
+}
+// 詳細画面の中の高さを、しばらくの間その位置に押さえ込む。
+// iOSはキーボードを出す時に、フォーカスした部品を見せようとして勝手に動かすので、
+// キーボードが出きるまでの間だけ見ていた位置に留める。
+// keep を省くと、今いる位置をそのまま保つ
+function _holdDetailScroll(keep) {
+  var pane = document.getElementById('detail-pane');
+  if (!pane) return;
+  if (keep == null) keep = pane.scrollTop;
+  var hold = function() { if (pane.scrollTop !== keep) pane.scrollTop = keep; };
+  hold();
+  requestAnimationFrame(hold);
+  var t = 0, iv = setInterval(function() { hold(); if (++t > 20) clearInterval(iv); }, 25);
+  setTimeout(function() { clearInterval(iv); }, 600);
 }
 function _openSelect(id) {
   var el = document.getElementById(id);
@@ -3292,16 +3313,10 @@ initFilterSelects();
 document.getElementById('detail-pane').addEventListener('click', function(e) {
   if (e.target !== this && !e.target.classList.contains('card')) return;
   if (!editors[selectedCardId]) return;
-  var pane = this;
-  var keep = pane.scrollTop;              // 今見ている位置を覚えておく
   _focusSelectedEditor(false);            // 押した流れの中で呼ぶのでキーボードも出る
   // iOSのSafariはキーボードを出す時に、フォーカスした部品を見せようとして
   // 画面を勝手に動かす。読んでいた場所から飛ばされるので、少しの間押さえ込む
-  var hold = function() { if (pane.scrollTop !== keep) pane.scrollTop = keep; };
-  hold();
-  requestAnimationFrame(hold);
-  var t = 0, iv = setInterval(function() { hold(); if (++t > 20) clearInterval(iv); }, 25);
-  setTimeout(function() { clearInterval(iv); }, 600);
+  _holdDetailScroll();
 });
 
 // 一覧を下スクロール（指を上へ）すると見出しが隠れ、上スクロールで戻る。
