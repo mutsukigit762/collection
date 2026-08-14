@@ -796,7 +796,6 @@ document.getElementById('fav-filter-toggle').innerHTML = IC.heart;
 const NO_CAT = 'カテゴリなし';
 const ALL_TAB = 'すべて';
 const TRASH_KEY = 'collection_trash_local';
-const APPCLIP_KEY = 'collection_clip_local';
 
 function _hashStr(s) {
   var h = 0;
@@ -989,7 +988,18 @@ function initEditor(id, body) {
           // 解釈させると山カッコごと消えてしまうので、文字そのままで挿入する。
           if (plainText && /<[a-zA-Z/!]/.test(plainText)) {
             event.preventDefault();
-            insertPlainText(editors[id], plainText);
+            var ed2 = editors[id];
+            var lines = plainText.split(/\r?\n/);
+            var content = [];
+            lines.forEach(function(line, idx) {
+              if (idx > 0) content.push({ type: 'hardBreak' });
+              if (line) content.push({ type: 'text', text: line });
+            });
+            var startPos = ed2.state.selection.from;
+            ed2.chain().focus().insertContent(content).run();
+            // autolink が中の URL を拾ってコード全体をリンク化するのを打ち消す
+            var endPos = ed2.state.selection.from;
+            ed2.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
             return true;
           }
           return false;
@@ -1608,46 +1618,12 @@ async function toggleFav(id) {
 }
 window.toggleFav = toggleFav;
 
-// アプリの中だけのコピー置き場。
-// iOSは本物のクリップボードを読む時、必ず「ペースト」の確認バルーンを出す決まりで、
-// これはこちら側からは消せない。そこでコピーボタンで写した文字はここにも控えておき、
-// ペーストボタンはまずこちらを見る。アプリが自分で持っている文字を貼るだけなので
-// OSに許可を求める必要がなく、確認なしで一度に貼れる
-var _appClip = null;
-try { _appClip = localStorage.getItem(APPCLIP_KEY) || null; } catch(e) {}
-function setAppClip(text) {
-  _appClip = text;
-  try { localStorage.setItem(APPCLIP_KEY, text); } catch(e) {}
-}
-
-// 文字を1つずつ text ノードとして積んで差し込む。insertContent に文字列をそのまま
-// 渡すとHTMLとして読まれて山カッコが消えてしまうため
-function insertPlainText(ed, text) {
-  var lines = text.split(/\r?\n/);
-  var content = [];
-  lines.forEach(function(line, idx) {
-    if (idx > 0) content.push({ type: 'hardBreak' });
-    if (line) content.push({ type: 'text', text: line });
-  });
-  var startPos = ed.state.selection.from;
-  ed.chain().focus().insertContent(content).run();
-  // タグを含むコードっぽい文字は、中のURLを autolink が拾って全体をリンクにしてしまう。
-  // その時だけ打ち消す
-  if (/<[a-zA-Z/!]/.test(text)) {
-    var endPos = ed.state.selection.from;
-    ed.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
-  }
-}
-
 // 本文を文字だけにして写し取る。段落の切れ目は改行1つ（詳細画面の見た目と揃える）。
 // 画像や表はHTMLなので文字としては落ちる。そこは割り切って「読める形」を優先している
 async function copyNote(id) {
   var ed = editors[id];
   var text = ed ? ed.getText({ blockSeparator: '\n' }) : '';
   if (!text.trim()) { showToast('コピーする本文がないよ'); return; }
-  // 本物のクリップボードへの書き込みが失敗しても、アプリの中の置き場は先に押さえておく。
-  // ペーストボタンが見るのはこちらなので、これだけでアプリ内のコピペは成立する
-  setAppClip(text);
   // Safariは指で押した流れが切れると書き込みを拒むので、await を挟まずそのまま呼ぶ
   try {
     await navigator.clipboard.writeText(text);
@@ -1659,17 +1635,11 @@ async function copyNote(id) {
 }
 window.copyNote = copyNote;
 
-// コピーした文字を、今カーソルがある所に差し込む。
-// アプリのコピーボタンで写したものがあれば、確認バルーンなしで一度に貼る
+// クリップボードの文字を、今カーソルがある所に差し込む。
+// iOSでは読み取りの前にOSの「ペースト」確認が一度出る（こちらでは消せない）
 async function pasteNote(id) {
   var ed = editors[id];
   if (!ed) return;
-  if (_appClip) {
-    insertPlainText(ed, _appClip);
-    return;
-  }
-  // コピーボタンを一度も使っていない時だけ、本物のクリップボードを読みに行く。
-  // ここはiOSの「ペースト」確認が出る（こちらでは消せない）
   if (!navigator.clipboard || !navigator.clipboard.readText) {
     showToast('この画面では貼り付けできないよ');
     return;
@@ -1683,7 +1653,22 @@ async function pasteNote(id) {
     return;
   }
   if (!text) { showToast('クリップボードが空だよ'); return; }
-  insertPlainText(ed, text);
+  // 文字を1つずつ text ノードとして積む。insertContent に文字列を渡すと
+  // HTMLとして読まれて山カッコが消えるので、貼り付け処理（handlePaste）と同じ作りにしてある
+  var lines = text.split(/\r?\n/);
+  var content = [];
+  lines.forEach(function(line, idx) {
+    if (idx > 0) content.push({ type: 'hardBreak' });
+    if (line) content.push({ type: 'text', text: line });
+  });
+  var startPos = ed.state.selection.from;
+  ed.chain().focus().insertContent(content).run();
+  // タグを含むコードっぽい文字は、中のURLを autolink が拾って全体をリンクにしてしまう。
+  // その時だけ打ち消す（handlePaste と同じ判定）
+  if (/<[a-zA-Z/!]/.test(text)) {
+    var endPos = ed.state.selection.from;
+    ed.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
+  }
 }
 window.pasteNote = pasteNote;
 
