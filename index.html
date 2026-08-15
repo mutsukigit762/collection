@@ -1481,6 +1481,15 @@ function addNote() {
     favOnly = false;
     document.getElementById('fav-filter-toggle').classList.remove('on');
   }
+  // 詳細画面をもう開いている時（右下のボタンから作った時）は、中身がパッと
+  // 入れ替わらないよう、隣のメモへ移る時と同じ流れる動きに乗せる。
+  // 出ていく側の写しは、中身を差し替える前に取っておくこと
+  var sliding = _dsCanSlide();
+  var slideGhost = null;
+  if (sliding) {
+    _dsSliding = true;
+    slideGhost = _dsMakeGhost();
+  }
   notes.unshift({
     id: ref.id, cat: cat, body: '', date: today, created_at: stamp,
     deleted: false, images: [], fav: false, updatedAt: Timestamp.fromDate(new Date())
@@ -1488,13 +1497,16 @@ function addNote() {
   render();
   selectCard(ref.id);
   // 新しいメモは空なので、カーソルを見せるための移動はいらない（scroll に false）。
-  // 一覧から開いた1回目は詳細画面がまだ下からせり上がっている最中で、
-  // その途中の位置を見て「カーソルが画面の1つ下にある」と勘違いされ、
-  // 中身が画面の上へ飛んでいってしまうため。
+  // 一覧から開いた1回目は詳細画面がまだ横からすべり込んでいる最中で、
+  // その途中の位置を見て「カーソルが画面の外にある」と勘違いされ、
+  // 中身が画面の外へ飛んでいってしまうため。
   // 呼ぶこと自体は指を離した流れの続きなので、キーボードはこれまで通り出る
   _focusSelectedEditor(false);
   // そのうえで、キーボードが出る時のiOS側の勝手な動きも押さえておく
   _holdDetailScroll(0);
+  // 新しいメモは右から入ってくる（詳細画面そのものが開く向きと揃えてある）。
+  // 写しが取れていなくても呼ぶ。中で後片付けをして _dsSliding を下ろしてくれる
+  if (sliding) _dsRunSlide(slideGhost, 1);
   // 保存はあとから追いかける
   setDoc(ref, {
     cat: cat,
