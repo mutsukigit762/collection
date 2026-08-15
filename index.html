@@ -506,6 +506,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      今は箱ではなく中身だけを動かしているので、バーが横へ滑ることもない */
   .ds-ghost{scrollbar-width:none}
   .ds-ghost::-webkit-scrollbar{display:none}
+  /* 流れている間だけ、点滅する縦棒（カーソル）を消す。
+     あれはブラウザが本文とは別に自前で描いているもので、CSSで横へ動かして
+     いる中身にはついてこない。そのため流れている間、画面のあちこちに
+     取り残されて見える。動きが終われば正しい位置に出るので、その間だけ隠す */
+  body.ds-swiping .detail-pane .ProseMirror{caret-color:transparent}
   /* 中身を、画面より必ず少しだけ高くしておく。
      こうしないと本文が短いメモはスクロールの余地がなく、下に引いた時の
      ゴムのような弾みが出ない。長いメモとの当たりが揃わないので、
