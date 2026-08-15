@@ -464,9 +464,10 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
        その時だけ下の余白を増やす（body.detail-editing）。
        本文が短いうちは画面に収まるので、余計なスクロールは生まれない */
     padding:calc(12px + env(safe-area-inset-top)) 22px 50vh;
-    /* 下から せり上がって開き、下へ 沈んで閉じる。
-       戻る操作が下へ引くしぐさなので、閉じる向きもそれに合わせている */
-    transform:translateY(100%);
+    /* 右から すべり込んで開き、右へ 戻って閉じる。
+       一覧の上に一枚かぶせる動きなので、横から出し入れするほうが
+       「奥へ入る／戻ってくる」の行き来として分かりやすい */
+    transform:translateX(100%);
     transition:transform 0.22s ease;
     pointer-events:none;
     /* 箱の中のスクロールなので、バーの色は端末任せにせず自分で決める */
@@ -480,7 +481,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
   [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
   body.mobile-detail-open .detail-pane{
-    /* translateY(0) ではなく none にしている。ぴったり0でも「動かしている面」の
+    /* translateX(0) ではなく none にしている。ぴったり0でも「動かしている面」の
        扱いが残り、iOSがこの中のスクロールバーを出してくれなくなるため。
        none でも 100% との間は行き来できるので、開け閉めの動きはそのまま */
     transform:none;
