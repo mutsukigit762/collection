@@ -433,6 +433,18 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 @media(max-width:899px){
   body.mobile-detail-open .left-col{display:none}
   body.mobile-detail-open .bottom-bar{display:none}
+  /* 詳細画面を開いている間は、ページそのもの（一覧側）を動かせなくする。
+     一覧は display:none で消えているが body の min-height:100vh は残るので、
+     キーボードが出て画面が低くなると「はみ出したぶん」が生まれる。
+     するとiOSがカーソルを見せようとしてページごと持ち上げ、画面いっぱいに
+     置いてある詳細画面（position:fixed）まで一緒に上へ逃げてしまい、
+     地の色だけが残る（＝真っ黒に見える）。動かす余地を無くして防ぐ */
+  html.detail-open,
+  html.detail-open body{
+    height:100%;
+    min-height:0;
+    overflow:hidden;
+  }
   /* 新規作成ボタンは詳細画面でも出しっぱなしにする。
      薄さは一覧と同じで、詳細画面（z-index:60）より前に置いて押せるようにする */
   body.mobile-detail-open .fab{z-index:61}
@@ -1446,7 +1458,7 @@ if (_leftCol) {
 window.matchMedia('(min-width:900px)').addEventListener('change', function() {
   destroyAllEditors();
   _mountedDetailId = null;
-  document.body.classList.remove('mobile-detail-open');
+  _setMobileDetailOpen(false);
   renderCards();
 });
 
@@ -2643,6 +2655,25 @@ function _refreshPreviewCard(id) {
 }
 
 var _listScrollY = 0;
+// 詳細画面の開け閉め。body だけでなく html にも印を付ける。
+// 開いている間はページそのもののスクロールを止めるため（CSSの html.detail-open）
+function _setMobileDetailOpen(on) {
+  document.body.classList.toggle('mobile-detail-open', !!on);
+  document.documentElement.classList.toggle('detail-open', !!on);
+}
+// 止めてもなお、iOSがキーボードを出す時にページを持ち上げてくることがある。
+// 開いている間は上端に戻し続けて、詳細画面が画面の外へ逃げないようにする
+function _keepListAtTop() {
+  if (_isDesktop()) return;
+  if (!document.body.classList.contains('mobile-detail-open')) return;
+  if (window.scrollY !== 0) window.scrollTo(0, 0);
+}
+window.addEventListener('scroll', _keepListAtTop, { passive: true });
+// キーボードが出入りして画面の高さが変わった時も見張る
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', _keepListAtTop);
+  window.visualViewport.addEventListener('scroll', _keepListAtTop);
+}
 // 一覧内でのフォーカス移動のみ（モバイルでは詳細画面へは遷移しない）
 function focusCard(id) {
   if (selectedCardId === id) return;
@@ -2662,7 +2693,7 @@ function openCard(id) {
     _listScrollY = window.scrollY;
   }
   focusCard(id);
-  if (!_isDesktop()) document.body.classList.add('mobile-detail-open');
+  if (!_isDesktop()) _setMobileDetailOpen(true);
 }
 window.openCard = openCard;
 
@@ -2695,7 +2726,7 @@ document.addEventListener('focusout', function(e) {
 
 function closeMobileDetail() {
   var wasOpen = document.body.classList.contains('mobile-detail-open');
-  document.body.classList.remove('mobile-detail-open');
+  _setMobileDetailOpen(false);
   _detailEditing(false);
   if (wasOpen) _refreshPreviewCard(selectedCardId);
   // 一覧が再表示されたらスクロール位置を戻す（描画確定後に）
