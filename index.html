@@ -430,7 +430,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .detail-mobile-bar{display:none}
 
 /* スマホ：カードタップで一覧の上に詳細画面がかぶさる（戻るボタン・スワイプで一覧へ） */
-@media(max-width:899px){
+@media(max-width:699px){
   body.mobile-detail-open .left-col{display:none}
   body.mobile-detail-open .bottom-bar{display:none}
   /* 詳細画面を開いている間は、ページそのもの（一覧側）を動かせなくする。
@@ -569,7 +569,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* PC（左サイドバー＋右フルハイト詳細）レイアウト */
 .layout{display:block}
 .left-col{}
-@media(min-width:900px){
+@media(min-width:700px){
   body{overflow:hidden}
   .layout{display:flex;height:100vh;align-items:stretch}
   .left-col{flex:1 1 50%;min-width:0;height:100vh;overflow-y:auto;border-right:0.5px solid var(--border);scrollbar-width:none}
@@ -1461,7 +1461,7 @@ if (_leftCol) {
 }
 
 // PC⇔モバイルの境界をまたいだらレイアウトを組み直す
-window.matchMedia('(min-width:900px)').addEventListener('change', function() {
+window.matchMedia('(min-width:700px)').addEventListener('change', function() {
   destroyAllEditors();
   _mountedDetailId = null;
   _setMobileDetailOpen(false);
@@ -2570,7 +2570,7 @@ function renderTabs() {
 }
 
 function _isDesktop() {
-  return window.matchMedia('(min-width:900px)').matches;
+  return window.matchMedia('(min-width:700px)').matches;
 }
 
 var selectedCardId = null;
@@ -3395,7 +3395,7 @@ var HDR_FROM_TOP = 12;  // 画面の一番上からこれより下にいる時�
     header.classList.toggle('hide', v);
   };
   // PCの幅では見出しは隠れない。窓を広げた時に隠れたまま取り残されないよう戻す
-  var wide = window.matchMedia('(min-width:900px)');
+  var wide = window.matchMedia('(min-width:700px)');
   var unhideOnWide = function() { if (wide.matches) setHidden(false); };
   if (wide.addEventListener) wide.addEventListener('change', unhideOnWide);
   else if (wide.addListener) wide.addListener(unhideOnWide);
