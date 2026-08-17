@@ -1196,6 +1196,18 @@ async function saveCategoryToFirestore(name) {
   } catch(e) { console.error(e); }
 }
 
+// カテゴリを新しく作る時の共通の手順。
+// タブの「＋」・カテゴリー管理・メモのカテゴリー変更、どこから作っても
+// 「一覧に足す → さわった時刻を記録して先頭に並べる → Firestoreに保存する」を必ず通す。
+// 作れた時だけ true を返す（空文字や同名は false）。
+async function addCategory(name) {
+  if (!name || categories.indexOf(name) >= 0) return false;
+  categories.push(name);
+  touchCat(name);
+  await saveCategoryToFirestore(name);
+  return true;
+}
+
 async function deleteCategoryFromFirestore(name) {
   try {
     var snap = await getDocs(query(collection(db, CATS_COLL), where('name','==',name)));
@@ -1857,10 +1869,8 @@ window._addCatModal = async function() {
   var el = document.getElementById('cat-modal-input');
   if (!el) return;
   var name = el.value.trim();
-  if (!name || categories.indexOf(name) >= 0) return;
-  categories.push(name);
-  await saveCategoryToFirestore(name);
-  touchCat(name);
+  if (!(await addCategory(name))) return;
+  el.value = '';
   if (currentNoteIdForCat) {
     window._selectCat(currentNoteIdForCat, name);
     render();
@@ -3635,11 +3645,12 @@ window._addCat = async function() {
   var el = document.getElementById('new-cat-input');
   if (!el) return;
   var name = el.value.trim();
-  if (!name || categories.indexOf(name) >= 0) return;
-  categories.push(name);
-  await saveCategoryToFirestore(name);
+  if (!(await addCategory(name))) return;
+  el.value = '';
   currentCat = name;
+  _scrollTabIntoView = true;
   render();
+  await renderCatPanel();   // 管理パネルの一覧にも、足したカテゴリをすぐ出す
 };
 function addCatInline() {
   var div = document.createElement('div');
@@ -3655,11 +3666,11 @@ function addCatInline() {
   document.getElementById('modal').appendChild(div);
   document.getElementById('overlay').classList.add('open');
   var input = document.getElementById('cat-inline-input');
-  var submit = function() {
+  var submit = async function() {
     var name = input.value.trim();
-    if (!name || categories.indexOf(name) >= 0) { closeOverlay(); return; }
-    categories.push(name);
+    if (!(await addCategory(name))) { closeOverlay(); return; }
     currentCat = name;
+    _scrollTabIntoView = true;
     closeOverlay();
     render();
   };
