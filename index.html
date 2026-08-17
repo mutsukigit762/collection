@@ -1215,6 +1215,18 @@ async function deleteCategoryFromFirestore(name) {
   } catch(e) { console.error(e); }
 }
 
+// カテゴリを消す時、その中のメモを「カテゴリなし」へ移す。
+// ゴミ箱の中のメモも一緒に移して、消えたはずのカテゴリ名が残らないようにする
+async function moveNotesToNoCat(name) {
+  var snap = await getDocs(query(collection(db, NOTES_COLL), where('cat', '==', name)));
+  for (var d of snap.docs) {
+    await setDoc(doc(db, NOTES_COLL, d.id), { cat: NO_CAT }, { merge: true });
+  }
+  notes.forEach(function(n){ if (n.cat === name) n.cat = NO_CAT; });
+  trash.forEach(function(n){ if (n.cat === name) n.cat = NO_CAT; });
+  saveTrash(trash);
+}
+
 async function renameCategoryInFirestore(oldName, newName) {
   var csnap = await getDocs(query(collection(db, CATS_COLL), where('name','==',oldName)));
   for (var d of csnap.docs) { await setDoc(doc(db, CATS_COLL, d.id), { name: newName }, { merge: true }); }
@@ -3576,6 +3588,7 @@ async function toggleCatPanel() {
 }
 window.toggleCatPanel = toggleCatPanel;
 
+var _catPanelCounts = {};
 async function renderCatPanel() {
   var el = document.getElementById('cat-panel');
   if (!catPanelOpen) { el.classList.remove('open'); _setModalOpen(false); return; }
@@ -3584,15 +3597,16 @@ async function renderCatPanel() {
     var snap = await getDocs(query(collection(db, NOTES_COLL), where('cat', '==', c), where('deleted', '==', false)));
     counts[c] = snap.size;
   }));
+  _catPanelCounts = counts;
   var rows = categories.map(function(c, idx) {
     var count = counts[c] || 0;
     return '<div class="cat-row" data-idx="' + idx + '">'
       + '<span class="cat-name" onclick="window._catPanelGoto(' + idx + ')" style="font-size:14px;flex:1;min-width:0;cursor:pointer">' + esc(c)
       + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
       + '<button class="btn-icon" onclick="window._editCatStart(' + idx + ')" title="名前を編集">' + IC.edit + '</button>'
-      + '<button class="btn-icon" onclick="window._deleteCat(' + idx + ')"'
-      + (count > 0 ? ' disabled style="opacity:0.3;cursor:not-allowed"' : '')
-      + '>' + IC.trash + '</button></div>';
+      + '<button class="btn-icon" data-cat-del="' + esc(c) + '" onclick="window._deleteCat(this.dataset.catDel)"'
+      + ' title="' + esc(count > 0 ? count + '件を「' + NO_CAT + '」に移して削除' : 'カテゴリーを削除') + '">'
+      + IC.trash + '</button></div>';
   }).join('');
   el.innerHTML = '<div class="modal" style="display:flex;flex-direction:column;padding:0;height:80vh;min-height:80vh;overflow:hidden;flex-shrink:0">'
     + '<div style="padding:1.25rem 1.25rem 0">'
@@ -3614,12 +3628,24 @@ window._catPanelFilter = function(val) {
     el.style.display = el.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
   });
 };
-window._deleteCat = async function(idx) {
-  var name = categories[idx];
-  if (name == null) return;
+window._deleteCat = async function(name) {
+  if (name == null || categories.indexOf(name) < 0) return;
+  var count = _catPanelCounts[name] || 0;
+  // 中身のあるカテゴリは、消すとメモの行き場が無くなるので一度たしかめる。
+  // メモそのものは消さず「カテゴリなし」へ移すだけ
+  if (count > 0 && !window.confirm(
+        '「' + name + '」には ' + count + '件のメモが入ってる。\n'
+        + 'カテゴリーを消すと、その ' + count + '件は「' + NO_CAT + '」に移る。\n消していい？')) return;
+  setSyncStatus('カテゴリーを削除中…');
+  try {
+    // 件数の数え直しを待たずに押された時のために、中身の有無にかかわらず必ず通す
+    await moveNotesToNoCat(name);
+    await deleteCategoryFromFirestore(name);
+    setSyncStatus('');
+  } catch(e) { setSyncStatus('削除エラー'); console.error(e); return; }
   categories = categories.filter(function(c){ return c !== name; });
+  delete _catPanelCounts[name];
   if (currentCat === name) currentCat = ALL_TAB;
-  await deleteCategoryFromFirestore(name);
   render();
 };
 window._catPanelGoto = function(idx) {
