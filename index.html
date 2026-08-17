@@ -1492,7 +1492,9 @@ function addNote() {
   var today = stamp.slice(0, 10);
   var cat = currentCat === ALL_TAB ? NO_CAT : currentCat;
   var ref = doc(collection(db, NOTES_COLL));   // 通信せずにIDだけ決まる
-  currentCat = cat;
+  // 絞り込みはここでは動かさない。「すべて」なら新しいメモはそのまま見えているし、
+  // ここで「カテゴリなし」へ移してしまうと、あとで詳細画面からカテゴリを
+  // 付けた瞬間にメモが絞り込みから外れ、詳細が閉じて一覧へ放り出されていた
   // 新規メモはお気に入りではないので、♥フィルタ中だと絞り込みで消えてしまう
   if (favOnly) {
     favOnly = false;
@@ -1545,6 +1547,20 @@ function scheduleBodySave(id, val) {
       await setDoc(doc(db, NOTES_COLL, id), { body: val, updatedAt: serverTimestamp() }, { merge: true });
     } catch(e) { console.error(e); }
   }, 800);
+}
+
+// 打ち込んだ本文の「800ms後に保存」を、待たずに今すぐ済ませる。
+// 一覧を読み直す前に呼んでおかないと、直前に打った分がサーバーに届いておらず、
+// 読み直しで古い本文に戻ってしまう
+async function flushBodySave(id) {
+  if (!saveTimers[id]) return;
+  clearTimeout(saveTimers[id]);
+  saveTimers[id] = null;
+  var n = notes.find(function(x){ return x.id === id; });
+  if (!n) return;
+  try {
+    await setDoc(doc(db, NOTES_COLL, id), { body: n.body || '', updatedAt: serverTimestamp() }, { merge: true });
+  } catch(e) { console.error(e); }
 }
 
 async function updateCatInDB(id, cat) {
@@ -1848,16 +1864,29 @@ function openCatModal(noteId) {
 }
 
 window._closeOv = closeOverlay;
-window._selectCat = function(noteId, cat) {
-  updateCatInDB(noteId, cat);
-  touchCat(cat);
+window._selectCat = async function(noteId, cat) {
   var n = notes.find(function(x){ return x.id === noteId; });
   if (n) n.cat = cat;
+  touchCat(cat);
   closeOverlay();
   var btn = document.querySelector('#card-' + noteId + ' .cat-btn');
   if (btn) { btn.textContent = cat; btn.style.cssText = catChipStyle(cat); }
-  var pv = document.querySelector('#cards .pv-item[data-id="' + noteId + '"] .pv-cat');
-  if (pv) { pv.textContent = cat; pv.style.cssText = catChipStyle(cat); }
+  // 一覧側の札は丸ごと作り直す。字だけ書き換えると、札を押した時の飛び先が
+  // 古いカテゴリのまま残ってしまう
+  _refreshPreviewCard(noteId);
+  // 付け替えた先が今の絞り込みから外れる時は、メモを追いかけてタブごと移る。
+  // 放っておくとメモが一覧から消え、詳細画面が閉じて元の絞り込みの一覧へ戻されてしまう
+  if (n && !catFilterNote(n)) {
+    await flushBodySave(noteId);        // 打ちかけの本文を先に届かせる
+    await updateCatInDB(noteId, cat);   // 読み直す前に、付け替えを届かせる
+    currentCat = cat;
+    _scrollTabIntoView = true;
+    await loadNotes(true);
+    // 読み直しでエディタが作り直しになるので、詳細画面を載せ直す
+    renderDetail();
+    return;
+  }
+  updateCatInDB(noteId, cat);
 };
 window._catModalFilter = function(val) {
   var q = val.toLowerCase();
@@ -1871,10 +1900,7 @@ window._addCatModal = async function() {
   var name = el.value.trim();
   if (!(await addCategory(name))) return;
   el.value = '';
-  if (currentNoteIdForCat) {
-    window._selectCat(currentNoteIdForCat, name);
-    render();
-  }
+  if (currentNoteIdForCat) await window._selectCat(currentNoteIdForCat, name);
 };
 
 function byteLen(s) { return new TextEncoder().encode(s).length; }
