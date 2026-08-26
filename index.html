@@ -174,27 +174,6 @@ select.sort-btn{padding-right:10px}
 .cta-group{display:inline-flex;align-items:center;gap:2px}
 .cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (hover:hover){.cat-btn:hover{border-color:var(--border2)}}
-/* カテゴリの札とⓘボタンの入れ物。高さを固定して、編集の出入りで中身が
-   入れ替わってもカードの高さが変わらないようにする（幅は詰めさせてよい） */
-.cat-slot{display:inline-flex;align-items:center;height:22px;min-width:0}
-.cat-slot .cat-btn,.cat-slot .info-btn{height:22px;box-sizing:border-box}
-.cat-slot .info-btn{display:none}
-.card.is-editing .cat-slot .cat-btn{display:none}
-.card.is-editing .cat-slot .info-btn{display:inline-flex}
-.info-btn{align-items:center;justify-content:center;width:22px;padding:0;font-size:13px;line-height:1;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;cursor:pointer;font-family:inherit}
-@media (hover:hover){.info-btn:hover{border-color:var(--border2)}}
-.info-btn.active{color:var(--text);border-color:var(--border2)}
-/* 情報パネル。grid-template-rows を 0fr→1fr で動かすと、中身の高さを
-   知らなくても滑らかに開閉できる（下の本文はふつうに押し下げられる） */
-.info-panel-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .18s ease,margin-bottom .18s ease}
-.card.info-open .info-panel-wrap{grid-template-rows:1fr;margin-bottom:10px}
-.info-panel-wrap>.info-panel{overflow:hidden;min-height:0}
-.info-panel-inner{border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);padding:0.6rem 0.7rem;display:flex;flex-direction:column;gap:6px}
-.info-row{display:flex;align-items:baseline;gap:8px;font-size:12px}
-.info-label{color:var(--text3);flex:0 0 auto;min-width:56px}
-.info-value{color:var(--text2)}
-.info-memo{display:flex;flex-direction:column;gap:4px;margin-top:2px}
-.info-memo-input{width:100%;box-sizing:border-box;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 8px;font-size:13px;font-family:inherit;color:var(--text);outline:none;resize:vertical;min-height:52px}
 .card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text-body);line-height:1.6;outline:none}
 .card-editor .ProseMirror{outline:none;min-height:40px;word-break:break-word}
 .card-editor .ProseMirror p{margin:0 0 2px}
@@ -214,7 +193,7 @@ select.sort-btn{padding-right:10px}
 .toolbar-btn{background:none;border:0.5px solid var(--border);border-radius:4px;color:var(--text2);padding:3px 6px;cursor:pointer;display:flex;align-items:center}
 @media (hover:hover){.toolbar-btn:hover{color:var(--text);border-color:var(--border2)}}
 .editor-toolbar{display:none;gap:2px;margin-bottom:6px;flex-wrap:wrap}
-.card.is-editing .editor-toolbar{display:flex}
+.card:focus-within .editor-toolbar{display:flex}
 .tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
 .tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
 @media (hover:hover){.tb-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}}
@@ -243,9 +222,7 @@ select.sort-btn{padding-right:10px}
 @media (hover:hover){.datetime-part.editable:hover{color:var(--text2)}}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
-/* 使用量そのものは編集中だけ見せる。読んでいるだけの時に出ていると邪魔なため */
-.byte-count{font-size:11px;color:var(--text3);display:none}
-.card.is-editing .byte-count{display:inline}
+.byte-count{font-size:11px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
 .byte-count.over{color:var(--danger);font-weight:500}
 mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;padding:0 1px}
@@ -594,10 +571,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-pane .cat-btn{font-size:13px}     /* カテゴリの札 */
   .detail-pane .card-date{font-size:13px}   /* 日時 */
   .detail-pane .byte-count{font-size:13px}
-  .detail-pane .cat-slot,.detail-pane .cat-slot .cat-btn,.detail-pane .cat-slot .info-btn{height:26px}
-  .detail-pane .info-btn{font-size:15px;width:26px}
-  .detail-pane .info-row,.detail-pane .info-value,.detail-pane .info-label{font-size:13px}
-  .detail-pane .info-memo-input{font-size:15px}
   .detail-pane .tb-btn{font-size:14px}      /* 太字などの装飾ボタン */
   /* コピー・ペースト・リセット・♥・ゴミ箱の絵はSVGに大きさが直接書いてあり、
      文字を大きくしても付いてこないので、ここで一緒に上げる。
@@ -700,7 +673,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 </div>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, getDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
@@ -1048,12 +1021,9 @@ function initEditor(id, body) {
         if (!imageFile) {
           var plainText = cd.getData ? cd.getData('text/plain') : '';
           if (/\.(png|jpe?g|gif|webp|heic|tiff?|bmp)$/i.test((plainText || '').trim())) return true;
-          // 画像以外の貼り付けは、書式（太字・表・埋め込み画像など）を持ち込むと
-          // 10KBの上限をすぐ食ってしまうので、常に文字だけとして挿入する。
           // <a href> みたいなタグを含む「コードっぽい」テキストは、HTMLとして
-          // 解釈させると山カッコごと消えてしまうので、この経路でも文字そのままにする。
-          if (plainText) {
-            var looksLikeCode = /<[a-zA-Z/!]/.test(plainText);
+          // 解釈させると山カッコごと消えてしまうので、文字そのままで挿入する。
+          if (plainText && /<[a-zA-Z/!]/.test(plainText)) {
             event.preventDefault();
             var ed2 = editors[id];
             var lines = plainText.split(/\r?\n/);
@@ -1064,12 +1034,9 @@ function initEditor(id, body) {
             });
             var startPos = ed2.state.selection.from;
             ed2.chain().focus().insertContent(content).run();
-            if (looksLikeCode) {
-              // autolink が中の URL を拾ってコード全体をリンク化するのを打ち消す
-              // （ふつうの文章の中のURLはそのままリンク化させたいので、ここに限る）
-              var endPos = ed2.state.selection.from;
-              ed2.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
-            }
+            // autolink が中の URL を拾ってコード全体をリンク化するのを打ち消す
+            var endPos = ed2.state.selection.from;
+            ed2.chain().setTextSelection({ from: startPos, to: endPos }).unsetLink().setTextSelection(endPos).run();
             return true;
           }
           return false;
@@ -1446,7 +1413,7 @@ async function loadNotes(reset) {
     var snapshot = await getDocs(q);
     var newNotes = snapshot.docs.map(function(d) {
       var data = d.data();
-      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', created_at: data.created_at || '', deleted: data.deleted || false, images: data.images || [], fav: data.fav === true, updatedAt: data.updatedAt || null, memo: data.memo || '' };
+      return { id: d.id, cat: data.cat || NO_CAT, body: data.body || '', date: data.date || '', created_at: data.created_at || '', deleted: data.deleted || false, images: data.images || [], fav: data.fav === true, updatedAt: data.updatedAt || null };
     });
     if (favOnly) {
       var bound = _favDateBound();
@@ -1579,7 +1546,7 @@ function addNote() {
   }
   notes.unshift({
     id: ref.id, cat: cat, body: '', date: today, created_at: stamp,
-    deleted: false, images: [], fav: false, updatedAt: Timestamp.fromDate(new Date()), memo: ''
+    deleted: false, images: [], fav: false, updatedAt: Timestamp.fromDate(new Date())
   });
   render();
   selectCard(ref.id);
@@ -1972,12 +1939,12 @@ window._addCatModal = async function() {
 };
 
 function byteLen(s) { return new TextEncoder().encode(s).length; }
-// 表示そのものは常に作る（.byte-count を編集中だけ見せるかどうかはCSS側で切り替える）
 function byteCountHTML(body) {
   var b = byteLen(body);
   var cls = b >= 10000 ? 'over' : b >= 9000 ? 'warn' : '';
-  var msg = b.toLocaleString() + ' / 10,000B';
-  return '<span class="byte-count' + (cls ? ' ' + cls : '') + '">' + msg + '</span>';
+  if (!cls) return '';
+  var msg = b >= 10000 ? '上限超過' : '上限まで' + (10000 - b) + 'B';
+  return '<span class="byte-count ' + cls + '">' + msg + '</span>';
 }
 
 function _jkIsTyping() {
@@ -2720,12 +2687,7 @@ function cardPreviewHTML(n) {
 function detailCardHTML(n) {
   return '<div class="card" id="card-' + n.id + '">'
     + '<div class="card-top" onclick="_detailThemeTap(event)">'
-    + '<span class="cat-slot">'
     + '<button class="cat-btn" style="' + esc(catChipStyle(n.cat)) + '" onclick="openCatModal(\'' + n.id + '\')">' + esc(n.cat || NO_CAT) + '</button>'
-    // 編集中はカテゴリの札の代わりにこのⓘを出す。mousedown を止めて、押しても
-    // 本文からフォーカスが逃げないようにする（逃げるとiOSでキーボードが引っ込む）
-    + '<button type="button" class="info-btn" aria-label="情報" aria-expanded="false" onmousedown="event.preventDefault()" onclick="toggleInfoPanel(\'' + n.id + '\')">ⓘ</button>'
-    + '</span>'
     // 本文を扱う2つと、メモそのものを扱う3つは役割が違うので、
     // ひと組ずつ span に入れて間を空ける。誤って隣を押す事故も減る
     + '<span class="card-top-actions">'
@@ -2740,7 +2702,6 @@ function detailCardHTML(n) {
     + '</span>'
     + '</span>'
     + '</div>'
-    + '<div class="info-panel-wrap"><div class="info-panel" id="info-panel-' + n.id + '"></div></div>'
     + makeToolbar(n.id) + '<div class="card-editor" id="editor-' + n.id + '"></div>'
     + '<div class="card-footer"><span class="card-date' + (_dateIsUnrecovered(n) ? ' date-unrecovered' : '') + '" data-date-id="' + n.id + '">' + dateSpanInnerHTML(n) + '</span>' + byteCountHTML(n.body || '') + '</div>'
     + '</div>';
@@ -2851,117 +2812,6 @@ document.addEventListener('focusout', function(e) {
     if (!a || !a.closest || !a.closest('.detail-pane .ProseMirror')) _detailEditing(false);
   }, 0);
 });
-
-// カードの「編集モード」＝カテゴリの札の代わりにⓘを出し、ⓘから開く情報パネルと
-// 使用バイト数を見せる状態。上の _detailEditing（余白の広さ）とはわざと別の仕組みにしてある。
-// メモ欄（情報パネルの中）にフォーカスが移った時にまで抜けてしまうと困るため、
-// フォーカスの出入りではなく「画面のどこをタップしたか」だけで出入りを決める。
-var memoSaveTimers = {};
-
-function _enterCardEditing(card) {
-  if (card) card.classList.add('is-editing');
-}
-function _exitCardEditing(card) {
-  if (!card) return;
-  var id = card.id.slice('card-'.length);
-  card.classList.remove('is-editing');
-  card.classList.remove('info-open');
-  var btn = card.querySelector('.info-btn');
-  if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('active'); }
-  flushMemoSave(id);
-}
-document.addEventListener('focusin', function(e) {
-  var pm = e.target.closest && e.target.closest('.card-editor .ProseMirror');
-  if (!pm) return;
-  _enterCardEditing(pm.closest('.card'));
-});
-// mousedown（PC・マウス）と touchstart（iOS）の両方を、位置だけで判定する。
-// フォーカスの移動先（relatedTarget）はiOSでは取れないことがあるため頼らない。
-function _cardEditOutsideTapCheck(e) {
-  var openCard = document.querySelector('.card.is-editing');
-  if (!openCard || openCard.contains(e.target)) return;
-  _exitCardEditing(openCard);
-}
-document.addEventListener('mousedown', _cardEditOutsideTapCheck, true);
-document.addEventListener('touchstart', _cardEditOutsideTapCheck, true);
-
-function formatUpdatedAtJst(n) {
-  var ts = n.updatedAt;
-  var d = ts && ts.toDate ? ts.toDate() : (ts instanceof Date ? ts : null);
-  if (!d) return '';
-  var jst = new Date(d.getTime() + 9 * 3600 * 1000).toISOString();
-  return jst.slice(0, 10) + ' ' + jst.slice(11, 16);
-}
-
-function infoPanelHTML(n) {
-  return '<div class="info-panel-inner">'
-    + '<div class="info-row"><span class="info-label">カテゴリ</span><span class="info-value">' + esc(n.cat || NO_CAT) + '</span></div>'
-    + '<div class="info-row"><span class="info-label">作成日時</span><span class="info-value">' + esc(formatNoteDate(n)) + '</span></div>'
-    + '<div class="info-row"><span class="info-label">更新日時</span><span class="info-value">' + esc(formatUpdatedAtJst(n)) + '</span></div>'
-    + '<div class="info-memo"><span class="info-label">メモ</span>'
-    + '<textarea class="info-memo-input" placeholder="メモを入力…" oninput="onMemoInput(\'' + n.id + '\', this.value)">' + esc(n.memo || '') + '</textarea></div>'
-    + '</div>';
-}
-
-// パネルを開いた瞬間は手元にある(古いかもしれない)値でまず描き、
-// 裏でFirestoreから読み直して最新のメモ・更新日時に差し替える。
-// 検索結果から開いたメモは memo・updatedAt を持っていないため、これをしないと
-// 実際にはメモがあるのに空欄に見えてしまい、そこへ打つと消してしまう事故になる
-async function renderInfoPanelContent(id) {
-  var n = notes.find(function(x) { return x.id === id; });
-  if (!n) return;
-  var panel = document.getElementById('info-panel-' + id);
-  if (!panel) return;
-  panel.innerHTML = infoPanelHTML(n);
-  try {
-    var snap = await getDoc(doc(db, NOTES_COLL, id));
-    if (!snap.exists()) return;
-    var data = snap.data();
-    n.memo = data.memo || '';
-    n.updatedAt = data.updatedAt || n.updatedAt;
-    n.created_at = data.created_at || n.created_at;
-    var stillOpen = document.getElementById('card-' + id);
-    if (stillOpen && stillOpen.classList.contains('info-open')) {
-      panel.innerHTML = infoPanelHTML(n);
-    }
-  } catch (e) { console.error(e); }
-}
-
-function toggleInfoPanel(id) {
-  var card = document.getElementById('card-' + id);
-  if (!card) return;
-  var btn = card.querySelector('.info-btn');
-  var opening = !card.classList.contains('info-open');
-  card.classList.toggle('info-open', opening);
-  if (btn) { btn.setAttribute('aria-expanded', opening ? 'true' : 'false'); btn.classList.toggle('active', opening); }
-  if (opening) renderInfoPanelContent(id);
-}
-window.toggleInfoPanel = toggleInfoPanel;
-
-function onMemoInput(id, val) {
-  var n = notes.find(function(x) { return x.id === id; });
-  if (n) n.memo = val;
-  scheduleMemoSave(id, val);
-}
-window.onMemoInput = onMemoInput;
-
-function scheduleMemoSave(id, val) {
-  clearTimeout(memoSaveTimers[id]);
-  memoSaveTimers[id] = setTimeout(async function() {
-    try { await setDoc(doc(db, NOTES_COLL, id), { memo: val }, { merge: true }); }
-    catch (e) { console.error(e); }
-  }, 800);
-}
-
-async function flushMemoSave(id) {
-  if (!memoSaveTimers[id]) return;
-  clearTimeout(memoSaveTimers[id]);
-  memoSaveTimers[id] = null;
-  var n = notes.find(function(x) { return x.id === id; });
-  if (!n) return;
-  try { await setDoc(doc(db, NOTES_COLL, id), { memo: n.memo || '' }, { merge: true }); }
-  catch (e) { console.error(e); }
-}
 
 function closeMobileDetail() {
   var wasOpen = document.body.classList.contains('mobile-detail-open');
