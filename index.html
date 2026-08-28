@@ -453,13 +453,27 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      キーボードが出て画面が低くなると「はみ出したぶん」が生まれる。
      するとiOSがカーソルを見せようとしてページごと持ち上げ、画面いっぱいに
      置いてある詳細画面（position:fixed）まで一緒に上へ逃げてしまい、
-     地の色だけが残る（＝真っ黒に見える）。動かす余地を無くして防ぐ */
+     地の色だけが残る（＝真っ黒に見える）。動かす余地を無くして防ぐ。
+     高さに 100% ではなく 100dvh を使っているのは、iOSが 100%（＝画面の高さ）を
+     返す時に、下のホームインジケータが乗っている帯（safe-area-inset-bottom）を
+     含めないことがあるため。そうなると position:fixed;inset:0 で置いてある
+     詳細画面がその帯まで届かず、下に地の色(--bg3)が横棒になって現れる。
+     dvh は端末の画面まるごとの高さなので、帯のぶんも最初から入っている */
   html.detail-open,
   html.detail-open body{
-    height:100%;
+    height:100dvh;
     min-height:0;
     overflow:hidden;
   }
+  /* 上で高さを揃えてもなお1pxでも隙間が出た時のために、地の色そのものを
+     詳細画面と同じ色にしておく。隙間から出るのが同じ色になり、継ぎ目が消える。
+     ふつうの暗いモードは地も詳細画面も #000 なので、元から差が出ない。
+     塗るのは html だけにする。body に足すと、深海のグラデーション（body::before は
+     z-index:-1）が body 自身の地に隠れてしまうため */
+  html.detail-open{background:var(--bg)}
+  /* 深海だけは詳細画面が地を透かしてグラデーションを見せているので、
+     その一番下の色（body::before の終点）に合わせる */
+  html.detail-open[data-theme="deepsea"]{background:#001a33}
   /* 新規作成ボタンは詳細画面でも出しっぱなしにする。
      薄さは一覧と同じで、詳細画面（z-index:60）より前に置いて押せるようにする */
   body.mobile-detail-open .fab{z-index:61}
