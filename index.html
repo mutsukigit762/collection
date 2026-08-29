@@ -409,9 +409,9 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
    位置を 0 0 と長さで書いているのは、隠す時にここを px でずらすため（％と px が
    混ざると、動かしている途中の色が計算できない） */
 [data-theme="deepsea"] body::before{content:'';position:fixed;inset:0;z-index:-1;
-  background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#0047AB 100%)}
+  background:linear-gradient(180deg,#007FFF 0%,#0047AB 100%)}
 [data-theme="deepsea"] .sticky-header{
-  background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#0047AB 100%) 0 0/100% 100vh no-repeat}
+  background:linear-gradient(180deg,#007FFF 0%,#0047AB 100%) 0 0/100% 100vh no-repeat}
 /* 見出しが上へ逃げた時は、逃げたぶん模様を下へ送り返して後ろの地とのつなぎ目を保つ。
    逃げる動きと同じ長さ・同じ緩急なので、動いている途中の一コマでもズレない */
 [data-theme="deepsea"] .sticky-header.hide{background-position-y:var(--hdr-h, 0px)}
@@ -514,7 +514,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      帯だけが継ぎ目なく埋まる */
   [data-theme="deepsea"] body::before{
     bottom:calc(-1 * env(safe-area-inset-bottom, 0px));
-    background:#0047AB linear-gradient(180deg,#007FFF 0%,#004a94 42%,#0047AB 100%) 0 0/100% 100dvh no-repeat;
+    background:#0047AB linear-gradient(180deg,#007FFF 0%,#0047AB 100%) 0 0/100% 100dvh no-repeat;
   }
   body.mobile-detail-open .detail-pane{
     /* translateX(0) ではなく none にしている。ぴったり0でも「動かしている面」の
@@ -627,7 +627,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .pv-trash-pc svg{width:14px;height:14px}
   /* 詳細画面（PC）：.detail-pane はフレックスの通常配置で、body::before（負のz-index）より
      手前で不透明に塗られてしまうため、透かすのではなく地の色として直接同じ海のグラデーションを敷く */
-  [data-theme="deepsea"] .detail-pane{background:linear-gradient(180deg,#007FFF 0%,#004a94 42%,#0047AB 100%);--text-body:#fff}
+  [data-theme="deepsea"] .detail-pane{background:linear-gradient(180deg,#007FFF 0%,#0047AB 100%);--text-body:#fff}
   [data-theme="deepsea"] .detail-pane .card{background:none;border:none}
 }
 </style>
