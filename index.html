@@ -506,8 +506,16 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 暗い時は地を敷かず、一覧と同じ海のグラデーション（body::before）を透かす。
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
   [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
-  /* 透かす相手そのものが届いていないと同じことなので、海のほうも帯のぶん伸ばす */
-  [data-theme="deepsea"] body::before{bottom:calc(-1 * env(safe-area-inset-bottom, 0px))}
+  /* 透かす相手そのものが届いていないと同じことなので、海のほうも帯のぶん伸ばす。
+     ただし面と一緒に絵柄まで引き伸ばすと、青→紺→濃紺と色が変わる位置が
+     そのぶん下へずれて、下半分の出方が元と変わってしまう。
+     絵柄の高さは画面ぶん（100dvh）に固定したまま面だけ下へ伸ばし、
+     はみ出した帯は絵柄の終わりと同じ色で塗る。こうすると色の並びは元のまま、
+     帯だけが継ぎ目なく埋まる */
+  [data-theme="deepsea"] body::before{
+    bottom:calc(-1 * env(safe-area-inset-bottom, 0px));
+    background:#001a33 linear-gradient(180deg,#007FFF 0%,#004a94 42%,#001a33 100%) 0 0/100% 100dvh no-repeat;
+  }
   body.mobile-detail-open .detail-pane{
     /* translateX(0) ではなく none にしている。ぴったり0でも「動かしている面」の
        扱いが残り、iOSがこの中のスクロールバーを出してくれなくなるため。
