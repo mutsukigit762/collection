@@ -465,21 +465,18 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     min-height:0;
     overflow:hidden;
   }
-  /* 上で高さを揃えてもなお1pxでも隙間が出た時のために、地の色そのものを
-     詳細画面と同じ色にしておく。隙間から出るのが同じ色になり、継ぎ目が消える。
-     ふつうの暗いモードは地も詳細画面も #000 なので、元から差が出ない。
-     塗るのは html だけにする。body に足すと、深海のグラデーション（body::before は
-     z-index:-1）が body 自身の地に隠れてしまうため */
-  html.detail-open{background:var(--bg)}
-  /* 深海だけは詳細画面が地を透かしてグラデーションを見せているので、
-     その一番下の色（body::before の終点）に合わせる */
-  html.detail-open[data-theme="deepsea"]{background:#001a33}
   /* 新規作成ボタンは詳細画面でも出しっぱなしにする。
      薄さは一覧と同じで、詳細画面（z-index:60）より前に置いて押せるようにする */
   body.mobile-detail-open .fab{z-index:61}
   .detail-pane{
     display:block;
     position:fixed;inset:0;
+    /* iOSは画面の高さに、下のホームインジケータが乗っている帯
+       （safe-area-inset-bottom）を含めない値を返すことがある。そのぶん
+       この面が下まで届かず、隙間から地の色が横棒になって見えていた。
+       帯のぶんだけ下へはみ出させて埋める。はみ出したところは画面の外なので、
+       正しい高さが返ってくる端末では何も変わらない */
+    bottom:calc(-1 * env(safe-area-inset-bottom, 0px));
     z-index:60;
     background:var(--bg);   /* カードの枠をなくすかわりに、画面ごと白にする */
     overflow-y:auto;
@@ -509,6 +506,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 暗い時は地を敷かず、一覧と同じ海のグラデーション（body::before）を透かす。
      青の上ではグレーの本文が沈むので、本文だけ白に上げる */
   [data-theme="deepsea"] .detail-pane{background:transparent;--text-body:#fff}
+  /* 透かす相手そのものが届いていないと同じことなので、海のほうも帯のぶん伸ばす */
+  [data-theme="deepsea"] body::before{bottom:calc(-1 * env(safe-area-inset-bottom, 0px))}
   body.mobile-detail-open .detail-pane{
     /* translateX(0) ではなく none にしている。ぴったり0でも「動かしている面」の
        扱いが残り、iOSがこの中のスクロールバーを出してくれなくなるため。
