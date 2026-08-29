@@ -292,6 +292,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* 深海モードは地そのものが青いので、青いリンクだと海に溶けて見つからない。
    青の反対側の黄にして、白の本文とも見分けが付くようにする */
 [data-theme="deepsea"] .card-editor .ProseMirror a{color:#ffe27a}
+/* 表の見出し行は、明暗どちらでも通る灰色（--bg2）を敷いている。
+   深海だけは地が明るい青なので、その灰色が黒い帯として浮いてしまう。
+   色を決め打ちにすると地のグラデーションのどこに置かれたかで浮くため、
+   後ろを少し暗くするだけの半透明にして、表がどこにあっても馴染ませる */
+[data-theme="deepsea"] .card-editor .ProseMirror table th{background:rgba(0,0,0,0.22)}
 [data-theme="deepsea"] .date-unrecovered, [data-theme="dark"] .date-unrecovered{color:#ff6b81 !important}  /* 作成時刻が未回収の赤 */
 [data-theme="deepsea"] .overlay, [data-theme="dark"] .overlay{background:rgba(0,0,0,0.6)}         /* 黒地なので薄いと分からない */
 /* 点滅する縦棒（カーソル）は、指定しないと文字と同じ色になる。深海は地が青いぶん
