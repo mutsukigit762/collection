@@ -229,6 +229,12 @@ select.sort-btn{padding-right:10px}
 @media (hover:hover){.datetime-part.editable:hover{color:var(--text2)}}
 .date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+/* 詳細画面では、日時を本文の上に固定する。本文の下に置くと改行するたびに
+   下へずれていって落ち着かないため。
+   狭い画面では以前から @media(max-width:699px) の中で同じことをしていたので、
+   ここへ出して横幅を問わず上に出す（下の狭い画面向けの指定が余白だけ詰める） */
+.detail-pane .card{display:flex;flex-direction:column}
+.detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:8px}
 .byte-count{font-size:11px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
 .byte-count.over{color:var(--danger);font-weight:500}
@@ -1675,20 +1681,12 @@ function _warnOverLimit() {
   showToast('1万バイトの上限。ここから先は入らないよ');
 }
 
-// 本文の保存は裏で静かにやるので、うまくいった時は小さく一言だけ。
-// こけた時は消えないと困るのでトーストで出す（今まではconsoleに出て終わりだった）
-var _savedMsgTimer = null;
-function _noteSaved() {
-  setSyncStatus('保存した');
-  clearTimeout(_savedMsgTimer);
-  _savedMsgTimer = setTimeout(function() {
-    var el = document.getElementById('sync-status');
-    if (el && el.textContent === '保存した') setSyncStatus('');
-  }, 1200);
-}
+// うまく保存できた時は何も出さない。
+// sync-status は一覧の上にあるので、文字が出入りするだけで下の一覧全体が
+// 上下に動く。打つたびに出す（＝数秒おき）と画面がチラつくため、成功は黙って通す。
+// こけた時だけ、消えずに残る文字とトーストの両方で知らせる
 function _noteSaveFailed(e) {
   console.error(e);
-  clearTimeout(_savedMsgTimer);
   setSyncStatus('保存できていない');
   showToast('保存できなかった。電波を確かめて、もう一度触って');
 }
@@ -1698,7 +1696,6 @@ function scheduleBodySave(id, val) {
   saveTimers[id] = setTimeout(async function() {
     try {
       await setDoc(doc(db, NOTES_COLL, id), { body: val, updatedAt: serverTimestamp() }, { merge: true });
-      _noteSaved();
     } catch(e) { _noteSaveFailed(e); }
   }, 800);
 }
