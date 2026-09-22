@@ -179,6 +179,13 @@ select.sort-btn{padding-right:10px}
 .card-editor .ProseMirror p{margin:0 0 2px}
 .card-editor .ProseMirror p:last-child{margin-bottom:0}
 .card-editor .ProseMirror h1{font-size:18px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+/* 小見出し・リスト・引用は、ブラウザ任せだと余白が大きすぎて本文から浮くので自前で詰める */
+.card-editor .ProseMirror h2{font-size:16px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror ul,.card-editor .ProseMirror ol{margin:2px 0;padding-left:1.3em}
+.card-editor .ProseMirror li{margin:0}
+.card-editor .ProseMirror li>p{margin:0}
+.card-editor .ProseMirror blockquote{margin:4px 0;padding-left:8px;border-left:2px solid var(--border2);color:var(--text2)}
+.card-editor .ProseMirror s{text-decoration:line-through;text-decoration-thickness:1px}
 .card-editor .ProseMirror a{color:#2563eb;text-decoration:underline;cursor:pointer;word-break:break-all}
 .card-editor .ProseMirror strong{font-weight:700}
 .card-editor .ProseMirror em{font-style:italic}
@@ -589,6 +596,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
   .card-editor{font-size:17px;line-height:28px}
   .card-editor .ProseMirror h1{font-size:22px}
+  .card-editor .ProseMirror h2{font-size:19px}
   /* 純正メモを実測したところ段落の間に余分な空きは無く、行末の空白だけで
      切れ目を見せていた。それに合わせて段落も行送りと同じ間隔で並べる */
   .detail-pane .card-editor .ProseMirror p{margin-bottom:0}
@@ -1093,13 +1101,17 @@ function initEditor(id, body) {
       var b = byteLen(saveVal);
       if (b > 10000) {
         editor.commands.undo();
+        _warnOverLimit();
         return;
       }
       updateByteCount(id, saveVal);
       scheduleBodySave(id, saveVal);
       var n = notes.find(function(x){ return x.id === id; });
       if (n) n.body = saveVal;
+      _tbSyncActive(id);
     },
+    onSelectionUpdate: function() { _tbSyncActive(id); },
+    onFocus: function() { _tbSyncActive(id); },
   });
 
   editors[id] = editor;
@@ -1150,8 +1162,60 @@ function updateByteCount(id, val) {
   else if (newBc && footer) footer.insertAdjacentHTML('beforeend', newBc);
 }
 
+// カーソルがカードの中にある間だけ出る書式ボタン。
+// 2026-06-15に「常に出ている太字/H1ボタン」を一度消しているので、常時表示には戻さない。
+// ただしショートカット（Cmd+B、Cmd+H）はiOSのソフトキーボードから打てないため、
+// 触っている最中だけ出る形で入れ直す。表示の出し入れは .card:focus-within のCSS任せ。
+function _tbBtn(id, label, title, cmd, arg, activeName, level) {
+  var a = arg === undefined ? 'undefined' : arg;
+  return '<button type="button" class="tb-btn" title="' + title + '"'
+    + (activeName ? ' data-active="' + activeName + '"' : '')
+    + (level ? ' data-level="' + level + '"' : '')
+    // mousedown を止めないとエディタからフォーカスが抜け、iOSではキーボードまで閉じる。
+    // touchend 側で止めた分は後続の合成clickも消えるので二重に掛からない
+    + ' onmousedown="event.preventDefault()"'
+    + ' ontouchend="event.preventDefault();window._tbCmd(\'' + id + '\',\'' + cmd + '\',' + a + ')"'
+    + ' onclick="window._tbCmd(\'' + id + '\',\'' + cmd + '\',' + a + ')"'
+    + '>' + label + '</button>';
+}
+
+function makeFormatToolbar(id) {
+  return '<div class="editor-toolbar" id="toolbar-' + id + '">'
+    + _tbBtn(id, '<b>B</b>', '太字（Cmd+B）', 'toggleBold', undefined, 'bold')
+    + _tbBtn(id, '<s>S</s>', '打ち消し線', 'toggleStrike', undefined, 'strike')
+    + _tbBtn(id, 'H1', '見出し（Cmd+H）', 'toggleHeading', '{level:1}', 'heading', 1)
+    + _tbBtn(id, 'H2', '小見出し', 'toggleHeading', '{level:2}', 'heading', 2)
+    + _tbBtn(id, '・', '箇条書き', 'toggleBulletList', undefined, 'bulletList')
+    + _tbBtn(id, '1.', '番号付き', 'toggleOrderedList', undefined, 'orderedList')
+    + _tbBtn(id, '引用', '引用', 'toggleBlockquote', undefined, 'blockquote')
+    + '</div>';
+}
+
+// 押した書式が今かかっているかを、ボタンの見た目に反映する
+function _tbSyncActive(id) {
+  var ed = editors[id];
+  var bar = document.getElementById('toolbar-' + id);
+  if (!ed || !bar) return;
+  bar.querySelectorAll('.tb-btn[data-active]').forEach(function(btn) {
+    var name = btn.getAttribute('data-active');
+    var lv = btn.getAttribute('data-level');
+    var on = lv ? ed.isActive(name, { level: Number(lv) }) : ed.isActive(name);
+    btn.classList.toggle('active', !!on);
+  });
+}
+
+window._tbCmd = function(id, cmd, arg) {
+  var ed = editors[id];
+  if (!ed) return;
+  var chain = ed.chain().focus();
+  if (typeof chain[cmd] !== 'function') return;
+  (arg === undefined ? chain[cmd]() : chain[cmd](arg)).run();
+  _tbSyncActive(id);
+};
+
 function makeToolbar(id) {
-  return '<div class="toolbar">'
+  return makeFormatToolbar(id)
+    + '<div class="toolbar">'
     + '<button type="button" class="toolbar-btn" title="表を挿入" onclick="window._tbTable(\'' + id + '\')">' + IC.table + '</button>'
     + '<button type="button" class="toolbar-btn" title="行を追加（カーソルが表の中にある時）" onclick="window._tbAddRow(\'' + id + '\')">+行</button>'
     + '<button type="button" class="toolbar-btn" title="列を追加（カーソルが表の中にある時）" onclick="window._tbAddCol(\'' + id + '\')">+列</button>'
@@ -1601,12 +1665,41 @@ function addNote() {
   });
 }
 
+// 上限に当たって勝手にundoされる時、何が起きたのか画面に出す。
+// 打ち続けている間は何度も鳴るので、3秒に1回までに抑える
+var _overLimitAt = 0;
+function _warnOverLimit() {
+  var now = Date.now();
+  if (now - _overLimitAt < 3000) return;
+  _overLimitAt = now;
+  showToast('1万バイトの上限。ここから先は入らないよ');
+}
+
+// 本文の保存は裏で静かにやるので、うまくいった時は小さく一言だけ。
+// こけた時は消えないと困るのでトーストで出す（今まではconsoleに出て終わりだった）
+var _savedMsgTimer = null;
+function _noteSaved() {
+  setSyncStatus('保存した');
+  clearTimeout(_savedMsgTimer);
+  _savedMsgTimer = setTimeout(function() {
+    var el = document.getElementById('sync-status');
+    if (el && el.textContent === '保存した') setSyncStatus('');
+  }, 1200);
+}
+function _noteSaveFailed(e) {
+  console.error(e);
+  clearTimeout(_savedMsgTimer);
+  setSyncStatus('保存できていない');
+  showToast('保存できなかった。電波を確かめて、もう一度触って');
+}
+
 function scheduleBodySave(id, val) {
   clearTimeout(saveTimers[id]);
   saveTimers[id] = setTimeout(async function() {
     try {
       await setDoc(doc(db, NOTES_COLL, id), { body: val, updatedAt: serverTimestamp() }, { merge: true });
-    } catch(e) { console.error(e); }
+      _noteSaved();
+    } catch(e) { _noteSaveFailed(e); }
   }, 800);
 }
 
@@ -1621,7 +1714,7 @@ async function flushBodySave(id) {
   if (!n) return;
   try {
     await setDoc(doc(db, NOTES_COLL, id), { body: n.body || '', updatedAt: serverTimestamp() }, { merge: true });
-  } catch(e) { console.error(e); }
+  } catch(e) { _noteSaveFailed(e); }
 }
 
 async function updateCatInDB(id, cat) {
