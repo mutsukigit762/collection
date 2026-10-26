@@ -200,7 +200,7 @@ select.sort-btn{padding-right:10px}
 .toolbar-btn{background:none;border:0.5px solid var(--border);border-radius:4px;color:var(--text2);padding:3px 6px;cursor:pointer;display:flex;align-items:center}
 @media (hover:hover){.toolbar-btn:hover{color:var(--text);border-color:var(--border2)}}
 .editor-toolbar{display:none;gap:2px;margin-bottom:6px;flex-wrap:wrap}
-.card:focus-within .editor-toolbar{display:flex}
+.editor-toolbar.on{display:flex}
 .tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
 .tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
 @media (hover:hover){.tb-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}}
@@ -318,8 +318,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 [data-theme="deepsea"] input,
 [data-theme="deepsea"] textarea{caret-color:#fff}
 
-/* スマホ用ボトムバー（タッチデバイスのみ。PCブラウザの幅を狭めても出さない） */
-.bottom-bar{display:none}
 .fab{display:none}
 /* 右下に浮かせる新規作成ボタン（スマホのみ） */
 @media(max-width:640px) and (pointer:coarse){
@@ -344,63 +342,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 一覧へ戻るボタン。新規作成ボタン（右下）と左右対称の位置に、同じ見た目で置く */
   .fab-back{left:20px;right:auto}
   body:not(.mobile-detail-open) .fab-back{display:none}
-}
-@media(max-width:640px) and (pointer:coarse){
-  .bottom-bar{
-    display:none;
-    position:fixed;
-    bottom:0;left:0;right:0;
-    z-index:50;
-    background:var(--bg);
-    border-top:0.5px solid var(--border);
-    padding:8px 12px calc(20px + env(safe-area-inset-bottom));
-  }
-  .bb-buttons{
-    display:flex;
-    gap:8px;
-    align-items:center;
-  }
-  .bb-buttons button{
-    flex:1;
-    background:none;
-    border:none;
-    color:var(--text2);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:2px;
-    font-size:10px;
-    font-family:inherit;
-    cursor:pointer;
-    padding:4px 0;
-  }
-  .bb-search-row{
-    display:none;
-    gap:8px;
-    align-items:center;
-  }
-  .bottom-bar.searching .bb-buttons{display:none}
-  .bottom-bar.searching .bb-search-row{display:flex}
-  .bb-search-row input{
-    flex:1;
-    background:var(--bg2);
-    border:0.5px solid var(--border2);
-    border-radius:var(--radius);
-    padding:10px 12px;
-    font-size:16px;
-    color:var(--text);
-    font-family:inherit;
-    outline:none;
-  }
-  .bb-search-row button{
-    background:none;
-    border:none;
-    color:var(--text2);
-    cursor:pointer;
-    padding:6px;
-    font-family:inherit;
-    font-size:14px;
-  }
 }
 /* スマホの検索欄は、画面の下に浮かぶガラスの板にする。
    見出し（sticky-header）は隠す時に transform で動くので、その中に置いたままだと
@@ -502,7 +443,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 /* スマホ：カードタップで一覧の上に詳細画面がかぶさる（戻るボタン・スワイプで一覧へ） */
 @media(max-width:699px){
   body.mobile-detail-open .left-col{display:none}
-  body.mobile-detail-open .bottom-bar{display:none}
   /* 詳細画面を開いている間は、ページそのもの（一覧側）を動かせなくする。
      一覧は display:none で消えているが body の min-height:100vh は残るので、
      キーボードが出て画面が低くなると「はみ出したぶん」が生まれる。
@@ -737,17 +677,6 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 <button class="fab" id="fab-add" onclick="addNote()" aria-label="新規作成"></button>
 <!-- 詳細画面でだけ出る、一覧へ戻るボタン。新規作成ボタンと左右対称の位置に置く -->
 <button class="fab fab-back" id="fab-back" onclick="closeMobileDetail()" aria-label="一覧へ戻る"></button>
-<div class="bottom-bar" id="bottom-bar">
-  <div class="bb-buttons" id="bb-buttons">
-    <button id="bb-trash" onclick="toggleTrash()"></button>
-    <button id="bb-cat" onclick="toggleCatPanel()"></button>
-    <button id="bb-search" onclick="openBottomSearch()"></button>
-  </div>
-  <div class="bb-search-row" id="bb-search-row">
-    <input type="text" id="bottom-search-input" placeholder="内容・カテゴリーで検索…" oninput="onSearch(this.value)">
-    <button id="bb-search-close" onclick="closeBottomSearch()"></button>
-  </div>
-</div>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -898,13 +827,8 @@ document.getElementById('cat-mgr-btn').innerHTML = IC.folder + ' カテゴリー
 document.getElementById('add-btn').innerHTML = IC.plus + ' 追加';
 document.querySelector('.search-clear').innerHTML = IC.x;
 
-// ボトムバーのアイコン
-document.getElementById('bb-search').innerHTML = IC.search + '<span>検索</span>';
-document.getElementById('bb-trash').innerHTML = IC.trash + '<span>ゴミ箱</span>';
-document.getElementById('bb-cat').innerHTML = IC.folder + '<span>カテゴリー</span>';
 document.getElementById('fab-add').innerHTML = IC.plus;
 document.getElementById('fab-back').innerHTML = IC.chevronLeft;
-document.getElementById('bb-search-close').innerHTML = IC.x;
 document.getElementById('fav-filter-toggle').innerHTML = IC.heart;
 
 const NO_CAT = 'カテゴリなし';
@@ -1137,27 +1061,41 @@ function initEditor(id, body) {
         return true;
       },
     },
-    onUpdate: function({ editor }) {
-      var html = editor.getHTML();
-      var isEmpty = html === '<p></p>' || html === '';
-      var saveVal = isEmpty ? '' : html;
-      var b = byteLen(saveVal);
-      if (b > 10000) {
-        editor.commands.undo();
-        _warnOverLimit();
-        return;
+    // 打つ・消す・カーソル移動・Cmd+B など、エディタの変化はすべてここを通る。
+    // ボタンの光り方の同期もここで1回だけやる（カーソルを動かさない Cmd+B も拾える）
+    onTransaction: function({ editor, transaction }) {
+      if (transaction.docChanged) {
+        var html = editor.getHTML();
+        var isEmpty = html === '<p></p>' || html === '';
+        var saveVal = isEmpty ? '' : html;
+        var b = byteLen(saveVal);
+        // 上限を超えて「増えた」時だけ、その1手を丸ごとなかったことにする。
+        // 消して減った時は通す（上限を超えたメモでも削って縮められるように）。
+        // undo だと履歴のひとかたまり（数文字ぶん）が消えるので、直前の状態そのものに戻す
+        if (b > 10000 && b > goodBytes) {
+          editor.view.updateState(goodState);
+          _warnOverLimit();
+          return;
+        }
+        goodBytes = b;
+        if (!transaction.getMeta('preventUpdate')) {
+          updateByteCount(id, saveVal);
+          scheduleBodySave(id, saveVal);
+          var n = notes.find(function(x){ return x.id === id; });
+          if (n) n.body = saveVal;
+        }
       }
-      updateByteCount(id, saveVal);
-      scheduleBodySave(id, saveVal);
-      var n = notes.find(function(x){ return x.id === id; });
-      if (n) n.body = saveVal;
+      goodState = editor.state;
       _tbSyncActive(id);
     },
-    onSelectionUpdate: function() { _tbSyncActive(id); },
-    onFocus: function() { _tbSyncActive(id); },
+    onFocus: function() { _tbSyncActive(id); _tbShow(id, true); },
+    onBlur: function() { _tbShow(id, false); },
   });
 
   editors[id] = editor;
+  // 上限チェックで戻る先。最後に受け入れた状態と、その時の大きさ
+  var goodState = editor.state;
+  var goodBytes = byteLen(htmlContent || '');
 
   var editorEl = document.getElementById('editor-' + id);
   if (editorEl) {
@@ -1208,7 +1146,7 @@ function updateByteCount(id, val) {
 // カーソルがカードの中にある間だけ出る書式ボタン。
 // 2026-06-15に「常に出ている太字/H1ボタン」を一度消しているので、常時表示には戻さない。
 // ただしショートカット（Cmd+B、Cmd+H）はiOSのソフトキーボードから打てないため、
-// 触っている最中だけ出る形で入れ直す。表示の出し入れは .card:focus-within のCSS任せ。
+// 触っている最中だけ出る形で入れ直す。表示の出し入れは _tbShow（エディタの focus/blur から呼ぶ）。
 function _tbBtn(id, label, title, cmd, arg, activeName, level) {
   var a = arg === undefined ? 'undefined' : arg;
   return '<button type="button" class="tb-btn" title="' + title + '"'
@@ -1217,7 +1155,9 @@ function _tbBtn(id, label, title, cmd, arg, activeName, level) {
     // mousedown を止めないとエディタからフォーカスが抜け、iOSではキーボードまで閉じる。
     // touchend 側で止めた分は後続の合成clickも消えるので二重に掛からない
     + ' onmousedown="event.preventDefault()"'
-    + ' ontouchend="event.preventDefault();window._tbCmd(\'' + id + '\',\'' + cmd + '\',' + a + ')"'
+    // 指を置いたままスクロールした時に書式が切り替わらないよう、動いていたら何もしない
+    + ' ontouchstart="window._tbTouchStart(event)"'
+    + ' ontouchend="event.preventDefault();if(window._tbTouchMoved(event))return;window._tbCmd(\'' + id + '\',\'' + cmd + '\',' + a + ')"'
     + ' onclick="window._tbCmd(\'' + id + '\',\'' + cmd + '\',' + a + ')"'
     + '>' + label + '</button>';
 }
@@ -1247,6 +1187,66 @@ function _tbSyncActive(id) {
   });
 }
 
+// 書式ボタンに指が触れた位置を覚えておき、離した時に10px以上動いていたらスクロールとみなす
+var _tbTouchXY = null;
+window._tbTouchStart = function(e) {
+  var t = e.touches && e.touches[0];
+  _tbTouchXY = t ? [t.clientX, t.clientY] : null;
+};
+window._tbTouchMoved = function(e) {
+  var t = e.changedTouches && e.changedTouches[0];
+  if (!t || !_tbTouchXY) return false;
+  return Math.abs(t.clientX - _tbTouchXY[0]) > 10 || Math.abs(t.clientY - _tbTouchXY[1]) > 10;
+};
+
+// 書式ボタンの出し入れ。押した瞬間（mousedown）に出すと、まだ指やマウスを離す前に
+// 本文がボタンの高さぶん下にずれて、カーソルが狙った行からずれる。
+// なので押している最中に入った時は、離してから出す
+var _tbPointerDown = false;
+document.addEventListener('mousedown', function(){ _tbPointerDown = true; }, true);
+document.addEventListener('touchstart', function(){ _tbPointerDown = true; }, { capture: true, passive: true });
+function _tbPointerUp() { _tbPointerDown = false; }
+document.addEventListener('mouseup', _tbPointerUp, true);
+document.addEventListener('touchend', _tbPointerUp, true);
+document.addEventListener('touchcancel', _tbPointerUp, true);
+// 同じカードの中のボタンにフォーカスが移ったあと、カードの外へ出た時にも消す
+document.addEventListener('focusout', function() {
+  setTimeout(function() {
+    document.querySelectorAll('.editor-toolbar.on').forEach(function(bar) {
+      var id = bar.id.replace('toolbar-', '');
+      var card = bar.closest('.card') || bar.parentNode;
+      var ed = editors[id];
+      if ((ed && ed.isFocused) || (card && card.contains(document.activeElement))) return;
+      bar.classList.remove('on');
+    });
+  }, 0);
+}, true);
+function _tbShow(id, on) {
+  var bar = document.getElementById('toolbar-' + id);
+  if (!bar) return;
+  if (!on) {
+    // 表の＋行ボタンなど、同じカードの中のボタンへ移っただけなら出したままにする
+    // （消してすぐ出し直すと、本文が上下にガタつく）。前の :focus-within と同じ範囲
+    setTimeout(function() {
+      var card = bar.closest('.card') || bar.parentNode;
+      var ed = editors[id];
+      if ((ed && ed.isFocused) || (card && card.contains(document.activeElement))) return;
+      bar.classList.remove('on');
+    }, 0);
+    return;
+  }
+  if (!_tbPointerDown) { bar.classList.add('on'); return; }
+  function show() {
+    document.removeEventListener('mouseup', show, true);
+    document.removeEventListener('touchend', show, true);
+    // 離した時点でまだ打てる状態なら出す（離す前に別の所へ移っていたら出さない）
+    var ed = editors[id];
+    if (ed && ed.isFocused) bar.classList.add('on');
+  }
+  document.addEventListener('mouseup', show, true);
+  document.addEventListener('touchend', show, true);
+}
+
 window._tbCmd = function(id, cmd, arg) {
   var ed = editors[id];
   if (!ed) return;
@@ -1266,12 +1266,6 @@ function makeToolbar(id) {
     + '<button type="button" class="toolbar-btn" title="カーソルのある列を削除" onclick="window._tbDelCol(\'' + id + '\')">−列</button>'
     + '</div>';
 }
-
-window._tbH = function(id, level) {
-  var ed = editors[id];
-  if (!ed) return;
-  ed.chain().focus().toggleHeading({ level: level }).run();
-};
 
 window._tbTable = function(id) {
   var ed = editors[id];
@@ -3455,8 +3449,6 @@ async function updateFilterCount() {
 function switchCat(c) {
   if (searchQuery) {
     document.getElementById('search-input').value = '';
-    var bsi = document.getElementById('bottom-search-input');
-    if (bsi) bsi.value = '';
     searchQuery = '';
     document.getElementById('search-clear').style.display = 'none';
   }
@@ -3470,11 +3462,6 @@ function switchCat(c) {
 var _searchTimer = null;
 function onSearch(val) {
   searchQuery = val.trim();
-  // 両方の検索欄を同期
-  var top = document.getElementById('search-input');
-  var bottom = document.getElementById('bottom-search-input');
-  if (top && top.value !== val) top.value = val;
-  if (bottom && bottom.value !== val) bottom.value = val;
   document.getElementById('search-clear').style.display = val ? 'block' : 'none';
   clearTimeout(_searchTimer);
   if (searchQuery) {
@@ -3485,43 +3472,47 @@ function onSearch(val) {
 }
 function clearSearch() {
   document.getElementById('search-input').value = '';
-  var bsi = document.getElementById('bottom-search-input');
-  if (bsi) bsi.value = '';
   searchQuery = '';
   document.getElementById('search-clear').style.display = 'none';
   loadNotes(true);
 }
 
-// ボトム検索欄の開閉
-function openBottomSearch() {
-  var bar = document.getElementById('bottom-bar');
-  bar.classList.add('searching');
-  setTimeout(function(){ document.getElementById('bottom-search-input').focus(); }, 50);
-}
-function closeBottomSearch() {
-  var bar = document.getElementById('bottom-bar');
-  bar.classList.remove('searching');
-  clearSearch();
-}
-window.openBottomSearch = openBottomSearch;
-window.closeBottomSearch = closeBottomSearch;
-
-// スマホでは検索欄を見出しから外して body 直下へ移し、画面下に浮かせる（CSSの .search-float）
+// スマホでは検索欄を見出しから外して body 直下へ移し、画面下に浮かせる（CSSの .search-float）。
+// 端末を横にすると幅の条件から外れるので、条件が変わるたびに元の場所と行き来させる
 (function() {
-  if (!window.matchMedia('(max-width:640px) and (pointer:coarse)').matches) return;
   var wrap = document.querySelector('.search-wrap');
   if (!wrap) return;
-  document.body.appendChild(wrap);
-  wrap.classList.add('search-float');
-  // キーボードが出たら、その高さぶん持ち上げてキーボードの上に乗せる
+  var home = wrap.parentNode, homeNext = wrap.nextSibling;   // 見出しの中の元の場所
+  var mq = window.matchMedia('(max-width:640px) and (pointer:coarse)');
+  function place() {
+    if (mq.matches) {
+      if (wrap.parentNode !== document.body) document.body.appendChild(wrap);
+      wrap.classList.add('search-float');
+    } else {
+      wrap.classList.remove('search-float');
+      if (wrap.parentNode !== home) home.insertBefore(wrap, homeNext);
+    }
+  }
+  place();
+  if (mq.addEventListener) mq.addEventListener('change', place);
+  else if (mq.addListener) mq.addListener(place);
+  // キーボードが出たら、その高さぶん持ち上げてキーボードの上に乗せる。
+  // ピンチで拡大した時も「見えている高さ」が縮んで同じ式が正になるので、
+  // 検索欄に入力している時だけ、かつ拡大していない時だけ持ち上げる
   var vv = window.visualViewport;
   if (!vv) return;
+  var input = document.getElementById('search-input');
   function placeAboveKeyboard() {
-    var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    var kb = 0;
+    if (document.activeElement === input && vv.scale < 1.01) {
+      kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    }
     document.documentElement.style.setProperty('--kb', kb + 'px');
   }
   vv.addEventListener('resize', placeAboveKeyboard);
   vv.addEventListener('scroll', placeAboveKeyboard);
+  input.addEventListener('focus', placeAboveKeyboard);
+  input.addEventListener('blur', placeAboveKeyboard);
 })();
 
 window.openCatModal = openCatModal;
