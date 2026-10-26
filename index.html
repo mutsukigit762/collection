@@ -373,6 +373,8 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     font-size:16px;   /* 16px未満だとiOSが勝手に拡大する */
   }
   .search-wrap.search-float .search-clear{right:14px}
+  /* スマホでは右下の＋で足すので、右上の「追加」は出さない（PCは今まで通り） */
+  #add-btn{display:none}
   body.mobile-detail-open .search-wrap.search-float{display:none}
   /* 一番下のカードが板の裏に隠れないよう、一覧の下に余白を足す */
   .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
@@ -674,7 +676,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
      箱を動かすと、iOSが動かし終わったあとスクロールバーの色の指定を見失うため -->
 <div class="detail-pane" id="detail-pane"><div class="detail-inner" id="detail-inner"></div></div>
 </div>
-<button class="fab" id="fab-add" onclick="addNote()" aria-label="新規作成"></button>
+<button class="fab" id="fab-add" onclick="window._fabTap()" aria-label="新規作成"></button>
 <!-- 詳細画面でだけ出る、一覧へ戻るボタン。新規作成ボタンと左右対称の位置に置く -->
 <button class="fab fab-back" id="fab-back" onclick="closeMobileDetail()" aria-label="一覧へ戻る"></button>
 <script type="module">
@@ -3451,6 +3453,7 @@ function switchCat(c) {
     document.getElementById('search-input').value = '';
     searchQuery = '';
     document.getElementById('search-clear').style.display = 'none';
+    _syncFab();
   }
   touchCat(c);
   currentCat = c;
@@ -3463,6 +3466,7 @@ var _searchTimer = null;
 function onSearch(val) {
   searchQuery = val.trim();
   document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+  _syncFab();
   clearTimeout(_searchTimer);
   if (searchQuery) {
     _searchTimer = setTimeout(function() { searchNotes(searchQuery); }, 250);
@@ -3470,10 +3474,30 @@ function onSearch(val) {
     loadNotes(true);
   }
 }
+// 右下の丸ボタン。ふだんは＋（新規作成）、検索欄に文字が入っている間は×（検索をやめる）
+function _syncFab() {
+  var fab = document.getElementById('fab-add');
+  if (!fab) return;
+  var searching = !!document.getElementById('search-input').value;
+  if (fab.classList.contains('fab-x') === searching) return;
+  fab.classList.toggle('fab-x', searching);
+  fab.innerHTML = searching ? IC.x : IC.plus;
+  fab.setAttribute('aria-label', searching ? '検索をやめる' : '新規作成');
+}
+window._fabTap = function() {
+  var fab = document.getElementById('fab-add');
+  if (fab && fab.classList.contains('fab-x')) {
+    clearSearch();
+    document.getElementById('search-input').blur();
+  } else {
+    addNote();
+  }
+};
 function clearSearch() {
   document.getElementById('search-input').value = '';
   searchQuery = '';
   document.getElementById('search-clear').style.display = 'none';
+  _syncFab();
   loadNotes(true);
 }
 
