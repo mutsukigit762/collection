@@ -402,6 +402,43 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     font-size:14px;
   }
 }
+/* スマホの検索欄は、画面の下に浮かぶガラスの板にする。
+   見出し（sticky-header）は隠す時に transform で動くので、その中に置いたままだと
+   position:fixed が見出しに付いて一緒に動いてしまう。JSで body 直下へ移してから、この形にする。
+   右下の新規作成ボタンと高さ・下端をそろえ、その左に並べる。
+   --kb はキーボードが出ている時の高さ（JSが入れる）。キーボードの上に乗せるため */
+@media(max-width:640px) and (pointer:coarse){
+  .search-wrap.search-float{
+    position:fixed;
+    left:16px;
+    right:84px;
+    bottom:calc(20px + env(safe-area-inset-bottom) + var(--kb, 0px));
+    z-index:51;
+    margin:0;
+    height:52px;
+    border-radius:26px;
+    background:var(--glass);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    backdrop-filter:blur(20px) saturate(180%);
+    border:0.5px solid var(--glass-border);
+    box-shadow:0 4px 20px rgba(0,0,0,0.18);
+  }
+  .search-wrap.search-float input{
+    height:100%;
+    background:transparent;
+    border:none;
+    border-radius:26px;
+    padding:0 40px 0 18px;
+    font-size:16px;   /* 16px未満だとiOSが勝手に拡大する */
+  }
+  .search-wrap.search-float .search-clear{right:14px}
+  body.mobile-detail-open .search-wrap.search-float{display:none}
+  /* 一番下のカードが板の裏に隠れないよう、一覧の下に余白を足す */
+  .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+}
+:root{--glass:rgba(255,255,255,0.55);--glass-border:rgba(0,0,0,0.12)}
+:root[data-theme="deepsea"], :root[data-theme="dark"]{--glass:rgba(40,40,42,0.55);--glass-border:rgba(255,255,255,0.18)}
+[data-theme="deepsea"] .search-wrap.search-float input{background:transparent;border:none}
 /* カード一覧のサムネイル表示（スマホ・PC共通） */
 /* 左スワイプでカードが逃げていく先。ここで切り取ると、その切り取り線が
    行の下端に細い線として出てしまうので、切り取りは持たせない。
@@ -2215,11 +2252,7 @@ document.addEventListener('keydown', function(e) {
       }
       if (e.key === '/') {
         e.preventDefault();
-        if (_isDesktop()) {
-          document.getElementById('search-input').focus();
-        } else {
-          openBottomSearch();
-        }
+        document.getElementById('search-input').focus();
         return;
       }
       if (e.key === 'n') { e.preventDefault(); addNote(); return; }
@@ -3457,6 +3490,24 @@ function closeBottomSearch() {
 }
 window.openBottomSearch = openBottomSearch;
 window.closeBottomSearch = closeBottomSearch;
+
+// スマホでは検索欄を見出しから外して body 直下へ移し、画面下に浮かせる（CSSの .search-float）
+(function() {
+  if (!window.matchMedia('(max-width:640px) and (pointer:coarse)').matches) return;
+  var wrap = document.querySelector('.search-wrap');
+  if (!wrap) return;
+  document.body.appendChild(wrap);
+  wrap.classList.add('search-float');
+  // キーボードが出たら、その高さぶん持ち上げてキーボードの上に乗せる
+  var vv = window.visualViewport;
+  if (!vv) return;
+  function placeAboveKeyboard() {
+    var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', kb + 'px');
+  }
+  vv.addEventListener('resize', placeAboveKeyboard);
+  vv.addEventListener('scroll', placeAboveKeyboard);
+})();
 
 window.openCatModal = openCatModal;
 window.deleteNote = deleteNote;
