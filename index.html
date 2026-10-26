@@ -1401,7 +1401,11 @@ function escAndHighlight(s, q) {
   var escQ = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return escaped.replace(new RegExp('(' + escQ + ')', 'ig'), '<mark>$1</mark>');
 }
+var _unsavedIds = {};   // 本文の保存がこけたままのメモ（id → true）
 function setSyncStatus(msg) {
+  // 本文の保存がこけたままのメモがあるうちは、ほかの処理（検索・画像など）が
+  // 表示を空にしようとしても「保存できていない」を残す。消すと失敗に気づけなくなる
+  if (!msg && Object.keys(_unsavedIds).length) msg = '保存できていない';
   document.getElementById('sync-status').textContent = msg;
 }
 
@@ -1721,11 +1725,20 @@ function _warnOverLimit() {
 // うまく保存できた時は何も出さない。
 // sync-status は一覧の上にあるので、文字が出入りするだけで下の一覧全体が
 // 上下に動く。打つたびに出す（＝数秒おき）と画面がチラつくため、成功は黙って通す。
-// こけた時だけ、消えずに残る文字とトーストの両方で知らせる
-function _noteSaveFailed(e) {
+// こけた時だけ、消えずに残る文字とトーストの両方で知らせる。
+// こけたメモは _unsavedIds に覚えておき、そのメモの保存があとで通ったら外す。
+// 全部外れた時だけ表示を消す（メモAが失敗中に、メモBの成功で消さないため）。
+// 入れ物そのものは setSyncStatus より上で作ってある
+function _noteSaveFailed(id, e) {
   console.error(e);
+  _unsavedIds[id] = true;
   setSyncStatus('保存できていない');
   showToast('保存できなかった。電波を確かめて、もう一度触って');
+}
+function _noteSaveOk(id) {
+  if (!_unsavedIds[id]) return;   // ふだんの成功は黙って通す（チラつかせない）
+  delete _unsavedIds[id];
+  if (!Object.keys(_unsavedIds).length) setSyncStatus('');
 }
 
 function scheduleBodySave(id, val) {
@@ -1733,7 +1746,8 @@ function scheduleBodySave(id, val) {
   saveTimers[id] = setTimeout(async function() {
     try {
       await setDoc(doc(db, NOTES_COLL, id), { body: val, updatedAt: serverTimestamp() }, { merge: true });
-    } catch(e) { _noteSaveFailed(e); }
+      _noteSaveOk(id);
+    } catch(e) { _noteSaveFailed(id, e); }
   }, 800);
 }
 
@@ -1748,7 +1762,8 @@ async function flushBodySave(id) {
   if (!n) return;
   try {
     await setDoc(doc(db, NOTES_COLL, id), { body: n.body || '', updatedAt: serverTimestamp() }, { merge: true });
-  } catch(e) { _noteSaveFailed(e); }
+    _noteSaveOk(id);
+  } catch(e) { _noteSaveFailed(id, e); }
 }
 
 async function updateCatInDB(id, cat) {
