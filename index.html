@@ -662,6 +662,7 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   <div class="tabs" id="tabs"></div>
   <div class="sort-bar" id="sort-bar">
     <button class="sort-btn" id="sort-field-toggle" onclick="toggleSortField()">更新順</button>
+    <button class="sort-btn" id="sort-dir-toggle" onclick="toggleSortDir()" style="display:none">新しい順</button>
     <button class="sort-btn" id="filter-reset" onclick="resetDateFilter()">C</button>
     <select id="filter-year" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>年</option></select>
     <select id="filter-month" class="sort-btn" onchange="onDateFilterChange()"><option value="" hidden>月</option></select>
@@ -883,19 +884,19 @@ function formatNoteDateParts(n) {
   if (sp < 0) return { date: full, time: '' };
   return { date: full.slice(0, sp), time: full.slice(sp + 1) };
 }
-// 表示用の日時。「2026-10-07 02:40」を「October 7 2026 2:40 a.m.」にする。
+// 表示用の日時。「2026-10-07 02:40」を「October 7, 2026, 2:40 a.m.」にする（英語の標準的な書き方）。
 // 中身（created_at）や絞り込みは今まで通りの形のまま、見せ方だけ変える
 var _MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function formatDateEn(date, time) {
   var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || '');
   if (!d) return (date || '') + (time ? ' ' + time : '');
-  var out = _MONTHS_EN[Number(d[2]) - 1] + ' ' + Number(d[3]) + ' ' + d[1];
+  var out = _MONTHS_EN[Number(d[2]) - 1] + ' ' + Number(d[3]) + ', ' + d[1];
   var t = /^(\d{2}):(\d{2})/.exec(time || '');
   if (t) {
     var h = Number(t[1]);
     var ampm = h < 12 ? 'a.m.' : 'p.m.';
     var h12 = h % 12 === 0 ? 12 : h % 12;   // 0時は 12 a.m.、12時は 12 p.m.
-    out += ' ' + h12 + ':' + t[2] + ' ' + ampm;
+    out += ', ' + h12 + ':' + t[2] + ' ' + ampm;
   }
   return out;
 }
@@ -945,6 +946,7 @@ var currentCat = ALL_TAB;
 var searchQuery = '';
 var sortField = 'updatedAt';
 var sortDir = 'desc';
+var orderDir = 'desc';   // 作成順の時に、ムツキが選んだ向き（新しい順 desc ／ 古い順 asc）
 var filterYear = '';
 var filterMonth = '';
 var filterDay = '';
@@ -3595,12 +3597,14 @@ function toggleSortField() {
   btn.textContent = sortField === 'updatedAt' ? '更新順' : '作成順';
   // 更新順が普段の並びなので、そこから外れている作成順の時だけ光らせて目印にする
   btn.classList.toggle('active', sortField === 'date');
+  // 向きの切り替えは作成順の時だけ出す。更新順の古い順は、Firestore の索引が無くて読めないため
+  document.getElementById('sort-dir-toggle').style.display = sortField === 'date' ? '' : 'none';
   var saved = _filterState[sortField] || {};
   filterYear = saved.year || '';
   filterMonth = saved.month || '';
   filterDay = saved.day || '';
   filterDir = filterYear ? (filterDir || 'before') : '';
-  sortDir = filterDir === 'after' ? 'asc' : 'desc';
+  _syncSortDir(false);
   document.getElementById('filter-year').value = filterYear;
   document.getElementById('filter-month').value = filterMonth;
   document.getElementById('filter-day').value = filterDay;
@@ -3608,6 +3612,28 @@ function toggleSortField() {
   loadNotes(true);
 }
 window.toggleSortField = toggleSortField;
+// 並びの向きを決める。
+// 作成順：ムツキが選んだ向き（orderDir）。以前／以後を切り替えた時だけ、自然な向き
+//         （以前→新しい順、以後→古い順）に合わせ直す。そのあと向きボタンで逆にもできる。
+// 更新順：今まで通り、以後の時だけ古い順
+function _syncSortDir(filterDirChanged) {
+  if (sortField === 'date') {
+    if (filterDirChanged && filterDir) orderDir = filterDir === 'after' ? 'asc' : 'desc';
+    sortDir = orderDir;
+  } else {
+    sortDir = filterDir === 'after' ? 'asc' : 'desc';
+  }
+  var b = document.getElementById('sort-dir-toggle');
+  if (b) b.textContent = orderDir === 'asc' ? '古い順' : '新しい順';
+}
+function toggleSortDir() {
+  if (sortField !== 'date') return;
+  orderDir = orderDir === 'asc' ? 'desc' : 'asc';
+  _syncSortDir(false);
+  window.scrollTo({ top: 0 });
+  loadNotes(true);
+}
+window.toggleSortDir = toggleSortDir;
 function _updateFilterDirLabel() {
   var el = document.getElementById('filter-dir-label');
   if (el) { el.textContent = filterYear ? (filterDir === 'before' ? '以前' : '以後') : ''; el.style.display = filterYear ? '' : 'none'; }
@@ -3615,6 +3641,7 @@ function _updateFilterDirLabel() {
 function resetDateFilter() {
   filterYear = ''; filterMonth = ''; filterDay = ''; filterDir = '';
   _filterState[sortField] = {};
+  _syncSortDir(false);   // 更新順で「以後」のまま消すと古い順が残り、索引の無い並びになるため
   document.getElementById('filter-year').value = '';
   document.getElementById('filter-month').value = '';
   document.getElementById('filter-day').value = '';
@@ -3625,7 +3652,7 @@ window.resetDateFilter = resetDateFilter;
 function toggleFilterDir() {
   if (!filterYear) return;
   filterDir = filterDir === 'before' ? 'after' : 'before';
-  sortDir = filterDir === 'after' ? 'asc' : 'desc';
+  _syncSortDir(true);
   _updateFilterDirLabel();
   loadNotes(true);
 }
@@ -3634,8 +3661,9 @@ function onDateFilterChange() {
   filterYear = document.getElementById('filter-year').value;
   filterMonth = document.getElementById('filter-month').value;
   filterDay = document.getElementById('filter-day').value;
+  var prevDir = filterDir;
   filterDir = filterYear ? (filterDir || 'before') : '';
-  sortDir = filterDir === 'after' ? 'asc' : 'desc';
+  _syncSortDir(filterDir !== prevDir);
   _updateFilterDirLabel();
   window.scrollTo({ top: 0 });
   loadNotes(true);
