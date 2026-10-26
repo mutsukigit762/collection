@@ -378,6 +378,11 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* スマホでは右下の＋で足すので、右上の「追加」は出さない（PCは今まで通り） */
   #add-btn{display:none}
   body.mobile-detail-open .search-wrap.search-float{display:none}
+  /* キーボードが出ている間は、画面下の余白（20px とホームバーのぶん）は要らない。
+     そのまま足すと、キーボードの上のバー（∧ ∨ ✓）との間が大きく空くので詰める。
+     右下の丸ボタンも同じ高さにそろえる */
+  html.kb-up .search-wrap.search-float{bottom:calc(8px + var(--kb, 0px))}
+  html.kb-up .fab{bottom:8px}
   /* 一番下のカードが板の裏に隠れないよう、一覧の下に余白を足す */
   .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 }
@@ -3545,11 +3550,13 @@ function clearSearch() {
   if (!vv) return;
   var input = document.getElementById('search-input');
   function placeAboveKeyboard() {
-    var kb = 0;
+    var kb = 0, up = false;
     if (document.activeElement === input && vv.scale < 1.01) {
       kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      up = window.innerHeight - vv.height > 150;   // 見えている高さが大きく減った＝キーボードが出ている
     }
     document.documentElement.style.setProperty('--kb', kb + 'px');
+    document.documentElement.classList.toggle('kb-up', up);
   }
   vv.addEventListener('resize', placeAboveKeyboard);
   vv.addEventListener('scroll', placeAboveKeyboard);
