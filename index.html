@@ -369,10 +369,12 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
     background:transparent;
     border:none;
     border-radius:26px;
-    padding:0 40px 0 18px;
+    padding:0 18px;
     font-size:16px;   /* 16px未満だとiOSが勝手に拡大する */
   }
-  .search-wrap.search-float .search-clear{right:14px}
+  /* 右下の丸ボタンが検索中は×になるので、欄の中の×は出さない。
+     出し入れはJSが style.display で直接書くので、!important で上書きする */
+  .search-wrap.search-float .search-clear{display:none !important}
   /* スマホでは右下の＋で足すので、右上の「追加」は出さない（PCは今まで通り） */
   #add-btn{display:none}
   body.mobile-detail-open .search-wrap.search-float{display:none}
