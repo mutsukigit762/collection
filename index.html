@@ -883,9 +883,25 @@ function formatNoteDateParts(n) {
   if (sp < 0) return { date: full, time: '' };
   return { date: full.slice(0, sp), time: full.slice(sp + 1) };
 }
+// 表示用の日時。「2026-10-07 02:40」を「October 7 2026 2:40 a.m.」にする。
+// 中身（created_at）や絞り込みは今まで通りの形のまま、見せ方だけ変える
+var _MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function formatDateEn(date, time) {
+  var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || '');
+  if (!d) return (date || '') + (time ? ' ' + time : '');
+  var out = _MONTHS_EN[Number(d[2]) - 1] + ' ' + Number(d[3]) + ' ' + d[1];
+  var t = /^(\d{2}):(\d{2})/.exec(time || '');
+  if (t) {
+    var h = Number(t[1]);
+    var ampm = h < 12 ? 'a.m.' : 'p.m.';
+    var h12 = h % 12 === 0 ? 12 : h % 12;   // 0時は 12 a.m.、12時は 12 p.m.
+    out += ' ' + h12 + ':' + t[2] + ' ' + ampm;
+  }
+  return out;
+}
 function dateSpanInnerHTML(n) {
   var p = formatNoteDateParts(n);
-  var text = esc(p.date) + ' ' + esc(p.time);
+  var text = esc(formatDateEn(p.date, p.time));
   if (!DATE_EDIT_ENABLED) return '<span class="datetime-part">' + text + '</span>';
   return '<span class="datetime-part editable" onclick="event.stopPropagation();editNoteDate(\'' + n.id + '\', event)">'
     + text + '</span>';
