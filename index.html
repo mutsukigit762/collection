@@ -2098,16 +2098,21 @@ window._selectCat = async function(noteId, cat) {
   // 一覧側の札は丸ごと作り直す。字だけ書き換えると、札を押した時の飛び先が
   // 古いカテゴリのまま残ってしまう
   _refreshPreviewCard(noteId);
-  // 付け替えた先が今の絞り込みから外れる時は、メモを追いかけてタブごと移る。
-  // 放っておくとメモが一覧から消え、詳細画面が閉じて元の絞り込みの一覧へ戻されてしまう
+  // 付け替えた先が今の絞り込みから外れる時は、絞り込みはそのままにして、
+  // メモだけ一覧から消す（変更先のタブへは移らない）。見ていたメモの次（無ければ前）を開く
   if (n && !catFilterNote(n)) {
+    var list = notes.filter(function(x){ return x.id === n.id || catFilterNote(x); });
+    var idx = list.findIndex(function(x){ return x.id === n.id; });
+    var next = list[idx + 1] || list[idx - 1] || null;
     await flushBodySave(noteId);        // 打ちかけの本文を先に届かせる
-    await updateCatInDB(noteId, cat);   // 読み直す前に、付け替えを届かせる
-    currentCat = cat;
-    _scrollTabIntoView = true;
-    await loadNotes(true);
-    // 読み直しでエディタが作り直しになるので、詳細画面を載せ直す
-    renderDetail();
+    await updateCatInDB(noteId, cat);
+    notes = notes.filter(function(x){ return x.id !== n.id; });
+    if (selectedCardId === n.id) selectedCardId = next ? next.id : null;
+    destroyEditor(n.id);
+    _mountedDetailId = null;
+    renderCards();
+    _filterCountKey = null;
+    updateFilterCount();
     return;
   }
   updateCatInDB(noteId, cat);
