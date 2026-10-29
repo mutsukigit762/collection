@@ -132,11 +132,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 /* 見出しは明るい/暗いの切り替えボタンも兼ねている。
    タップで文字が選択されたり、iOSの灰色の点滅が出たりしないようにしておく */
-.header h1{font-size:20px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.btn{background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 12px;font-size:13px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.header h1{font-size:22px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.btn{background:transparent;border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 12px;font-size:15px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:6px;font-family:inherit}
 @media (hover:hover){.btn:hover{background:var(--bg2)}}
 .btn-primary{background:var(--text);color:var(--bg);border-color:var(--text)}
-.btn-sm{padding:4px 8px;font-size:12px}
+.btn-sm{padding:4px 8px;font-size:14px}
 .btn-danger{color:var(--danger);border-color:var(--danger)}
 .btn-icon{padding:4px;border:none;background:none;cursor:pointer;color:var(--text3);display:inline-flex;align-items:center;border-radius:4px}
 @media (hover:hover){.btn-icon:hover{color:var(--danger);background:rgba(220,38,38,0.08)}}
@@ -148,22 +148,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 #fav-filter-toggle.on{color:#e0245e;border-color:#e0245e}
 #fav-filter-toggle.on svg{fill:currentColor}
 .search-wrap{position:relative;margin-bottom:1rem}
-.search-wrap input{width:100%;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:9px 32px 9px 12px;font-size:14px;color:var(--text);font-family:inherit;outline:none}
+.search-wrap input{width:100%;background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius);padding:9px 32px 9px 12px;font-size:16px;color:var(--text);font-family:inherit;outline:none}
 .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);display:none;padding:2px}
 .tabs{display:flex;margin-bottom:0;border-bottom:0.5px solid var(--border);overflow-x:auto;scrollbar-width:none}
 .sort-bar{display:flex;gap:6px;padding:8px 0 10px;align-items:center}
-.sort-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--text2);cursor:pointer;appearance:none;-webkit-appearance:none}
+.sort-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:14px;color:var(--text2);cursor:pointer;appearance:none;-webkit-appearance:none}
 .sort-btn.active{background:var(--text);color:var(--bg3);border-color:var(--text)}
 select.sort-btn{padding-right:10px}
 .tabs::-webkit-scrollbar{display:none}
-.tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
+.tab{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;font-size:15px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab.active{color:var(--text);border-bottom-color:var(--text)}
 .tab-clear{display:inline-flex;align-items:center;justify-content:center;color:var(--text2)}
 @media (hover:hover){.tab-clear:hover{color:var(--text)}}
 .tab-clear svg{width:12px;height:12px}
 .tab.tab-match{color:var(--warning-text);border-bottom-color:var(--warning-text);font-weight:600;background:var(--warning-bg)}
 @media (hover:hover){.tab:hover{color:var(--text)}}
-.tab-add{padding:8px 10px;font-size:13px;cursor:pointer;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;font-family:inherit}
+.tab-add{padding:8px 10px;font-size:15px;cursor:pointer;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;font-family:inherit}
 @media (hover:hover){.tab-add:hover{color:var(--text)}}
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:0.875rem 1rem}
@@ -172,15 +172,15 @@ select.sort-btn{padding-right:10px}
 .card-top-actions{display:inline-flex;align-items:center;gap:10px;flex:0 0 auto}
 /* ひと組の中はぴったり、組と組の間だけ上の gap で空く */
 .cta-group{display:inline-flex;align-items:center;gap:2px}
-.cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:11px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cat-btn{display:inline-flex;align-items:center;line-height:1.4;font-size:13px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:inherit;white-space:nowrap;max-width:180px;min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media (hover:hover){.cat-btn:hover{border-color:var(--border2)}}
-.card-editor{width:100%;min-height:40px;font-size:14px;color:var(--text-body);line-height:1.6;outline:none}
+.card-editor{width:100%;min-height:40px;font-size:16px;color:var(--text-body);line-height:1.6;outline:none}
 .card-editor .ProseMirror{outline:none;min-height:40px;word-break:break-word}
 .card-editor .ProseMirror p{margin:0 0 2px}
 .card-editor .ProseMirror p:last-child{margin-bottom:0}
-.card-editor .ProseMirror h1{font-size:18px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror h1{font-size:20px;font-weight:700;margin:4px 0 2px;line-height:1.3}
 /* 小見出し・リスト・引用は、ブラウザ任せだと余白が大きすぎて本文から浮くので自前で詰める */
-.card-editor .ProseMirror h2{font-size:16px;font-weight:700;margin:4px 0 2px;line-height:1.3}
+.card-editor .ProseMirror h2{font-size:18px;font-weight:700;margin:4px 0 2px;line-height:1.3}
 .card-editor .ProseMirror ul,.card-editor .ProseMirror ol{margin:2px 0;padding-left:1.3em}
 .card-editor .ProseMirror li{margin:0}
 .card-editor .ProseMirror li>p{margin:0}
@@ -201,7 +201,7 @@ select.sort-btn{padding-right:10px}
 @media (hover:hover){.toolbar-btn:hover{color:var(--text);border-color:var(--border2)}}
 .editor-toolbar{display:none;gap:2px;margin-bottom:6px;flex-wrap:wrap}
 .editor-toolbar.on{display:flex}
-.tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
+.tb-btn{background:none;border:0.5px solid var(--border);border-radius:4px;padding:2px 6px;font-size:14px;cursor:pointer;color:var(--text2);font-family:inherit;line-height:1.4}
 .tb-btn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
 @media (hover:hover){.tb-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}}
 /* touch-action:none：ピンチも指の動きも全部こっちで受け取る（ブラウザ任せの拡大を止める） */
@@ -221,13 +221,13 @@ select.sort-btn{padding-right:10px}
 .img-modal-arrow.next{right:12px}
 .img-modal-arrow:disabled{opacity:0.2;cursor:default;pointer-events:none}
 .img-modal-counter{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px;z-index:2}
-.card-date{font-size:11px;color:var(--text3);margin-top:6px}
+.card-date{font-size:13px;color:var(--text3);margin-top:6px}
 .date-unrecovered{color:#e11d48 !important;font-weight:600}
 .date-edit-wrap{display:inline-flex;align-items:center;gap:2px;flex-wrap:wrap}
 /* 押せる見た目（指カーソル・ホバーで色が変わる）は DATE_EDIT_ENABLED が true のときだけ付く */
 .datetime-part.editable{cursor:pointer}
 @media (hover:hover){.datetime-part.editable:hover{color:var(--text2)}}
-.date-edit-input{font-size:11px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
+.date-edit-input{font-size:13px;font-family:inherit;color:var(--text);background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:2px 6px;outline:none}
 .card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 /* 詳細画面では、日時を本文の上に固定する。本文の下に置くと改行するたびに
    下へずれていって落ち着かないため。
@@ -235,34 +235,34 @@ select.sort-btn{padding-right:10px}
    ここへ出して横幅を問わず上に出す（下の狭い画面向けの指定が余白だけ詰める） */
 .detail-pane .card{display:flex;flex-direction:column}
 .detail-pane .card-footer{order:-1;margin-top:0;margin-bottom:8px}
-.byte-count{font-size:11px;color:var(--text3)}
+.byte-count{font-size:13px;color:var(--text3)}
 .byte-count.warn{color:#f59e0b}
 .byte-count.over{color:var(--danger);font-weight:500}
 mark{background:var(--warning-bg);color:var(--warning-text);border-radius:2px;padding:0 1px}
-.empty{text-align:center;padding:3rem 1rem;color:var(--text2);font-size:14px}
-.search-count{font-size:12px;color:var(--text3);margin-bottom:1rem}
+.empty{text-align:center;padding:3rem 1rem;color:var(--text2);font-size:16px}
+.search-count{font-size:14px;color:var(--text3);margin-bottom:1rem}
 .panel{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem;margin-bottom:1rem}
 .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.panel-title{font-size:15px;font-weight:500}
+.panel-title{font-size:17px;font-weight:500}
 .trash-item{padding:10px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:flex-start;gap:8px}
 .trash-item:last-child{border-bottom:none}
-.trash-item-body{flex:1;font-size:13px;color:var(--text2);line-height:1.5}
-.trash-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.trash-item-body{flex:1;font-size:15px;color:var(--text2);line-height:1.5}
+.trash-item-meta{font-size:13px;color:var(--text3);margin-top:2px}
 .cat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .cat-row:last-child{border-bottom:none}
 .cat-add-row{display:flex;gap:8px;margin-top:1rem}
-.cat-add-row input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none}
+.cat-add-row input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;padding:1rem}
 .overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--bg);border-radius:var(--radius-lg);padding:1.25rem;width:100%;max-width:360px;max-height:80vh;overflow-y:auto}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.modal-title{font-size:15px;font-weight:500}
-.cat-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius);cursor:pointer;font-size:14px}
+.modal-title{font-size:17px;font-weight:500}
+.cat-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius);cursor:pointer;font-size:16px}
 @media (hover:hover){.cat-option:hover{background:var(--bg2)}}
 .cat-option.selected{font-weight:500;background:var(--bg2)}
 .cat-modal-add{display:flex;gap:8px;margin-top:0.75rem;padding-top:0.75rem;border-top:0.5px solid var(--border)}
-.cat-modal-add input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none}
-.sync-status{font-size:11px;color:var(--text3);text-align:right;padding:0 0 6px}
+.cat-modal-add input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.sync-status{font-size:13px;color:var(--text3);text-align:right;padding:0 0 6px}
 /* 画面のどこにいても見える一言表示。sync-status は一覧の中にあるので、
    スマホでメモを開いている間は隠れてしまい手ごたえが伝わらない */
 /* 時計や電池が並ぶ帯のぶんだけ、下へ向かって薄くなる膜をかける。
@@ -286,7 +286,7 @@ body.mobile-detail-open .status-veil{
 [data-theme="dark"] .status-veil,
 [data-theme="dark"] body.mobile-detail-open .status-veil{
   background:linear-gradient(to bottom,rgba(0,0,0,.90),rgba(0,0,0,0))}
-.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:12px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-16px);background:var(--text);color:var(--bg);font-size:14px;padding:7px 15px;border-radius:18px;white-space:nowrap;opacity:0;pointer-events:none;z-index:300;box-shadow:0 2px 12px rgba(0,0,0,0.18);transition:opacity .5s ease,transform .5s ease}
 /* 出る時はふわっと下りてきて、消える時はさらにゆっくり薄くなる */
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);pointer-events:auto;touch-action:none}
 /* 払って消した時だけ、待たずにさっと引く */
@@ -436,16 +436,16 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
 .pv-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 /* 札が左、時計は右端 */
 .pv-meta-right{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto}
-.pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:10px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
+.pv-cat{display:inline-flex;align-items:center;line-height:1.4;font-size:12px;color:var(--text2);background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;cursor:pointer}
 @media (hover:hover){.pv-cat:hover{border-color:var(--border2);color:var(--text)}}
 .pv-selected .pv-cat{background:var(--bg3)}
-.pv-date{font-size:10px;color:var(--text3);white-space:nowrap}
+.pv-date{font-size:12px;color:var(--text3);white-space:nowrap}
 /* 一覧で、表が入っているメモに付ける目印 */
 .pv-table-mark{display:inline-flex;align-items:center;color:var(--text3);flex:0 0 auto}
 .pv-table-mark svg{width:13px;height:13px}
 .pv-row{display:flex;gap:8px;align-items:flex-start}
 .pv-thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;flex:0 0 auto}
-.pv-text{font-size:14px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
+.pv-text{font-size:16px;color:var(--text);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;flex:1;min-width:0}
 .pv-muted{color:var(--text3)}
 .detail-mobile-bar{display:none}
 
@@ -559,17 +559,17 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   .detail-mobile-bar{
     display:none;
   }
-  .detail-back-btn{background:none;border:none;color:var(--text);display:flex;align-items:center;gap:4px;font-size:14px;font-family:inherit;cursor:pointer;padding:4px 4px 4px 0}
+  .detail-back-btn{background:none;border:none;color:var(--text);display:flex;align-items:center;gap:4px;font-size:16px;font-family:inherit;cursor:pointer;padding:4px 4px 4px 0}
   /* 一覧カード：文字を大きく、行数にかかわらず高さを3行分で揃える */
-  .pv-cat{font-size:12px}
-  .pv-date{font-size:12px}
+  .pv-cat{font-size:14px}
+  .pv-date{font-size:14px}
   /* 本文は詳細画面より一回り小さい15.5px。色は詳細と同じ --text-body にする。
      --text（ほぼ黒）のままだと一覧だけ黒く詰まって、同じ文章なのに
      別の書体に見えてしまうため。
      行送りは詳細と同じ28pxにすると一覧では間延びするので24px。
      15.5pxに対して約1.55倍で、漢字が窮屈にならない下限あたり。
      3行ぶんの高さ（24*3=72px）でカードの高さを揃える */
-  .pv-text{font-size:15.5px;line-height:24px;color:var(--text-body);min-height:calc(24px * 3)}
+  .pv-text{font-size:17.5px;line-height:27px;color:var(--text-body);min-height:calc(27px * 3)}
   .pv-thumb{width:54px;height:54px}
   /* 詳細画面：カードの枠をなくして地の色に馴染ませ、タイムスタンプを一番上に出す。
      .card は詳細画面でしか使っていないので、一覧側には影響しない */
@@ -586,18 +586,18 @@ svg.icon{display:inline-block;vertical-align:-3px;flex-shrink:0}
   /* 本文はスマホだけ大きくする（PCは14pxのまま）。
      見出しは本文とほぼ同じ大きさだと見出しに見えないので、同じ比率で上げる */
   /* 行送りは純正メモの実測値（28.0px）に合わせている。17pxに対して約1.65倍 */
-  .card-editor{font-size:17px;line-height:28px}
-  .card-editor .ProseMirror h1{font-size:22px}
-  .card-editor .ProseMirror h2{font-size:19px}
+  .card-editor{font-size:19px;line-height:31px}
+  .card-editor .ProseMirror h1{font-size:24px}
+  .card-editor .ProseMirror h2{font-size:21px}
   /* 純正メモを実測したところ段落の間に余分な空きは無く、行末の空白だけで
      切れ目を見せていた。それに合わせて段落も行送りと同じ間隔で並べる */
   .detail-pane .card-editor .ProseMirror p{margin-bottom:0}
   /* 本文だけ大きいと周りが痩せて見えるので、詳細画面の中の文字も一緒に上げる。
      一覧側に及ばないよう .detail-pane の中だけに限定している */
-  .detail-pane .cat-btn{font-size:13px}     /* カテゴリの札 */
-  .detail-pane .card-date{font-size:13px}   /* 日時 */
-  .detail-pane .byte-count{font-size:13px}
-  .detail-pane .tb-btn{font-size:14px}      /* 太字などの装飾ボタン */
+  .detail-pane .cat-btn{font-size:15px}     /* カテゴリの札 */
+  .detail-pane .card-date{font-size:15px}   /* 日時 */
+  .detail-pane .byte-count{font-size:15px}
+  .detail-pane .tb-btn{font-size:16px}      /* 太字などの装飾ボタン */
   /* コピー・ペースト・リセット・♥・ゴミ箱の絵はSVGに大きさが直接書いてあり、
      文字を大きくしても付いてこないので、ここで一緒に上げる。
      一度22pxまで上げたが、5個並ぶとデカすぎたので19pxに戻してある */
@@ -3832,11 +3832,11 @@ function renderTrash() {
           + '<button class="btn-icon" onclick="window._hardDelete(\'' + n.id + '\')" title="完全削除">' + IC.trash + '</button>'
           + '</div></div>';
       }).join('')
-    : '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">ゴミ箱は空</div>';
+    : '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:15px">ゴミ箱は空</div>';
   var emptyAll = items.length
     ? '<div style="display:flex;justify-content:flex-end;margin-top:0.75rem"><button class="btn btn-sm btn-danger" onclick="window._emptyTrash()">' + IC.trash + ' すべて完全削除</button></div>'
     : '';
-  el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">ゴミ箱 <span style="font-size:13px;color:var(--text3);font-weight:400">' + items.length + '件</span></span>'
+  el.innerHTML = '<div class="modal"><div class="modal-header"><span class="modal-title">ゴミ箱 <span style="font-size:15px;color:var(--text3);font-weight:400">' + items.length + '件</span></span>'
     + '<button class="btn-icon" onclick="window.toggleTrash()">' + IC.x + '</button></div>'
     + rows + emptyAll + '</div>';
   el.classList.add('open');
@@ -3895,8 +3895,8 @@ async function renderCatPanel() {
   var rows = categories.map(function(c, idx) {
     var count = counts[c] || 0;
     return '<div class="cat-row" data-idx="' + idx + '">'
-      + '<span class="cat-name" onclick="window._catPanelGoto(' + idx + ')" style="font-size:14px;flex:1;min-width:0;cursor:pointer">' + esc(c)
-      + ' <span style="font-size:12px;color:var(--text3)">' + count + '件</span></span>'
+      + '<span class="cat-name" onclick="window._catPanelGoto(' + idx + ')" style="font-size:16px;flex:1;min-width:0;cursor:pointer">' + esc(c)
+      + ' <span style="font-size:14px;color:var(--text3)">' + count + '件</span></span>'
       + '<button class="btn-icon" onclick="window._editCatStart(' + idx + ')" title="名前を編集">' + IC.edit + '</button>'
       + '<button class="btn-icon" data-cat-del="' + esc(c) + '" onclick="window._deleteCat(this.dataset.catDel)"'
       + ' title="' + esc(count > 0 ? count + '件を「' + NO_CAT + '」に移して削除' : 'カテゴリーを削除') + '">'
@@ -3908,7 +3908,7 @@ async function renderCatPanel() {
     + '<button class="btn-icon" onclick="window.toggleCatPanel()">' + IC.x + '</button></div>'
     + '<div class="cat-add-row" style="margin-bottom:0.5rem"><input type="text" id="new-cat-input" placeholder="新しいカテゴリー名…">'
     + '<button class="btn btn-sm" onclick="window._addCat()">' + IC.plus + ' 追加</button></div>'
-    + '<input type="text" id="cat-panel-search" placeholder="検索…" oninput="window._catPanelFilter(this.value)" style="width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;margin-bottom:0.75rem">'
+    + '<input type="text" id="cat-panel-search" placeholder="検索…" oninput="window._catPanelFilter(this.value)" style="width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:15px;color:var(--text);font-family:inherit;outline:none;margin-bottom:0.75rem">'
     + '</div>'
     + '<div style="overflow-y:auto;padding:0 1.25rem 1.25rem">' + rows + '</div>'
     + '</div>';
@@ -3953,7 +3953,7 @@ window._editCatStart = function(idx) {
   if (oldName == null) return;
   var row = document.querySelector('#cat-panel .cat-row[data-idx="' + idx + '"]');
   if (!row) return;
-  row.innerHTML = '<input type="text" class="cat-edit-input" value="' + esc(oldName) + '" style="flex:1;min-width:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 10px;font-size:14px;color:var(--text);font-family:inherit;outline:none">'
+  row.innerHTML = '<input type="text" class="cat-edit-input" value="' + esc(oldName) + '" style="flex:1;min-width:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:6px 10px;font-size:16px;color:var(--text);font-family:inherit;outline:none">'
     + '<button class="btn-icon" onclick="window._renameCat(' + idx + ')" title="保存">' + IC.check + '</button>'
     + '<button class="btn-icon" onclick="window.renderCatPanel()" title="キャンセル">' + IC.x + '</button>';
   var inp = row.querySelector('.cat-edit-input');
