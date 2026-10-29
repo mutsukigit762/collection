@@ -2111,6 +2111,13 @@ window._selectCat = async function(noteId, cat) {
     destroyEditor(n.id);
     _mountedDetailId = null;
     renderCards();
+    // スマホは一覧のほうだけ描き直すので、詳細画面の中身は自分で片付ける。
+    // これをしないと、エディタだけ壊れて本文の無い詳細画面が残る
+    if (!_isDesktop()) {
+      var _inner = _detailInner();
+      if (_inner) _inner.innerHTML = '';
+      closeMobileDetail();
+    }
     _filterCountKey = null;
     updateFilterCount();
     return;
