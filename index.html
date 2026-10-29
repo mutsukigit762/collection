@@ -2111,12 +2111,18 @@ window._selectCat = async function(noteId, cat) {
     destroyEditor(n.id);
     _mountedDetailId = null;
     renderCards();
-    // スマホは一覧のほうだけ描き直すので、詳細画面の中身は自分で片付ける。
-    // これをしないと、エディタだけ壊れて本文の無い詳細画面が残る
+    // スマホは一覧のほうだけ描き直すので、詳細画面は自分で載せ直す。
+    // 次のメモがあればそれを開いたまま、無ければ一覧へ戻す
     if (!_isDesktop()) {
-      var _inner = _detailInner();
-      if (_inner) _inner.innerHTML = '';
-      closeMobileDetail();
+      if (selectedCardId) {
+        renderDetail();
+        var _pane = document.getElementById('detail-pane');
+        if (_pane) _pane.scrollTop = 0;
+      } else {
+        var _inner = _detailInner();
+        if (_inner) _inner.innerHTML = '';
+        closeMobileDetail();
+      }
     }
     _filterCountKey = null;
     updateFilterCount();
