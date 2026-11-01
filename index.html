@@ -3717,6 +3717,10 @@ initFilterSelects();
 document.getElementById('detail-pane').addEventListener('click', function(e) {
   if (e.target !== this && !e.target.classList.contains('card')) return;
   if (!editors[selectedCardId]) return;
+  // 本文から余白へドラッグして文字を選んだ時も、離した場所との共通の親としてここに click が来る。
+  // 選択が残っている間に末尾へ飛ばすとハイライトが消えるので、選択があれば何もしない
+  var sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed) return;
   _focusSelectedEditor(false);            // 押した流れの中で呼ぶのでキーボードも出る
   // iOSのSafariはキーボードを出す時に、フォーカスした部品を見せようとして
   // 画面を勝手に動かす。読んでいた場所から飛ばされるので、少しの間押さえ込む
